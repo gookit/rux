@@ -63,11 +63,15 @@ type Router struct {
 	irregularRoutes map[string]interface{}
 
 	currentGroupPrefix  string
-	currentGroupOption  string
-	currentGroupMiddles []interface{}
+	currentGroupHandlers []interface{}
 
 	// global middleware list
 	mds []interface{}
+
+	Handlers   HandlersChain
+	Fallback   HandlerFunc
+	NotFound   HandlerFunc
+	NotAllowed HandlerFunc
 
 	// intercept all request. eg. "/site/error"
 	interceptAll string
@@ -89,7 +93,7 @@ var globalPatterns = map[string]string{
 
 // New
 func New() *Router {
-	return &Router{name: "default", ignoreLastSlash:true}
+	return &Router{name: "default", ignoreLastSlash: true}
 }
 
 func (r *Router) IgnoreLastSlash(ignoreLastSlash bool) *Router {
@@ -112,24 +116,28 @@ func (r *Router) InterceptAll(interceptAll string) *Router {
  *************************************************************/
 
 // Add a route to router
-func (r *Router) Add(method, path string, handler Handle, mds ...interface{}) *Route {
+func (r *Router) Add(method, path string, handlers ...HandlerFunc) *Route {
 	path = r.formatPath(path)
 
-	if handler == nil {
-		panic("router: nil handler")
+	if len(handlers) == 0 {
+		panic("router: must set handler")
 	}
 
-	route := &Route{}
+	if r.currentGroupPrefix != "" {
+		path = r.currentGroupPrefix + path
+	}
+
+	route := &Route{
+		method:   method,
+		pattern:  path,
+		Handler:  handlers[0],
+		Handlers: handlers,
+	}
 
 	return route
 }
 
-// AddRoute a route to router by Route
-func (r *Router) AddRoute(route *Route) *Route {
-	return route
-}
-
-func (r *Router) GET(path string, handler Handle, mds ...interface{}) *Route {
+func (r *Router) GET(path string, handlers ...HandlerFunc) *Route {
 	route := &Route{}
 
 	return route
@@ -139,20 +147,38 @@ func (r *Router) Group(path string, register func(*Router), mds ...interface{}) 
 	prevPrefix := r.currentGroupPrefix
 	r.currentGroupPrefix = prevPrefix + r.formatPath(path)
 
-	prevMiddles := r.currentGroupMiddles
+	prevMiddles := r.currentGroupHandlers
 	if len(mds) > 0 {
 		if len(prevMiddles) > 0 {
-			r.currentGroupMiddles = append(r.currentGroupMiddles, prevMiddles...)
-			r.currentGroupMiddles = append(r.currentGroupMiddles, mds...)
+			r.currentGroupHandlers = append(r.currentGroupHandlers, prevMiddles...)
+			r.currentGroupHandlers = append(r.currentGroupHandlers, mds...)
 		} else {
-			r.currentGroupMiddles = mds
+			r.currentGroupHandlers = mds
 		}
 	}
 
 	register(r)
 
 	r.currentGroupPrefix = prevPrefix
-	r.currentGroupMiddles = prevMiddles
+	r.currentGroupHandlers = prevMiddles
+}
+
+/*************************************************************
+ * middleware handle
+ *************************************************************/
+
+func (r *Router) Use(mds ...HandlerFunc) {
+	r.Handlers = append(r.Handlers, mds...)
+}
+
+/*************************************************************
+ * route match
+ *************************************************************/
+
+func (r *Router) Match(method, path string) (route *Route, err error) {
+	path = r.formatPath(path)
+
+	return
 }
 
 /*************************************************************
@@ -185,9 +211,10 @@ func (r *Router) StaticFiles(path string, root http.FileSystem) {
 
 	fileServer := http.FileServer(root)
 
-	r.GET(path, func(w http.ResponseWriter, req *http.Request, ps Params) {
-		req.URL.Path = ps.ByName("filepath")
-		fileServer.ServeHTTP(w, req)
+	r.GET(path, func(ctx *Context) {
+		req := ctx.Req
+		req.URL.Path = ctx.Params["filepath"]
+		fileServer.ServeHTTP(ctx.Res, req)
 	})
 }
 
@@ -207,6 +234,14 @@ func (r *Router) formatPath(path string) string {
 
 	if r.ignoreLastSlash {
 		path = strings.TrimRight(path, "/")
+	}
+
+	return path
+}
+
+func (r *Router) buildRealPath(path string) string {
+	if r.currentGroupPrefix != "" {
+		return r.currentGroupPrefix + path
 	}
 
 	return path
