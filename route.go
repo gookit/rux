@@ -1,6 +1,9 @@
 package souter
 
-import "net/http"
+import (
+	"net/http"
+	"strconv"
+)
 
 type MiddlewareFunc func(http.Handler) http.Handler
 
@@ -14,16 +17,18 @@ func (fn MiddlewareFunc) Middleware(handler http.Handler) http.Handler {
 	return fn(handler)
 }
 
-type CtxMdlFunc func(ctx *Context, next func())
-
-type CtxHandle func(ctx *Context)
 type Handle func(http.ResponseWriter, *http.Request, Params)
-type Params map[string]string
+
+/*************************************************************
+ * Route definition
+ *************************************************************/
 
 // Route in the router
 type Route struct {
 	Name string
 	method string
+
+	Params Params
 
 	// path/pattern definition for the route. eg "/users" "/users/{id}"
 	pattern string
@@ -40,47 +45,28 @@ type Route struct {
 	// defaults
 }
 
-func (r *Route) Chain(h http.Handler) http.Handler {
-	for i := range r.mds {
-		next := len(r.mds)-1-i
-		h = r.mds[next].Middleware(h)
+/*************************************************************
+ * Route params
+ *************************************************************/
+
+// Params for current route
+type Params map[string]string
+
+func (p Params) String(key string) (val string) {
+	if val, ok := p[key]; ok {
+		return val
 	}
 
-	return h
+	return
 }
 
-type HandlerFunc func(*Context)
-
-// Context for http server
-type Context struct {
-	Req *http.Request
-	Res http.ResponseWriter
-
-	Params Params
-
-	// context data
-	Data map[string]interface{}
-
-	index    int8
-	handlers HandlersChain
-}
-
-func(c *Context) Next() {
-	c.index++
-	s := int8(len(c.handlers))
-
-	for ; c.index < s; c.index++ {
-		c.handlers[c.index](c)
+func (p Params) Int(key string) (val int) {
+	if str, ok := p[key]; ok {
+		val, err := strconv.Atoi(str)
+		if err != nil {
+			return val
+		}
 	}
-}
 
-type HandlersChain []HandlerFunc
-
-// Last returns the last handler in the chain. ie. the last handler is the main own.
-func (c HandlersChain) Last() HandlerFunc {
-	length := len(c)
-	if length > 0 {
-		return c[length-1]
-	}
-	return nil
+	return
 }

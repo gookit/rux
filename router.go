@@ -40,6 +40,10 @@ const (
 	PatternMatchAll                    // /*
 )
 
+/*************************************************************
+ * Router definition
+ *************************************************************/
+
 // Router definition
 type Router struct {
 	name string
@@ -51,27 +55,38 @@ type Router struct {
 	staticRoutes map[string]interface{}
 
 	// stable routes
-	stableRoutes map[string]interface{}
+	stableRoutes map[string]*Route
 
 	// cached dynamic routes
-	cachedRoutes map[string]interface{}
+	cachedRoutes map[string]*Route
 
 	// Regular dynamic routing 规律的动态路由
+	// {
+	// 	"/start": [{
+	// 		"m": GET,
+	//		"r": Route{pattern:"/start/:id"}
+	// 	},{
+	// 		"m": POST,
+	//		"r": Route{pattern:"/start/:user/add"}
+	// 	},]
+	// }
 	regularRoutes map[string]interface{}
 
 	// Irregular dynamic routing 无规律的动态路由
+	// [
+	// 	"GET": [
+	// 		"m": GET,
+	//		"r": Route
+	// 	]
+	// ]
 	irregularRoutes map[string]interface{}
 
 	currentGroupPrefix  string
-	currentGroupHandlers []interface{}
+	currentGroupHandlers HandlersChain
 
-	// global middleware list
-	mds []interface{}
-
+	noRoute   HandlersChain
+	noAllowed HandlersChain
 	Handlers   HandlersChain
-	Fallback   HandlerFunc
-	NotFound   HandlerFunc
-	NotAllowed HandlerFunc
 
 	// intercept all request. eg. "/site/error"
 	interceptAll string
@@ -116,9 +131,7 @@ func (r *Router) InterceptAll(interceptAll string) *Router {
  *************************************************************/
 
 // Add a route to router
-func (r *Router) Add(method, path string, handlers ...HandlerFunc) *Route {
-	path = r.formatPath(path)
-
+func (r *Router) Add(method, path string, handler HandlerFunc, handlers ...HandlerFunc) *Route {
 	if len(handlers) == 0 {
 		panic("router: must set handler")
 	}
@@ -127,44 +140,106 @@ func (r *Router) Add(method, path string, handlers ...HandlerFunc) *Route {
 		path = r.currentGroupPrefix + path
 	}
 
+	path = r.formatPath(path)
+	method = strings.ToUpper(method)
+
+	if strings.Index(MethodsStr + ",", method) == -1 {
+		panic("router: invalid method name, must in: " + MethodsStr)
+	}
+
 	route := &Route{
 		method:   method,
 		pattern:  path,
-		Handler:  handlers[0],
+		Handler:  handler,
 		Handlers: handlers,
+	}
+
+	// path is fixed. eg. "/users"
+	if isFixedPath(path) {
+		key := method + "" + path
+		r.routeCounter++
+		r.stableRoutes[key] = route
 	}
 
 	return route
 }
 
-func (r *Router) GET(path string, handlers ...HandlerFunc) *Route {
-	route := &Route{}
-
-	return route
+func (r *Router) ANY(path string, handler HandlerFunc, handlers ...HandlerFunc) *Route {
+	return r.Add(ANY, path, handler, handlers...)
 }
 
-func (r *Router) Group(path string, register func(*Router), mds ...interface{}) {
+func (r *Router) GET(path string, handler HandlerFunc, handlers ...HandlerFunc) *Route {
+	return r.Add(GET, path, handler, handlers...)
+}
+
+func (r *Router) HEAD(path string, handler HandlerFunc, handlers ...HandlerFunc) *Route {
+	return r.Add(HEAD, path, handler, handlers...)
+}
+
+func (r *Router) POST(path string, handler HandlerFunc, handlers ...HandlerFunc) *Route {
+	return r.Add(POST, path, handler, handlers...)
+}
+
+func (r *Router) PUT(path string, handler HandlerFunc, handlers ...HandlerFunc) *Route {
+	return r.Add(PUT, path, handler, handlers...)
+}
+
+func (r *Router) PATCH(path string, handler HandlerFunc, handlers ...HandlerFunc) *Route {
+	return r.Add(PATCH, path, handler, handlers...)
+}
+
+func (r *Router) OPTIONS(path string, handler HandlerFunc, handlers ...HandlerFunc) *Route {
+	return r.Add(OPTIONS, path, handler, handlers...)
+}
+
+func (r *Router) DELETE(path string, handler HandlerFunc, handlers ...HandlerFunc) *Route {
+	return r.Add(DELETE, path, handler, handlers...)
+}
+
+func (r *Router) Group(path string, register func(grp *Router), handlers ...HandlerFunc) {
 	prevPrefix := r.currentGroupPrefix
 	r.currentGroupPrefix = prevPrefix + r.formatPath(path)
 
-	prevMiddles := r.currentGroupHandlers
-	if len(mds) > 0 {
-		if len(prevMiddles) > 0 {
-			r.currentGroupHandlers = append(r.currentGroupHandlers, prevMiddles...)
-			r.currentGroupHandlers = append(r.currentGroupHandlers, mds...)
+	prevHandlers := r.currentGroupHandlers
+	if len(handlers) > 0 {
+		if len(prevHandlers) > 0 {
+			r.currentGroupHandlers = append(r.currentGroupHandlers, prevHandlers...)
+			r.currentGroupHandlers = append(r.currentGroupHandlers, handlers...)
 		} else {
-			r.currentGroupHandlers = mds
+			r.currentGroupHandlers = handlers
 		}
 	}
 
 	register(r)
 
 	r.currentGroupPrefix = prevPrefix
-	r.currentGroupHandlers = prevMiddles
+	r.currentGroupHandlers = prevHandlers
 }
 
+// IController
+type IController interface {
+	// [":id": c.GetAction]
+	AddRoutes(grp *Router)
+}
+
+// Controller
+func (r *Router) Controller(basePath string, controller IController, handlers ...HandlerFunc) {
+	r.Group(basePath, controller.AddRoutes)
+}
+
+// NotFound
+func (r *Router) NotFound(handlers ...HandlerFunc) {
+	r.noRoute = handlers
+}
+
+// NotAllowed
+func (r *Router) NotAllowed(handlers ...HandlerFunc) {
+	r.noAllowed = handlers
+}
+
+
 /*************************************************************
- * middleware handle
+ * global middleware
  *************************************************************/
 
 func (r *Router) Use(mds ...HandlerFunc) {
@@ -174,6 +249,9 @@ func (r *Router) Use(mds ...HandlerFunc) {
 /*************************************************************
  * route match
  *************************************************************/
+
+func (r *Router) ServeHTTP(res http.ResponseWriter, req *http.Request) {
+}
 
 func (r *Router) Match(method, path string) (route *Route, err error) {
 	path = r.formatPath(path)
@@ -245,4 +323,8 @@ func (r *Router) buildRealPath(path string) string {
 	}
 
 	return path
+}
+
+func isFixedPath(path string) bool {
+	return strings.Index(path, ":") < 0 && strings.Index(path, "[") < 0
 }
