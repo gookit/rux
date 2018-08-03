@@ -41,6 +41,10 @@ type Context struct {
 	handlers HandlersChain
 }
 
+func NewContext(res http.ResponseWriter, req *http.Request, handlers HandlersChain) *Context {
+	return &Context{Res: res, Req: req, handlers: handlers}
+}
+
 func (c *Context) Values() map[string]interface{} {
 	return c.values
 }
@@ -51,6 +55,11 @@ func (c *Context) SetValue(key string, val interface{}) {
 
 func (c *Context) Value(key string) interface{} {
 	return c.values[key]
+}
+
+// AppendHandlers
+func (c *Context) AppendHandlers(handlers ...HandlerFunc) {
+	c.handlers = append(c.handlers, handlers...)
 }
 
 func (c *Context) Next() {

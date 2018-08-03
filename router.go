@@ -1,9 +1,10 @@
 package souter
 
 import (
-	"regexp"
 	"strings"
 	"net/http"
+	"bytes"
+	"fmt"
 )
 
 const (
@@ -44,6 +45,14 @@ const (
  * Router definition
  *************************************************************/
 
+type tree struct {
+	node *Route
+}
+
+type routes []*Route
+// "GET": [ Route, ...]
+type methodRoutes map[string]routes
+
 // Router definition
 type Router struct {
 	name string
@@ -54,7 +63,11 @@ type Router struct {
 	// static routes
 	staticRoutes map[string]interface{}
 
-	// stable routes
+	// stable/fixed routes
+	// {
+	// 	"GET /users": Route,
+	// 	"POST /users": Route,
+	// }
 	stableRoutes map[string]*Route
 
 	// cached dynamic routes
@@ -62,24 +75,20 @@ type Router struct {
 
 	// Regular dynamic routing 规律的动态路由
 	// {
-	// 	"/start": [{
-	// 		"m": GET,
-	//		"r": Route{pattern:"/start/:id"}
-	// 	},{
-	// 		"m": POST,
-	//		"r": Route{pattern:"/start/:user/add"}
-	// 	},]
+	// 	"/blog": {
+	// 		"GET": [ Route{pattern:"/blog/:id"}, ...]
+	// 		"POST": [ Route{pattern:"/blog/:user/add"}]
+	// 	},
+	//	...
 	// }
-	regularRoutes map[string]interface{}
+	regularRoutes map[string]methodRoutes
 
 	// Irregular dynamic routing 无规律的动态路由
-	// [
-	// 	"GET": [
-	// 		"m": GET,
-	//		"r": Route
-	// 	]
-	// ]
-	irregularRoutes map[string]interface{}
+	// {
+	// 	"GET": [Route, ...],
+	// 	"POST": [Route, Route, ...],
+	// }
+	irregularRoutes methodRoutes
 
 	currentGroupPrefix  string
 	currentGroupHandlers HandlersChain
@@ -97,8 +106,7 @@ type Router struct {
 }
 
 // "/users/:id" "/users/:id(\d+)"
-var varPattern = regexp.MustCompile(`:[a-zA-Z0-9]+`)
-var anyPattern = regexp.MustCompile(`[^/]+`)
+var anyMethods = []string{GET,POST,PUT,PATCH,DELETE,OPTIONS,HEAD}
 
 var globalPatterns = map[string]string{
 	"all": `.*`,
@@ -111,19 +119,55 @@ func New() *Router {
 	return &Router{name: "default", ignoreLastSlash: true}
 }
 
+// IgnoreLastSlash
 func (r *Router) IgnoreLastSlash(ignoreLastSlash bool) *Router {
 	r.ignoreLastSlash = ignoreLastSlash
 	return r
 }
 
+// HandleMethodNotAllowed
 func (r *Router) HandleMethodNotAllowed(val bool) *Router {
 	r.handleMethodNotAllowed = val
 	return r
 }
 
+// InterceptAll
 func (r *Router) InterceptAll(interceptAll string) *Router {
 	r.interceptAll = interceptAll
 	return r
+}
+
+// String
+func (r *Router) String() string {
+	buf := new(bytes.Buffer)
+
+	fmt.Fprintf(buf, "routes count: %d\n", r.routeCounter)
+
+	fmt.Fprint(buf, "Stable(fixed) routes:\n")
+	for uri, route := range r.stableRoutes {
+		fmt.Fprintf(buf, " %s %v\n", uri, route)
+	}
+
+	fmt.Fprint(buf, "Regular(dynamic) routes:\n")
+	for start, mrs := range r.regularRoutes {
+		fmt.Fprintf(buf, " %s:\n", start)
+		for m, routes := range mrs {
+			fmt.Fprintf(buf, "  %s:\n", m)
+			for _, route := range routes {
+				fmt.Fprintf(buf, "  %s %s %v:\n", m, route.pattern, route)
+			}
+		}
+	}
+
+	fmt.Fprint(buf, "Irregular(dynamic) routes:\n")
+	for m, routes := range r.irregularRoutes {
+		fmt.Fprintf(buf, "  %s:\n", m)
+		for _, route := range routes {
+			fmt.Fprintf(buf, "  %s %s %v:\n", m, route.pattern, route)
+		}
+	}
+
+	return buf.String()
 }
 
 /*************************************************************
@@ -131,7 +175,7 @@ func (r *Router) InterceptAll(interceptAll string) *Router {
  *************************************************************/
 
 // Add a route to router
-func (r *Router) Add(method, path string, handler HandlerFunc, handlers ...HandlerFunc) *Route {
+func (r *Router) Add(method, path string, handler HandlerFunc, handlers ...HandlerFunc) (route *Route) {
 	if len(handlers) == 0 {
 		panic("router: must set handler")
 	}
@@ -147,21 +191,61 @@ func (r *Router) Add(method, path string, handler HandlerFunc, handlers ...Handl
 		panic("router: invalid method name, must in: " + MethodsStr)
 	}
 
-	route := &Route{
+	// create new route instance
+	route = &Route{
 		method:   method,
 		pattern:  path,
 		Handler:  handler,
-		Handlers: handlers,
+		handlers: handlers,
 	}
 
 	// path is fixed. eg. "/users"
 	if isFixedPath(path) {
-		key := method + "" + path
-		r.routeCounter++
-		r.stableRoutes[key] = route
+		if method == ANY {
+			for _, m := range anyMethods {
+				key := m + " " + path
+				r.routeCounter++
+				r.stableRoutes[key] = route.withMethod(m)
+			}
+		} else {
+			key := method + " " + path
+			r.routeCounter++
+			r.stableRoutes[key] = route
+		}
+
+		return
 	}
 
-	return route
+	// parsing route path with parameters
+	r.parseParamRoute(path, route)
+
+	ms := []string{method}
+	if method == ANY {
+		ms = anyMethods
+	}
+
+	if route.first != "" {
+		mrs, has := r.regularRoutes[route.first]
+		if !has {
+			mrs = methodRoutes{}
+		}
+
+		for _, m := range ms {
+			rs, has := mrs[m]
+			if has {
+				rs = append(rs, route.withMethod(m))
+			} else {
+				rs = routes{route.withMethod(m)}
+			}
+
+			r.routeCounter++
+			r.regularRoutes[route.first][m] = rs
+		}
+	} else {
+
+	}
+
+	return
 }
 
 func (r *Router) ANY(path string, handler HandlerFunc, handlers ...HandlerFunc) *Route {
@@ -237,26 +321,38 @@ func (r *Router) NotAllowed(handlers ...HandlerFunc) {
 	r.noAllowed = handlers
 }
 
-
 /*************************************************************
  * global middleware
  *************************************************************/
 
-func (r *Router) Use(mds ...HandlerFunc) {
-	r.Handlers = append(r.Handlers, mds...)
+func (r *Router) Use(handlers ...HandlerFunc) {
+	r.Handlers = append(r.Handlers, handlers...)
 }
 
 /*************************************************************
  * route match
  *************************************************************/
 
-func (r *Router) ServeHTTP(res http.ResponseWriter, req *http.Request) {
-}
-
 func (r *Router) Match(method, path string) (route *Route, err error) {
 	path = r.formatPath(path)
 
 	return
+}
+
+/*************************************************************
+ * running with http server
+ *************************************************************/
+
+func (r *Router) ServeHTTP(res http.ResponseWriter, req *http.Request) {
+	route, err := r.Match(req.Method, req.URL.Path)
+	if err != nil {
+		panic(err)
+	}
+
+	ctx := NewContext(res, req, r.Handlers)
+	ctx.Params = route.Params
+
+	// ctx.Next()
 }
 
 /*************************************************************
@@ -294,37 +390,4 @@ func (r *Router) StaticFiles(path string, root http.FileSystem) {
 		req.URL.Path = ctx.Params["filepath"]
 		fileServer.ServeHTTP(ctx.Res, req)
 	})
-}
-
-/*************************************************************
- * helper methods
- *************************************************************/
-
-func (r *Router) formatPath(path string) string {
-	path = strings.TrimSpace(path)
-	if path == "" {
-		return "/"
-	}
-
-	if path[0] != '/' {
-		path = "/" + path
-	}
-
-	if r.ignoreLastSlash {
-		path = strings.TrimRight(path, "/")
-	}
-
-	return path
-}
-
-func (r *Router) buildRealPath(path string) string {
-	if r.currentGroupPrefix != "" {
-		return r.currentGroupPrefix + path
-	}
-
-	return path
-}
-
-func isFixedPath(path string) bool {
-	return strings.Index(path, ":") < 0 && strings.Index(path, "[") < 0
 }

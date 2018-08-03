@@ -3,6 +3,7 @@ package souter
 import (
 	"net/http"
 	"strconv"
+	"regexp"
 )
 
 type MiddlewareFunc func(http.Handler) http.Handler
@@ -25,13 +26,22 @@ type Handle func(http.ResponseWriter, *http.Request, Params)
 
 // Route in the router
 type Route struct {
-	Name string
+	Name   string
 	method string
 
 	Params Params
 
 	// path/pattern definition for the route. eg "/users" "/users/{id}"
 	pattern string
+
+	// start string in the route pattern. "/users/{id}" -> "/user/"
+	start string
+	// first node string in the route pattern. "/users/{id}" -> "user"
+	first string
+
+	// regexp for the route pattern
+	regexp *regexp.Regexp
+
 	// handler for the route. eg. myFunc, &MyController.SomeAction
 	Handler HandlerFunc
 	// some options data for the route
@@ -39,10 +49,49 @@ type Route struct {
 	// metadata
 	meta map[string]string
 
+	vars map[string]string
+
 	// middleware list
-	Handlers HandlersChain
+	handlers HandlersChain
 	// domains
 	// defaults
+}
+
+// Use some middleware handlers
+func (r *Route) Use(handlers ...HandlerFunc) *Route {
+	r.handlers = append(r.handlers, handlers...)
+
+	return r
+}
+
+// Vars add vars pattern for the route path
+func (r *Route) Vars(vars map[string]string) *Route {
+	for name, pattern := range vars {
+		r.vars[name] = pattern
+	}
+
+	return r
+}
+
+func (r *Route) withMethod(method string) *Route {
+	nr := &Route{
+		method:   method,
+		pattern:  r.pattern,
+		Handler:  r.Handler,
+		handlers: r.handlers,
+	}
+
+	return nr
+}
+
+func (r *Route) clone() *Route {
+	nr := &Route{
+		pattern:  r.pattern,
+		Handler:  r.Handler,
+		handlers: r.handlers,
+	}
+
+	return nr
 }
 
 /*************************************************************

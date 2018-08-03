@@ -11,16 +11,16 @@ func main() {
 	r.Use()
 
 	r.GET("/", func(ctx *souter.Context) {
-		ctx.Res.Write([]byte(`hello`))
+		ctx.Res.Write([]byte("hello, in " + ctx.Req.URL.Path))
 	})
 
 	r.Group("/users", func(sub *souter.Router) {
 		sub.GET("/", func(ctx *souter.Context) {
-
+			ctx.Res.Write([]byte("hello, in " + ctx.Req.URL.Path))
 		})
 
 		sub.GET("/:id", func(ctx *souter.Context) {
-
+			ctx.Res.Write([]byte("hello, in " + ctx.Req.URL.Path))
 		})
 	})
 
@@ -38,9 +38,9 @@ func (c *SiteController) AddRoutes(r *souter.Router) {
 }
 
 func (c *SiteController) Get(ctx *souter.Context) {
-	ctx.Res.Write([]byte(`hello GET`))
+	ctx.Res.Write([]byte("hello, in " + ctx.Req.URL.Path))
 }
 
 func (c *SiteController) Post(ctx *souter.Context) {
-	ctx.Res.Write([]byte(`hello POST`))
+	ctx.Res.Write([]byte("hello, in " + ctx.Req.URL.Path))
 }
