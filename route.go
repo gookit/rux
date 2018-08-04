@@ -43,8 +43,7 @@ type Route struct {
 	// defaults
 }
 
-func newRoute(method, path string, handler HandlerFunc, handlers HandlersChain) *Route {
-	handlers = append(handlers, handler)
+func newRoute(method, path string, handlers HandlersChain) *Route {
 	return &Route{
 		method:   method,
 		pattern:  path,
@@ -55,7 +54,6 @@ func newRoute(method, path string, handler HandlerFunc, handlers HandlersChain) 
 // Use some middleware handlers
 func (r *Route) Use(handlers ...HandlerFunc) *Route {
 	r.handlers = append(r.handlers, handlers...)
-
 	return r
 }
 
@@ -119,6 +117,12 @@ func (r *Route) withParams(ps Params) *Route {
 		pattern:  r.pattern,
 		handlers: r.handlers,
 	}
+}
+
+func (r *Route) Copy() *Route {
+	var route = *r
+
+	return &route
 }
 
 /*************************************************************

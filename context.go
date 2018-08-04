@@ -2,44 +2,17 @@ package souter
 
 import (
 	"net/http"
+	"math"
+	"io/ioutil"
 )
-
-type MiddlewareFunc func(http.Handler) http.Handler
-
-// middleware interface is anything which implements a MiddlewareFunc named Middleware.
-type middleware interface {
-	Middleware(handler http.Handler) http.Handler
-}
-
-// Middleware allows MiddlewareFunc to implement the middleware interface.
-func (fn MiddlewareFunc) Middleware(handler http.Handler) http.Handler {
-	return fn(handler)
-}
-
-type Handle func(http.ResponseWriter, *http.Request, Params)
-
-/*************************************************************
- * Middleware(HandlerFunc and HandlersChain)
- *************************************************************/
-
-type HandlerFunc func(ctx *Context)
-type ContextFunc func(ctx *Context)
-
-type HandlersChain []HandlerFunc
-
-// Last returns the last handler in the chain. ie. the last handler is the main own.
-func (c HandlersChain) Last() HandlerFunc {
-	length := len(c)
-	if length > 0 {
-		return c[length-1]
-	}
-
-	return nil
-}
 
 /*************************************************************
  * Context
  *************************************************************/
+
+const (
+	abortIndex    int8 = math.MaxInt8 / 2
+)
 
 // Context for http server
 type Context struct {
@@ -56,8 +29,17 @@ type Context struct {
 	handlers HandlersChain
 }
 
-func NewContext(res http.ResponseWriter, req *http.Request, handlers HandlersChain) *Context {
+func newContext(res http.ResponseWriter, req *http.Request, handlers HandlersChain) *Context {
 	return &Context{Res: res, Req: req, handlers: handlers}
+}
+
+func (c *Context) HandlerName() string {
+	return nameOfFunction(c.handlers.Last())
+}
+
+// Handler returns the main handler.
+func (c *Context) Handler() HandlerFunc {
+	return c.handlers.Last()
 }
 
 func (c *Context) Values() map[string]interface{} {
@@ -72,11 +54,6 @@ func (c *Context) Value(key string) interface{} {
 	return c.values[key]
 }
 
-// AppendHandlers
-func (c *Context) AppendHandlers(handlers ...HandlerFunc) {
-	c.handlers = append(c.handlers, handlers...)
-}
-
 func (c *Context) Next() {
 	c.index++
 	s := int8(len(c.handlers))
@@ -84,4 +61,36 @@ func (c *Context) Next() {
 	for ; c.index < s; c.index++ {
 		c.handlers[c.index](c)
 	}
+}
+
+func (c *Context) Copy() *Context {
+	var ctx = *c
+	ctx.handlers = nil
+	ctx.index = abortIndex
+
+	return &ctx
+}
+
+// appendHandlers
+func (c *Context) appendHandlers(handlers ...HandlerFunc) {
+	c.handlers = append(c.handlers, handlers...)
+}
+
+func (c *Context) reset() {
+	// c.Writer = &c.writermem
+	c.Params = nil
+	c.handlers = nil
+	c.index = -1
+	c.values = nil
+	// c.Errors = c.Errors[0:0]
+	// c.Accepted = nil
+}
+
+/*************************************************************
+ * Context helper methods
+ *************************************************************/
+
+// GetRawData return stream data
+func (c *Context) GetRawData() ([]byte, error) {
+	return ioutil.ReadAll(c.Req.Body)
 }

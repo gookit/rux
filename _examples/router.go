@@ -13,9 +13,9 @@ func main() {
 		ctx.Res.Write([]byte("hello, in " + ctx.Req.URL.Path))
 	})
 
-	r.GET("/about[.html]", def_handle)
+	r.GET("/about[.html]", defHandle)
 
-	r.GET("/hi-{name}", def_handle)
+	r.GET("/hi-{name}", defHandle)
 
 	r.Group("/users", func(sub *souter.Router) {
 		sub.GET("/", func(ctx *souter.Context) {
@@ -40,7 +40,7 @@ func main() {
 	// log.Fatal(http.ListenAndServe(":8090", r))
 }
 
-func def_handle(ctx *souter.Context) {
+func defHandle(ctx *souter.Context) {
 	ctx.Res.Write([]byte("hello, in " + ctx.Req.URL.Path))
 }
 

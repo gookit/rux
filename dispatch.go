@@ -6,28 +6,42 @@ import (
 )
 
 /*************************************************************
- * running with http server
+ * dispatch http request
  *************************************************************/
 
 func (r *Router) ServeHTTP(res http.ResponseWriter, req *http.Request) {
+	var handlers HandlersChain
 	status, route, allowed := r.Match(req.Method, req.URL.Path)
 
 	// not found
 	if status == NotFound {
 		if len(r.noRoute) > 0 {
-			// fn := r.noRoute.Last()
-			// fn()
+			handlers = r.noRoute
 		} else {
-			res.WriteHeader(404)
-			res.Write([]byte("page not found."))
+			http.NotFound(res, req)
 		}
 	} else if status == NotAllowed {
-		res.WriteHeader(405)
-		res.Write([]byte("method not allowed. allow: " + strings.Join(allowed, ",")))
+		if len(r.noAllowed) > 0 {
+			handlers = r.noAllowed
+		} else {
+			http.Error(
+				res,
+				"method not allowed. allow: "+strings.Join(allowed, ","),
+				405,
+			)
+		}
 	} else {
-		ctx := NewContext(res, req, r.Handlers)
-		ctx.Params = route.Params
-
-		// ctx.Next()
+		handlers = route.handlers
 	}
+
+	ctx := newContext(res, req, r.Handlers)
+	ctx.Params = route.Params
+	ctx.appendHandlers(handlers...)
+
+	ctx.Next()
+	// ctx.Res.WriteHeaderNow()
+}
+
+func (r *Router) handleRequest(ctx *Context)  {
+
 }

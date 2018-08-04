@@ -14,14 +14,16 @@ const (
 	HEAD    = "HEAD"
 	POST    = "POST"
 	PATCH   = "PATCH"
+	TRACE   = "TRACE"
 	DELETE  = "DELETE"
+	CONNECT = "CONNECT"
 	OPTIONS = "OPTIONS"
 
 	// some help constants
 	FavIcon = "/favicon.ico"
 	// supported methods string
 	// more: ,COPY,PURGE,LINK,UNLINK,LOCK,UNLOCK,VIEW,SEARCH,CONNECT,TRACE
-	MethodsStr = "GET,POST,PUT,PATCH,DELETE,OPTIONS,HEAD"
+	MethodsStr = "GET,POST,PUT,PATCH,DELETE,OPTIONS,HEAD,CONNECT,TRACE"
 
 	// match status
 	Found      = 1
@@ -105,7 +107,7 @@ type Router struct {
 	handleMethodNotAllowed bool
 }
 
-var anyMethods = []string{GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD}
+var anyMethods = []string{GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD, CONNECT, TRACE}
 
 // New
 func New() *Router {
@@ -174,14 +176,60 @@ func (r *Router) String() string {
  * register routes
  *************************************************************/
 
+func (r *Router) GET(path string, handlers ...HandlerFunc) *Route {
+	return r.Add(GET, path, handlers...)
+}
+
+func (r *Router) HEAD(path string, handlers ...HandlerFunc) *Route {
+	return r.Add(HEAD, path, handlers...)
+}
+
+func (r *Router) POST(path string, handlers ...HandlerFunc) *Route {
+	return r.Add(POST, path, handlers...)
+}
+
+func (r *Router) PUT(path string, handlers ...HandlerFunc) *Route {
+	return r.Add(PUT, path, handlers...)
+}
+
+func (r *Router) PATCH(path string, handlers ...HandlerFunc) *Route {
+	return r.Add(PATCH, path, handlers...)
+}
+
+func (r *Router) TRACE(path string, handlers ...HandlerFunc) *Route {
+	return r.Add(TRACE, path, handlers...)
+}
+
+func (r *Router) OPTIONS(path string, handlers ...HandlerFunc) *Route {
+	return r.Add(OPTIONS, path, handlers...)
+}
+
+func (r *Router) DELETE(path string, handlers ...HandlerFunc) *Route {
+	return r.Add(DELETE, path, handlers...)
+}
+
+func (r *Router) CONNECT(path string, handlers ...HandlerFunc) *Route {
+	return r.Add(CONNECT, path, handlers...)
+}
+
+func (r *Router) ANY(path string, handlers ...HandlerFunc) {
+	for _, method := range anyMethods {
+		r.Add(method, path, handlers...)
+	}
+}
+
 // Add a route to router
-func (r *Router) Add(method, path string, handler HandlerFunc, handlers ...HandlerFunc) (route *Route) {
-	if handler == nil {
+func (r *Router) Add(method, path string, handlers ...HandlerFunc) (route *Route) {
+	if len(handlers) == 0 {
 		panic("router: must set handler for the route " + path)
 	}
 
 	if r.currentGroupPrefix != "" {
 		path = r.currentGroupPrefix + r.formatPath(path)
+	}
+
+	if len(r.currentGroupHandlers) > 0 {
+		handlers = combineHandlers(r.currentGroupHandlers, handlers)
 	}
 
 	path = r.formatPath(path)
@@ -193,7 +241,7 @@ func (r *Router) Add(method, path string, handler HandlerFunc, handlers ...Handl
 
 	// create new route instance
 	r.routeCounter++
-	route = newRoute(method, path, handler, handlers)
+	route = newRoute(method, path, handlers)
 
 	// path is fixed(no param vars). eg. "/users"
 	if r.isFixedPath(path) {
@@ -227,40 +275,6 @@ func (r *Router) Add(method, path string, handler HandlerFunc, handlers ...Handl
 	}
 
 	return
-}
-
-func (r *Router) ANY(path string, handler HandlerFunc, handlers ...HandlerFunc) {
-	for _, method := range anyMethods {
-		r.Add(method, path, handler, handlers...)
-	}
-}
-
-func (r *Router) GET(path string, handler HandlerFunc, handlers ...HandlerFunc) *Route {
-	return r.Add(GET, path, handler, handlers...)
-}
-
-func (r *Router) HEAD(path string, handler HandlerFunc, handlers ...HandlerFunc) *Route {
-	return r.Add(HEAD, path, handler, handlers...)
-}
-
-func (r *Router) POST(path string, handler HandlerFunc, handlers ...HandlerFunc) *Route {
-	return r.Add(POST, path, handler, handlers...)
-}
-
-func (r *Router) PUT(path string, handler HandlerFunc, handlers ...HandlerFunc) *Route {
-	return r.Add(PUT, path, handler, handlers...)
-}
-
-func (r *Router) PATCH(path string, handler HandlerFunc, handlers ...HandlerFunc) *Route {
-	return r.Add(PATCH, path, handler, handlers...)
-}
-
-func (r *Router) OPTIONS(path string, handler HandlerFunc, handlers ...HandlerFunc) *Route {
-	return r.Add(OPTIONS, path, handler, handlers...)
-}
-
-func (r *Router) DELETE(path string, handler HandlerFunc, handlers ...HandlerFunc) *Route {
-	return r.Add(DELETE, path, handler, handlers...)
 }
 
 func (r *Router) Group(path string, register func(grp *Router), handlers ...HandlerFunc) {
@@ -302,14 +316,6 @@ func (r *Router) NotFound(handlers ...HandlerFunc) {
 // NotAllowed
 func (r *Router) NotAllowed(handlers ...HandlerFunc) {
 	r.noAllowed = handlers
-}
-
-/*************************************************************
- * global middleware
- *************************************************************/
-
-func (r *Router) Use(handlers ...HandlerFunc) {
-	r.Handlers = append(r.Handlers, handlers...)
 }
 
 /*************************************************************
