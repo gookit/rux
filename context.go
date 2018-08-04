@@ -4,8 +4,22 @@ import (
 	"net/http"
 )
 
+type MiddlewareFunc func(http.Handler) http.Handler
+
+// middleware interface is anything which implements a MiddlewareFunc named Middleware.
+type middleware interface {
+	Middleware(handler http.Handler) http.Handler
+}
+
+// Middleware allows MiddlewareFunc to implement the middleware interface.
+func (fn MiddlewareFunc) Middleware(handler http.Handler) http.Handler {
+	return fn(handler)
+}
+
+type Handle func(http.ResponseWriter, *http.Request, Params)
+
 /*************************************************************
- * HandlerFunc and HandlersChain
+ * Middleware(HandlerFunc and HandlersChain)
  *************************************************************/
 
 type HandlerFunc func(ctx *Context)
@@ -19,6 +33,7 @@ func (c HandlersChain) Last() HandlerFunc {
 	if length > 0 {
 		return c[length-1]
 	}
+
 	return nil
 }
 

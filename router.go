@@ -1,15 +1,13 @@
 package souter
 
 import (
-	"strings"
-	"net/http"
 	"bytes"
 	"fmt"
+	"net/http"
+	"strings"
 )
 
 const (
-	ANY = "ANY"
-
 	// all http verb methods
 	GET     = "GET"
 	PUT     = "PUT"
@@ -23,7 +21,7 @@ const (
 	FavIcon = "/favicon.ico"
 	// supported methods string
 	// more: ,COPY,PURGE,LINK,UNLINK,LOCK,UNLOCK,VIEW,SEARCH,CONNECT,TRACE
-	MethodsStr = "ANY,GET,POST,PUT,PATCH,DELETE,OPTIONS,HEAD"
+	MethodsStr = "GET,POST,PUT,PATCH,DELETE,OPTIONS,HEAD"
 
 	// match status
 	Found      = 1
@@ -45,11 +43,8 @@ const (
  * Router definition
  *************************************************************/
 
-type tree struct {
-	node *Route
-}
-
 type routes []*Route
+
 // "GET": [ Route, ...]
 type methodRoutes map[string]routes
 
@@ -66,36 +61,41 @@ type Router struct {
 	// stable/fixed routes
 	// {
 	// 	"GET /users": Route,
-	// 	"POST /users": Route,
+	// 	"POST /users/register": Route,
 	// }
 	stableRoutes map[string]*Route
 
 	// cached dynamic routes
+	// {
+	// 	"GET /users/12": Route,
+	// }
 	cachedRoutes map[string]*Route
 
-	// Regular dynamic routing 规律的动态路由
+	// regular dynamic routing 规律的动态路由
+	// key is "METHOD first-node":
+	// first node string in the route pattern. "/users/{id}" -> "user"
 	// {
-	// 	"/blog": {
-	// 		"GET": [ Route{pattern:"/blog/:id"}, ...]
-	// 		"POST": [ Route{pattern:"/blog/:user/add"}]
-	// 	},
-	//	...
+	// 	"GET blog": [ Route{pattern:"/blog/:id"}, ...],
+	// 	"POST blog": [ Route{pattern:"/blog/:user/add"}, ...],
+	// 	"GET users": [ Route{pattern:"/users/:id"}, ...],
+	// 	...
 	// }
-	regularRoutes map[string]methodRoutes
+	regularRoutes methodRoutes
 
-	// Irregular dynamic routing 无规律的动态路由
+	// irregular dynamic routing 无规律的动态路由
 	// {
 	// 	"GET": [Route, ...],
 	// 	"POST": [Route, Route, ...],
 	// }
 	irregularRoutes methodRoutes
 
-	currentGroupPrefix  string
+	// some data for group
+	currentGroupPrefix   string
 	currentGroupHandlers HandlersChain
 
 	noRoute   HandlersChain
 	noAllowed HandlersChain
-	Handlers   HandlersChain
+	Handlers  HandlersChain
 
 	// intercept all request. eg. "/site/error"
 	interceptAll string
@@ -105,18 +105,21 @@ type Router struct {
 	handleMethodNotAllowed bool
 }
 
-// "/users/:id" "/users/:id(\d+)"
-var anyMethods = []string{GET,POST,PUT,PATCH,DELETE,OPTIONS,HEAD}
-
-var globalPatterns = map[string]string{
-	"all": `.*`,
-	"any": `[^/]+`,
-	"num": `[1-9][0-9]*`,
-}
+var anyMethods = []string{GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD}
 
 // New
 func New() *Router {
-	return &Router{name: "default", ignoreLastSlash: true}
+	return &Router{
+		name: "default",
+
+		ignoreLastSlash: true,
+
+		stableRoutes:  make(map[string]*Route),
+		cachedRoutes:  make(map[string]*Route),
+		regularRoutes: make(methodRoutes),
+
+		irregularRoutes: make(methodRoutes),
+	}
 }
 
 // IgnoreLastSlash
@@ -141,29 +144,26 @@ func (r *Router) InterceptAll(interceptAll string) *Router {
 func (r *Router) String() string {
 	buf := new(bytes.Buffer)
 
-	fmt.Fprintf(buf, "routes count: %d\n", r.routeCounter)
+	fmt.Fprintf(buf, "Routes Count: %d\n", r.routeCounter)
 
-	fmt.Fprint(buf, "Stable(fixed) routes:\n")
-	for uri, route := range r.stableRoutes {
-		fmt.Fprintf(buf, " %s %v\n", uri, route)
+	fmt.Fprint(buf, "Stable(fixed):\n")
+	for _, route := range r.stableRoutes {
+		fmt.Fprintf(buf, " %s\n", route)
 	}
 
-	fmt.Fprint(buf, "Regular(dynamic) routes:\n")
-	for start, mrs := range r.regularRoutes {
-		fmt.Fprintf(buf, " %s:\n", start)
-		for m, routes := range mrs {
-			fmt.Fprintf(buf, "  %s:\n", m)
-			for _, route := range routes {
-				fmt.Fprintf(buf, "  %s %s %v:\n", m, route.pattern, route)
-			}
+	fmt.Fprint(buf, "Regular(dynamic):\n")
+	for pfx, routes := range r.regularRoutes {
+		fmt.Fprintf(buf, " %s:\n", pfx)
+		for _, route := range routes {
+			fmt.Fprintf(buf, "   %s\n", route.String())
 		}
 	}
 
-	fmt.Fprint(buf, "Irregular(dynamic) routes:\n")
+	fmt.Fprint(buf, "Irregular(dynamic):\n")
 	for m, routes := range r.irregularRoutes {
-		fmt.Fprintf(buf, "  %s:\n", m)
+		fmt.Fprintf(buf, " %s:\n", m)
 		for _, route := range routes {
-			fmt.Fprintf(buf, "  %s %s %v:\n", m, route.pattern, route)
+			fmt.Fprintf(buf, "   %s\n", route.String())
 		}
 	}
 
@@ -176,80 +176,63 @@ func (r *Router) String() string {
 
 // Add a route to router
 func (r *Router) Add(method, path string, handler HandlerFunc, handlers ...HandlerFunc) (route *Route) {
-	if len(handlers) == 0 {
-		panic("router: must set handler")
+	if handler == nil {
+		panic("router: must set handler for the route " + path)
 	}
 
 	if r.currentGroupPrefix != "" {
-		path = r.currentGroupPrefix + path
+		path = r.currentGroupPrefix + r.formatPath(path)
 	}
 
 	path = r.formatPath(path)
 	method = strings.ToUpper(method)
 
-	if strings.Index(MethodsStr + ",", method) == -1 {
+	if strings.Index(MethodsStr+",", method) == -1 {
 		panic("router: invalid method name, must in: " + MethodsStr)
 	}
 
 	// create new route instance
-	route = &Route{
-		method:   method,
-		pattern:  path,
-		Handler:  handler,
-		handlers: handlers,
-	}
+	r.routeCounter++
+	route = newRoute(method, path, handler, handlers)
 
-	// path is fixed. eg. "/users"
-	if isFixedPath(path) {
-		if method == ANY {
-			for _, m := range anyMethods {
-				key := m + " " + path
-				r.routeCounter++
-				r.stableRoutes[key] = route.withMethod(m)
-			}
-		} else {
-			key := method + " " + path
-			r.routeCounter++
-			r.stableRoutes[key] = route
-		}
+	// path is fixed(no param vars). eg. "/users"
+	if r.isFixedPath(path) {
+		key := method + " " + path
+		r.stableRoutes[key] = route
 
 		return
 	}
 
 	// parsing route path with parameters
-	r.parseParamRoute(path, route)
-
-	ms := []string{method}
-	if method == ANY {
-		ms = anyMethods
-	}
-
-	if route.first != "" {
-		mrs, has := r.regularRoutes[route.first]
-		if !has {
-			mrs = methodRoutes{}
+	first := r.parseParamRoute(path, route)
+	if first != "" {
+		rKey := method + " " + first
+		rs, has := r.regularRoutes[rKey]
+		if has {
+			rs = append(rs, route)
+		} else {
+			rs = routes{route}
 		}
 
-		for _, m := range ms {
-			rs, has := mrs[m]
-			if has {
-				rs = append(rs, route.withMethod(m))
-			} else {
-				rs = routes{route.withMethod(m)}
-			}
-
-			r.routeCounter++
-			r.regularRoutes[route.first][m] = rs
-		}
+		r.regularRoutes[rKey] = rs
 	} else {
+		rs, has := r.irregularRoutes[method]
+		if has {
+			rs = append(rs, route)
+		} else {
+			rs = routes{route}
+		}
 
+		r.irregularRoutes[method] = rs
 	}
 
 	return
 }
 
-func (r *Router) ANY(path string, handler HandlerFunc, handlers ...HandlerFunc) *Route {
-	return r.Add(ANY, path, handler, handlers...)
+func (r *Router) ANY(path string, handler HandlerFunc, handlers ...HandlerFunc) {
+	for _, method := range anyMethods {
+		r.Add(method, path, handler, handlers...)
+	}
 }
 
 func (r *Router) GET(path string, handler HandlerFunc, handlers ...HandlerFunc) *Route {
@@ -333,26 +316,129 @@ func (r *Router) Use(handlers ...HandlerFunc) {
  * route match
  *************************************************************/
 
-func (r *Router) Match(method, path string) (route *Route, err error) {
+// Match route by given request METHOD and URI path
+func (r *Router) Match(method, path string) (status uint8, route *Route, allowed []string) {
 	path = r.formatPath(path)
+	status = NotFound
+	method = strings.ToUpper(method)
+
+	// do match
+	status, route = r.match(method, path)
+	if status == Found {
+		return
+	}
+
+	// for HEAD requests, attempt fallback to GET
+	if method == HEAD {
+		status, route = r.match(method, path)
+		if status == Found {
+			return
+		}
+	}
+
+	// don't handle method not allowed, will return not found
+	if !r.handleMethodNotAllowed {
+		return
+	}
+
+	// find allowed methods
+	allowed = r.findAllowedMethods(method, path)
+	if len(allowed) > 0 {
+		status = NotAllowed
+	}
 
 	return
 }
 
-/*************************************************************
- * running with http server
- *************************************************************/
-
-func (r *Router) ServeHTTP(res http.ResponseWriter, req *http.Request) {
-	route, err := r.Match(req.Method, req.URL.Path)
-	if err != nil {
-		panic(err)
+func (r *Router) match(method, path string) (status uint8, route *Route) {
+	// find in stable routes
+	key := method + " " + path
+	if route, ok := r.stableRoutes[key]; ok {
+		return Found, route
 	}
 
-	ctx := NewContext(res, req, r.Handlers)
-	ctx.Params = route.Params
+	// find in cached routes
+	if route, ok := r.cachedRoutes[key]; ok {
+		return Found, route
+	}
 
-	// ctx.Next()
+	// find in regular routes
+	if pos := strings.Index(path[1:], "/"); pos > 1 {
+		first := path[1 : pos-1]
+		key = method + " " + first
+
+		if rs, ok := r.regularRoutes[key]; ok {
+			for _, route := range rs {
+				if route.match(path) {
+					// always return a new Route instance
+					return Found, route.withParams(route.Params)
+				}
+			}
+		}
+	}
+
+	// find in irregular routes
+	if rs, ok := r.irregularRoutes[method]; ok {
+		for _, route := range rs {
+			if route.match(path) {
+				return Found, route.withParams(route.Params)
+			}
+		}
+	}
+
+	status = NotFound
+	return
+}
+
+func (r *Router) findAllowedMethods(method, path string) (allowed []string) {
+	// in stable routes
+	for _, m := range anyMethods {
+		if m == method {
+			continue
+		}
+
+		key := m + " " + path
+		if _, ok := r.stableRoutes[key]; ok {
+			allowed = append(allowed, m)
+		}
+	}
+
+	// in regular routes
+	if pos := strings.Index(path[1:], "/"); pos > 1 {
+		for _, m := range anyMethods {
+			if m == method {
+				continue
+			}
+
+			first := path[1 : pos-1]
+			key := m + " " + first
+
+			if rs, ok := r.regularRoutes[key]; ok {
+				for _, route := range rs {
+					if route.match(path) {
+						allowed = append(allowed, m)
+					}
+				}
+			}
+		}
+	}
+
+	// in irregular routes
+	for _, m := range anyMethods {
+		if m == method {
+			continue
+		}
+
+		if rs, ok := r.irregularRoutes[m]; ok {
+			for _, route := range rs {
+				if route.match(path) {
+					allowed = append(allowed, m)
+				}
+			}
+		}
+	}
+
+	return
 }
 
 /*************************************************************

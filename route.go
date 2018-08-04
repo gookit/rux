@@ -1,24 +1,11 @@
 package souter
 
 import (
-	"net/http"
-	"strconv"
+	"fmt"
 	"regexp"
+	"strconv"
+	"strings"
 )
-
-type MiddlewareFunc func(http.Handler) http.Handler
-
-// middleware interface is anything which implements a MiddlewareFunc named Middleware.
-type middleware interface {
-	Middleware(handler http.Handler) http.Handler
-}
-
-// Middleware allows MiddlewareFunc to implement the middleware interface.
-func (fn MiddlewareFunc) Middleware(handler http.Handler) http.Handler {
-	return fn(handler)
-}
-
-type Handle func(http.ResponseWriter, *http.Request, Params)
 
 /*************************************************************
  * Route definition
@@ -26,7 +13,7 @@ type Handle func(http.ResponseWriter, *http.Request, Params)
 
 // Route in the router
 type Route struct {
-	Name   string
+	// name   string
 	method string
 
 	Params Params
@@ -36,25 +23,33 @@ type Route struct {
 
 	// start string in the route pattern. "/users/{id}" -> "/user/"
 	start string
-	// first node string in the route pattern. "/users/{id}" -> "user"
-	first string
 
 	// regexp for the route pattern
-	regexp *regexp.Regexp
+	regex *regexp.Regexp
 
-	// handler for the route. eg. myFunc, &MyController.SomeAction
-	Handler HandlerFunc
+	// handlers list for the route
+	handlers HandlersChain
+
 	// some options data for the route
 	Opts map[string]interface{}
-	// metadata
-	meta map[string]string
 
 	vars map[string]string
 
-	// middleware list
-	handlers HandlersChain
+	hosts []string
+	// var names in the route path. /api/{var1}/{var2} -> [var1, var2]
+	matches []string
+
 	// domains
 	// defaults
+}
+
+func newRoute(method, path string, handler HandlerFunc, handlers HandlersChain) *Route {
+	handlers = append(handlers, handler)
+	return &Route{
+		method:   method,
+		pattern:  path,
+		handlers: handlers,
+	}
 }
 
 // Use some middleware handlers
@@ -65,7 +60,7 @@ func (r *Route) Use(handlers ...HandlerFunc) *Route {
 }
 
 // Vars add vars pattern for the route path
-func (r *Route) Vars(vars map[string]string) *Route {
+func (r *Route) SetVars(vars map[string]string) *Route {
 	for name, pattern := range vars {
 		r.vars[name] = pattern
 	}
@@ -73,25 +68,57 @@ func (r *Route) Vars(vars map[string]string) *Route {
 	return r
 }
 
-func (r *Route) withMethod(method string) *Route {
-	nr := &Route{
-		method:   method,
-		pattern:  r.pattern,
-		Handler:  r.Handler,
-		handlers: r.handlers,
-	}
+func (r *Route) String() string {
+	nuHandlers := len(r.handlers)
+	handlerName := nameOfFunction(r.handlers.Last())
 
-	return nr
+	return fmt.Sprintf(
+		"%-6s %-25s --> %s (%d handlers)",
+		r.method, r.pattern, handlerName, nuHandlers,
+	)
 }
 
-func (r *Route) clone() *Route {
-	nr := &Route{
-		pattern:  r.pattern,
-		Handler:  r.Handler,
-		handlers: r.handlers,
+func (r *Route) getVar(name, def string) string {
+	if val, ok := r.vars[name]; ok {
+		return val
 	}
 
-	return nr
+	if val, ok := globalVars[name]; ok {
+		return val
+	}
+
+	return def
+}
+
+func (r *Route) match(path string) (ok bool) {
+	// check start string
+	if r.start != "" && strings.Index(path, r.start) != 0 {
+		return
+	}
+
+	// regex match
+	ss := r.regex.FindAllStringSubmatch(path, -1)
+	if len(ss) == 0 {
+		return
+	}
+
+	r.Params = make(Params)
+
+	for i, item := range ss {
+		n := r.matches[i]
+		r.Params[n] = item[1]
+	}
+
+	return true
+}
+
+func (r *Route) withParams(ps Params) *Route {
+	return &Route{
+		Params:   ps,
+		method:   r.method,
+		pattern:  r.pattern,
+		handlers: r.handlers,
+	}
 }
 
 /*************************************************************

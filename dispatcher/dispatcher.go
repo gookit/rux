@@ -1,9 +1,9 @@
 package dispatcher
 
 import (
-	"net/http"
-	"log"
 	"github.com/gookit/souter"
+	"log"
+	"net/http"
 )
 
 const (
