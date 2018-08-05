@@ -1,4 +1,4 @@
-package souter
+package sux
 
 import (
 	"strings"

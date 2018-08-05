@@ -1,15 +1,18 @@
 package main
 
 import (
-	"github.com/gookit/souter"
+	"github.com/gookit/sux"
 	"fmt"
+	"net/http"
+	"time"
+	"log"
 )
 
 func main() {
-	r := souter.New()
+	r := sux.New()
 	r.Use()
 
-	r.GET("/", func(ctx *souter.Context) {
+	r.GET("/", func(ctx *sux.Context) {
 		ctx.WriteBytes([]byte("hello, in " + ctx.URL().Path))
 	})
 
@@ -17,12 +20,12 @@ func main() {
 
 	r.GET("/hi-{name}", defHandle)
 
-	r.Group("/users", func(sub *souter.Router) {
-		sub.GET("/", func(ctx *souter.Context) {
+	r.Group("/users", func(sub *sux.Router) {
+		sub.GET("/", func(ctx *sux.Context) {
 			ctx.WriteBytes([]byte("hello, in " + ctx.URL().Path))
 		})
 
-		sub.GET("/{id}", func(ctx *souter.Context) {
+		sub.GET("/{id}", func(ctx *sux.Context) {
 			ctx.WriteBytes([]byte("hello, in " + ctx.URL().Path))
 		})
 	})
@@ -40,23 +43,44 @@ func main() {
 	// r.RunServe(":8090")
 }
 
-func defHandle(ctx *souter.Context) {
+func defHandle(ctx *sux.Context) {
 	ctx.WriteBytes([]byte("hello, in " + ctx.URL().Path))
 }
 
 type SiteController struct {
 }
 
-func (c *SiteController) AddRoutes(r *souter.Router) {
+func (c *SiteController) AddRoutes(r *sux.Router) {
 	r.GET("{id}", c.Get)
 	r.POST("", c.Post)
 }
 
-func (c *SiteController) Get(ctx *souter.Context) {
+func (c *SiteController) Get(ctx *sux.Context) {
 	ctx.WriteBytes([]byte("hello, in " + ctx.URL().Path))
 	ctx.WriteBytes([]byte("\n ok"))
 }
 
-func (c *SiteController) Post(ctx *souter.Context) {
+func (c *SiteController) Post(ctx *sux.Context) {
 	ctx.WriteBytes([]byte("hello, in " + ctx.URL().Path))
+}
+
+
+func customServer() {
+	r := sux.New()
+
+	// add routes
+	r.GET("/", func(ctx *sux.Context) {
+		ctx.WriteString("hello")
+	})
+
+	s := &http.Server{
+		Addr:    ":8080",
+		Handler: r,
+
+		ReadTimeout:    10 * time.Second,
+		WriteTimeout:   10 * time.Second,
+		MaxHeaderBytes: 1 << 20,
+	}
+
+	log.Fatal(s.ListenAndServe())
 }

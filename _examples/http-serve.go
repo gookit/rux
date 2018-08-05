@@ -6,7 +6,6 @@ import (
 	"log"
 	"html"
 	"time"
-	"github.com/gookit/souter/dispatcher"
 )
 
 func main() {
