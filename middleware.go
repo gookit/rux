@@ -1,11 +1,10 @@
 package sux
 
-
 /*************************************************************
  * middleware definition
  *************************************************************/
 
-type HandlerFunc func(ctx *Context)
+type HandlerFunc func(c *Context)
 type HandlersChain []HandlerFunc
 
 // Last returns the last handler in the chain. ie. the last handler is the main own.
@@ -22,6 +21,7 @@ func (c HandlersChain) Last() HandlerFunc {
  * global middleware
  *************************************************************/
 
+// Use add handlers for the router
 func (r *Router) Use(handlers ...HandlerFunc) {
 	r.handlers = append(r.handlers, handlers...)
 }

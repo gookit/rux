@@ -22,6 +22,7 @@ func newMatchResult(status uint8, handlers HandlersChain) *MatchResult {
 	return &MatchResult{Status: status, Handlers: handlers}
 }
 
+// JoinAllowedMethods join allowed methods to string
 func (mr *MatchResult) JoinAllowedMethods(sep string) string {
 	return strings.Join(mr.AllowedMethods, sep)
 }
@@ -50,14 +51,14 @@ func (r *Router) Match(method, path string) (result *MatchResult) {
 	}
 
 	// don't handle method not allowed, will return not found
-	if !r.handleMethodNotAllowed {
+	if !r.HandleMethodNotAllowed {
 		return
 	}
 
 	// find allowed methods
 	allowed := r.findAllowedMethods(method, path)
 	if len(allowed) > 0 {
-		result = &MatchResult{Status:NotAllowed, AllowedMethods: allowed}
+		result = &MatchResult{Status: NotAllowed, AllowedMethods: allowed}
 	}
 
 	return
@@ -109,15 +110,15 @@ func (r *Router) match(method, path string) (ret *MatchResult) {
 }
 
 func (r *Router) cacheDynamicRoute(method string, ps Params, route *Route) {
-	if !r.enableRouteCache  {
+	if !r.EnableRouteCache {
 		return
 	}
 
 	if r.cachedRoutes == nil {
-		r.cachedRoutes = make(map[string]*Route, r.maxCachedRoute)
-	} else if len(r.cachedRoutes) >= int(r.maxCachedRoute) {
+		r.cachedRoutes = make(map[string]*Route, r.MaxCachedRoute)
+	} else if len(r.cachedRoutes) >= int(r.MaxCachedRoute) {
 		num := 0
-		maxClean := int(r.maxCachedRoute/10)
+		maxClean := int(r.MaxCachedRoute / 10)
 
 		// clean up 1/10 each time
 		for k, _ := range r.cachedRoutes {

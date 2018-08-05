@@ -1,15 +1,15 @@
 package sux
 
 import (
-	"net/http"
 	"log"
+	"net/http"
 )
 
 /*************************************************************
  * dispatch http request
  *************************************************************/
 
-func (r *Router) RunServe(addr string)  {
+func (r *Router) RunServe(addr string) {
 	log.Fatal(http.ListenAndServe(addr, r))
 }
 
@@ -19,37 +19,47 @@ func (r *Router) RunServe(addr string)  {
 
 func (r *Router) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	var handlers HandlersChain
-	result := r.Match(req.Method, req.URL.Path)
 
-	// not found
+	path := req.URL.Path
+	if r.UseEncodedPath {
+		path = req.URL.EscapedPath()
+	}
+
+	result := r.Match(req.Method, path)
+
 	if result.Status == NotFound {
-		if len(r.noRoute) > 0 {
-			handlers = r.noRoute
-		} else {
+		if len(r.noRoute) == 0 {
 			http.NotFound(res, req)
+			return
 		}
+
+		handlers = r.noRoute
 	} else if result.Status == NotAllowed {
-		if len(r.noAllowed) > 0 {
-			handlers = r.noAllowed
-		} else {
+		if len(r.noAllowed) == 0 {
 			http.Error(
 				res,
 				"method not allowed. allow: "+result.JoinAllowedMethods(","),
 				405,
 			)
+			return
 		}
+
+		handlers = r.noAllowed
 	} else {
 		handlers = result.Handlers
 	}
 
-	ctx := newContext(res, req, r.handlers)
-	ctx.params = result.Params
-	ctx.appendHandlers(handlers...)
+	ctx := r.pool.Get().(*Context)
+	ctx.Reset()
+
+	ctx.Init(res, req, r.handlers)
+	ctx.SetParams(result.Params)
+	ctx.AppendHandlers(handlers...)
 
 	ctx.Next()
 	// ctx.Res.WriteHeaderNow()
-}
 
-func (r *Router) handleRequest(ctx *Context)  {
-
+	// clean
+	result = nil
+	r.pool.Put(ctx)
 }

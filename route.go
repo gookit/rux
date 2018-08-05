@@ -42,9 +42,6 @@ type Route struct {
 	// name   string
 	method string
 
-	// route params, only use for route cache
-	Params Params
-
 	// path/pattern definition for the route. eg "/users" "/users/{id}"
 	pattern string
 
@@ -57,13 +54,17 @@ type Route struct {
 	// handlers list for the route
 	handlers HandlersChain
 
+	// route params, only use for route cache
+	Params Params
+
 	// some options data for the route
 	Opts map[string]interface{}
 
+	// var define for thr route. eg ["name": `\w+`]
 	vars map[string]string
 
 	hosts []string
-	// var names in the route path. /api/{var1}/{var2} -> [var1, var2]
+	// matched var names in the route path. eg "/api/{var1}/{var2}" -> [var1, var2]
 	matches []string
 
 	// domains
@@ -131,8 +132,10 @@ func (r *Route) match(path string) (ps Params, ok bool) {
 	ps = make(Params, len(ss))
 
 	for i, item := range ss {
-		n := r.matches[i]
-		ps[n] = item[1]
+		if len(item) > 1 {
+			n := r.matches[i]
+			ps[n] = item[1]
+		}
 	}
 
 	return

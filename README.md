@@ -14,6 +14,7 @@ A simple and fast router for golang http application
 
 ```bash
 go test -cover
+go test -bench . -benchtime 3s
 ```
 
 - code format

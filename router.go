@@ -1,10 +1,11 @@
 package sux
 
 import (
-	"net/http"
-	"strings"
 	"bytes"
 	"fmt"
+	"net/http"
+	"strings"
+	"sync"
 )
 
 const (
@@ -24,9 +25,11 @@ const (
 	// supported methods string
 	// more: ,COPY,PURGE,LINK,UNLINK,LOCK,UNLOCK,VIEW,SEARCH,CONNECT,TRACE
 	MethodsStr = "GET,POST,PUT,PATCH,DELETE,OPTIONS,HEAD,CONNECT,TRACE"
+)
 
+const (
 	// match status: 1 found 2 not found 3 method not allowed
-	Found      uint8 = iota + 1
+	Found uint8 = iota + 1
 	NotFound
 	NotAllowed
 )
@@ -60,9 +63,12 @@ type methodRoutes map[string]routes
 type Router struct {
 	// sux rux
 	name string
+	pool sync.Pool
 
-	initialized  bool
-	routeCounter int
+	debug   bool
+	counter int
+	// mark init is completed
+	initialized bool
 
 	// static routes
 	staticRoutes map[string]interface{}
@@ -108,28 +114,28 @@ type Router struct {
 	handlers  HandlersChain
 
 	// intercept all request. eg. "/site/error"
-	interceptAll string
+	InterceptAll string
 	// use encoded path for match route
-	useEncodedPath bool
+	UseEncodedPath bool
 	// maximum number of cached dynamic routes. default is 1000
-	maxCachedRoute uint16
+	MaxCachedRoute uint16
 	// cache recently accessed dynamic routes. default is False
-	enableRouteCache bool
+	EnableRouteCache bool
 	// Ignore last slash char('/'). If is True, will clear last '/'. default is True
-	ignoreLastSlash bool
+	IgnoreLastSlash bool
 	// If True, the router checks if another method is allowed for the current route. default is False
-	handleMethodNotAllowed bool
+	HandleMethodNotAllowed bool
 }
 
 var anyMethods = []string{GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD, CONNECT, TRACE}
 
 // New
 func New() *Router {
-	return &Router{
+	router := &Router{
 		name: "default",
 
-		maxCachedRoute:  1000,
-		ignoreLastSlash: true,
+		MaxCachedRoute:  1000,
+		IgnoreLastSlash: true,
 
 		stableRoutes: make(map[string]*Route),
 		// cachedRoutes:  make(map[string]*Route),
@@ -137,41 +143,12 @@ func New() *Router {
 
 		irregularRoutes: make(methodRoutes),
 	}
-}
 
-// MaxCachedRoute
-func (r *Router) MaxCachedRoute(num uint16) *Router {
-	r.maxCachedRoute = num
-	return r
-}
-
-// EnableRouteCache
-func (r *Router) EnableRouteCache(enable bool) *Router {
-	r.enableRouteCache = enable
-
-	if enable && r.cachedRoutes == nil {
-		r.cachedRoutes = make(map[string]*Route, r.maxCachedRoute)
+	router.pool.New = func() interface{} {
+		return &Context{index: -1}
 	}
 
-	return r
-}
-
-// IgnoreLastSlash
-func (r *Router) IgnoreLastSlash(ignoreLastSlash bool) *Router {
-	r.ignoreLastSlash = ignoreLastSlash
-	return r
-}
-
-// HandleMethodNotAllowed
-func (r *Router) HandleMethodNotAllowed(val bool) *Router {
-	r.handleMethodNotAllowed = val
-	return r
-}
-
-// InterceptAll
-func (r *Router) InterceptAll(interceptAll string) *Router {
-	r.interceptAll = interceptAll
-	return r
+	return router
 }
 
 /*************************************************************
@@ -242,7 +219,7 @@ func (r *Router) Add(method, path string, handlers ...HandlerFunc) (route *Route
 	}
 
 	// create new route instance
-	r.routeCounter++
+	r.counter++
 	route = newRoute(method, path, handlers)
 
 	// path is fixed(no param vars). eg. "/users"
@@ -279,9 +256,10 @@ func (r *Router) Add(method, path string, handlers ...HandlerFunc) (route *Route
 	return
 }
 
-func (r *Router) Group(path string, register func(grp *Router), handlers ...HandlerFunc) {
+// Group add an group routes
+func (r *Router) Group(prefix string, register func(grp *Router), handlers ...HandlerFunc) {
 	prevPrefix := r.currentGroupPrefix
-	r.currentGroupPrefix = prevPrefix + r.formatPath(path)
+	r.currentGroupPrefix = prevPrefix + r.formatPath(prefix)
 
 	prevHandlers := r.currentGroupHandlers
 	if len(handlers) > 0 {
@@ -299,17 +277,17 @@ func (r *Router) Group(path string, register func(grp *Router), handlers ...Hand
 	r.currentGroupHandlers = prevHandlers
 }
 
-// Controller
+// Controller register some routes by a controller
 func (r *Router) Controller(basePath string, controller IController, handlers ...HandlerFunc) {
 	r.Group(basePath, controller.AddRoutes)
 }
 
-// NotFound
+// NotFound handlers
 func (r *Router) NotFound(handlers ...HandlerFunc) {
 	r.noRoute = handlers
 }
 
-// NotAllowed
+// NotAllowed handlers
 func (r *Router) NotAllowed(handlers ...HandlerFunc) {
 	r.noAllowed = handlers
 }
@@ -318,7 +296,7 @@ func (r *Router) NotAllowed(handlers ...HandlerFunc) {
  * static file handle methods
  *************************************************************/
 
-func (r *Router) StaticFile(path string) {
+func (r *Router) StaticFile(path, file string) {
 }
 
 func (r *Router) StaticFunc(path string) {
@@ -359,7 +337,7 @@ func (r *Router) StaticFiles(path string, root http.FileSystem) {
 func (r *Router) String() string {
 	buf := new(bytes.Buffer)
 
-	fmt.Fprintf(buf, "Routes Count: %d\n", r.routeCounter)
+	fmt.Fprintf(buf, "Routes Count: %d\n", r.counter)
 
 	fmt.Fprint(buf, "Stable(fixed):\n")
 	for _, route := range r.stableRoutes {

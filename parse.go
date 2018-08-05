@@ -49,7 +49,7 @@ func (r *Router) parseParamRoute(path string, route *Route) (first string) {
 
 	// no vars, but contains optional char
 	if len(ss) == 0 {
-		regexStr := checkAndParseOptional(path)
+		regexStr := checkAndParseOptional(quotePointChar(path))
 		route.regex = regexp.MustCompile("^" + regexStr + "$")
 		return
 	}
@@ -79,6 +79,8 @@ func (r *Router) parseParamRoute(path string, route *Route) (first string) {
 		path = strings.NewReplacer(rawVar...).Replace(path)
 	}
 
+	// "." -> "\."
+	path = quotePointChar(path)
 	argPos := strings.Index(path, "{")
 	optPos := strings.Index(path, "[")
 	minPos := argPos
@@ -94,6 +96,10 @@ func (r *Router) parseParamRoute(path string, route *Route) (first string) {
 
 		if pos := strings.Index(start[1:], "/"); pos > 1 {
 			first = start[1 : pos+1]
+			// start string only one node. "/users/"
+			if len(start)-len(first) == 2 {
+				route.start = ""
+			}
 		}
 	}
 
@@ -117,8 +123,8 @@ func checkAndParseOptional(path string) string {
 		panic("Optional segments can only occur at the end of a route")
 	}
 
-	// '/hello[/{name}]' -> '/hello(?:/{name})'
-	return strings.NewReplacer("[", "(?:", "]", ")").Replace(path)
+	// '/hello[/{name}]' -> '/hello(?:/{name})?'
+	return strings.NewReplacer("[", "(?:", "]", ")?").Replace(path)
 }
 
 /*************************************************************
@@ -135,16 +141,8 @@ func (r *Router) formatPath(path string) string {
 		path = "/" + path
 	}
 
-	if r.ignoreLastSlash {
+	if r.IgnoreLastSlash {
 		path = strings.TrimRight(path, "/")
-	}
-
-	return path
-}
-
-func (r *Router) buildRealPath(path string) string {
-	if r.currentGroupPrefix != "" {
-		return r.currentGroupPrefix + path
 	}
 
 	return path
@@ -154,14 +152,23 @@ func (r *Router) isFixedPath(path string) bool {
 	return strings.Index(path, "{") < 0 && strings.Index(path, "[") < 0
 }
 
-func nameOfFunction(f interface{}) string {
-	return runtime.FuncForPC(reflect.ValueOf(f).Pointer()).Name()
+func (r *Router) debugPrintRoute(method, absPath string, handlers HandlersChain) {
+	if r.debug {
+		nuHandlers := len(handlers)
+		handlerName := nameOfFunction(handlers.Last())
+		fmt.Printf("%-6s %-25s --> %s (%d handlers)\n", method, absPath, handlerName, nuHandlers)
+	}
 }
 
-func debugPrintRoute(method, absPath string, handlers HandlersChain) {
-	// if IsDebugging() {
-	nuHandlers := len(handlers)
-	handlerName := nameOfFunction(handlers.Last())
-	fmt.Printf("%-6s %-25s --> %s (%d handlers)\n", method, absPath, handlerName, nuHandlers)
-	// }
+func quotePointChar(path string) string {
+	if strings.Index(path, ".") > 0 {
+		// "about.html" -> "about\.html"
+		return strings.Replace(path, ".", `\.`, -1)
+	}
+
+	return path
+}
+
+func nameOfFunction(f interface{}) string {
+	return runtime.FuncForPC(reflect.ValueOf(f).Pointer()).Name()
 }
