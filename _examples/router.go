@@ -10,7 +10,7 @@ func main() {
 	r.Use()
 
 	r.GET("/", func(ctx *souter.Context) {
-		ctx.Res.Write([]byte("hello, in " + ctx.Req.URL.Path))
+		ctx.WriteBytes([]byte("hello, in " + ctx.URL().Path))
 	})
 
 	r.GET("/about[.html]", defHandle)
@@ -19,11 +19,11 @@ func main() {
 
 	r.Group("/users", func(sub *souter.Router) {
 		sub.GET("/", func(ctx *souter.Context) {
-			ctx.Res.Write([]byte("hello, in " + ctx.Req.URL.Path))
+			ctx.WriteBytes([]byte("hello, in " + ctx.URL().Path))
 		})
 
 		sub.GET("/{id}", func(ctx *souter.Context) {
-			ctx.Res.Write([]byte("hello, in " + ctx.Req.URL.Path))
+			ctx.WriteBytes([]byte("hello, in " + ctx.URL().Path))
 		})
 	})
 
@@ -31,17 +31,17 @@ func main() {
 
 	fmt.Println(r)
 
-	st, route, _ := r.Match("GET", "/hi-tom")
-	st, route1, _ := r.Match("GET", "/hi-john")
+	ret := r.Match("GET", "/hi-tom")
+	ret1 := r.Match("GET", "/hi-john")
 
-	fmt.Println(st, route, route.Params)
-	fmt.Println(st, route1, route1.Params)
+	fmt.Println(ret)
+	fmt.Println(ret1)
 
-	// log.Fatal(http.ListenAndServe(":8090", r))
+	// r.RunServe(":8090")
 }
 
 func defHandle(ctx *souter.Context) {
-	ctx.Res.Write([]byte("hello, in " + ctx.Req.URL.Path))
+	ctx.WriteBytes([]byte("hello, in " + ctx.URL().Path))
 }
 
 type SiteController struct {
@@ -53,9 +53,10 @@ func (c *SiteController) AddRoutes(r *souter.Router) {
 }
 
 func (c *SiteController) Get(ctx *souter.Context) {
-	ctx.Res.Write([]byte("hello, in " + ctx.Req.URL.Path))
+	ctx.WriteBytes([]byte("hello, in " + ctx.URL().Path))
+	ctx.WriteBytes([]byte("\n ok"))
 }
 
 func (c *SiteController) Post(ctx *souter.Context) {
-	ctx.Res.Write([]byte("hello, in " + ctx.Req.URL.Path))
+	ctx.WriteBytes([]byte("hello, in " + ctx.URL().Path))
 }

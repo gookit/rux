@@ -1,10 +1,10 @@
 package souter
 
 import (
-	"bytes"
-	"fmt"
 	"net/http"
 	"strings"
+	"bytes"
+	"fmt"
 )
 
 const (
@@ -25,10 +25,10 @@ const (
 	// more: ,COPY,PURGE,LINK,UNLINK,LOCK,UNLOCK,VIEW,SEARCH,CONNECT,TRACE
 	MethodsStr = "GET,POST,PUT,PATCH,DELETE,OPTIONS,HEAD,CONNECT,TRACE"
 
-	// match status
-	Found      = 1
-	NotFound   = 2
-	NotAllowed = 3 // method not allowed
+	// match status: 1 found 2 not found 3 method not allowed
+	Found      uint8 = iota + 1
+	NotFound
+	NotAllowed
 )
 
 type patternType int8
@@ -41,6 +41,12 @@ const (
 	PatternMatchAll                    // /*
 )
 
+// IController
+type IController interface {
+	// [":id": c.GetAction]
+	AddRoutes(grp *Router)
+}
+
 /*************************************************************
  * Router definition
  *************************************************************/
@@ -52,6 +58,7 @@ type methodRoutes map[string]routes
 
 // Router definition
 type Router struct {
+	// sux rux
 	name string
 
 	initialized  bool
@@ -95,15 +102,22 @@ type Router struct {
 	currentGroupPrefix   string
 	currentGroupHandlers HandlersChain
 
+	// handlers chain
 	noRoute   HandlersChain
 	noAllowed HandlersChain
-	Handlers  HandlersChain
+	handlers  HandlersChain
 
 	// intercept all request. eg. "/site/error"
 	interceptAll string
-	// Ignore last slash char('/'). If is True, will clear last '/'.
+	// use encoded path for match route
+	useEncodedPath bool
+	// maximum number of cached dynamic routes. default is 1000
+	maxCachedRoute uint16
+	// cache recently accessed dynamic routes. default is False
+	enableRouteCache bool
+	// Ignore last slash char('/'). If is True, will clear last '/'. default is True
 	ignoreLastSlash bool
-	// If True, the router checks if another method is allowed for the current route,
+	// If True, the router checks if another method is allowed for the current route. default is False
 	handleMethodNotAllowed bool
 }
 
@@ -114,14 +128,32 @@ func New() *Router {
 	return &Router{
 		name: "default",
 
+		maxCachedRoute:  1000,
 		ignoreLastSlash: true,
 
-		stableRoutes:  make(map[string]*Route),
-		cachedRoutes:  make(map[string]*Route),
+		stableRoutes: make(map[string]*Route),
+		// cachedRoutes:  make(map[string]*Route),
 		regularRoutes: make(methodRoutes),
 
 		irregularRoutes: make(methodRoutes),
 	}
+}
+
+// MaxCachedRoute
+func (r *Router) MaxCachedRoute(num uint16) *Router {
+	r.maxCachedRoute = num
+	return r
+}
+
+// EnableRouteCache
+func (r *Router) EnableRouteCache(enable bool) *Router {
+	r.enableRouteCache = enable
+
+	if enable && r.cachedRoutes == nil {
+		r.cachedRoutes = make(map[string]*Route, r.maxCachedRoute)
+	}
+
+	return r
 }
 
 // IgnoreLastSlash
@@ -140,36 +172,6 @@ func (r *Router) HandleMethodNotAllowed(val bool) *Router {
 func (r *Router) InterceptAll(interceptAll string) *Router {
 	r.interceptAll = interceptAll
 	return r
-}
-
-// String
-func (r *Router) String() string {
-	buf := new(bytes.Buffer)
-
-	fmt.Fprintf(buf, "Routes Count: %d\n", r.routeCounter)
-
-	fmt.Fprint(buf, "Stable(fixed):\n")
-	for _, route := range r.stableRoutes {
-		fmt.Fprintf(buf, " %s\n", route)
-	}
-
-	fmt.Fprint(buf, "Regular(dynamic):\n")
-	for pfx, routes := range r.regularRoutes {
-		fmt.Fprintf(buf, " %s:\n", pfx)
-		for _, route := range routes {
-			fmt.Fprintf(buf, "   %s\n", route.String())
-		}
-	}
-
-	fmt.Fprint(buf, "Irregular(dynamic):\n")
-	for m, routes := range r.irregularRoutes {
-		fmt.Fprintf(buf, " %s:\n", m)
-		for _, route := range routes {
-			fmt.Fprintf(buf, "   %s\n", route.String())
-		}
-	}
-
-	return buf.String()
 }
 
 /*************************************************************
@@ -297,12 +299,6 @@ func (r *Router) Group(path string, register func(grp *Router), handlers ...Hand
 	r.currentGroupHandlers = prevHandlers
 }
 
-// IController
-type IController interface {
-	// [":id": c.GetAction]
-	AddRoutes(grp *Router)
-}
-
 // Controller
 func (r *Router) Controller(basePath string, controller IController, handlers ...HandlerFunc) {
 	r.Group(basePath, controller.AddRoutes)
@@ -316,135 +312,6 @@ func (r *Router) NotFound(handlers ...HandlerFunc) {
 // NotAllowed
 func (r *Router) NotAllowed(handlers ...HandlerFunc) {
 	r.noAllowed = handlers
-}
-
-/*************************************************************
- * route match
- *************************************************************/
-
-// Match route by given request METHOD and URI path
-func (r *Router) Match(method, path string) (status uint8, route *Route, allowed []string) {
-	path = r.formatPath(path)
-	status = NotFound
-	method = strings.ToUpper(method)
-
-	// do match
-	status, route = r.match(method, path)
-	if status == Found {
-		return
-	}
-
-	// for HEAD requests, attempt fallback to GET
-	if method == HEAD {
-		status, route = r.match(method, path)
-		if status == Found {
-			return
-		}
-	}
-
-	// don't handle method not allowed, will return not found
-	if !r.handleMethodNotAllowed {
-		return
-	}
-
-	// find allowed methods
-	allowed = r.findAllowedMethods(method, path)
-	if len(allowed) > 0 {
-		status = NotAllowed
-	}
-
-	return
-}
-
-func (r *Router) match(method, path string) (status uint8, route *Route) {
-	// find in stable routes
-	key := method + " " + path
-	if route, ok := r.stableRoutes[key]; ok {
-		return Found, route
-	}
-
-	// find in cached routes
-	if route, ok := r.cachedRoutes[key]; ok {
-		return Found, route
-	}
-
-	// find in regular routes
-	if pos := strings.Index(path[1:], "/"); pos > 1 {
-		first := path[1 : pos-1]
-		key = method + " " + first
-
-		if rs, ok := r.regularRoutes[key]; ok {
-			for _, route := range rs {
-				if route.match(path) {
-					// always return a new Route instance
-					return Found, route.withParams(route.Params)
-				}
-			}
-		}
-	}
-
-	// find in irregular routes
-	if rs, ok := r.irregularRoutes[method]; ok {
-		for _, route := range rs {
-			if route.match(path) {
-				return Found, route.withParams(route.Params)
-			}
-		}
-	}
-
-	status = NotFound
-	return
-}
-
-func (r *Router) findAllowedMethods(method, path string) (allowed []string) {
-	// in stable routes
-	for _, m := range anyMethods {
-		if m == method {
-			continue
-		}
-
-		key := m + " " + path
-		if _, ok := r.stableRoutes[key]; ok {
-			allowed = append(allowed, m)
-		}
-	}
-
-	// in regular routes
-	if pos := strings.Index(path[1:], "/"); pos > 1 {
-		for _, m := range anyMethods {
-			if m == method {
-				continue
-			}
-
-			first := path[1 : pos-1]
-			key := m + " " + first
-
-			if rs, ok := r.regularRoutes[key]; ok {
-				for _, route := range rs {
-					if route.match(path) {
-						allowed = append(allowed, m)
-					}
-				}
-			}
-		}
-	}
-
-	// in irregular routes
-	for _, m := range anyMethods {
-		if m == method {
-			continue
-		}
-
-		if rs, ok := r.irregularRoutes[m]; ok {
-			for _, route := range rs {
-				if route.match(path) {
-					allowed = append(allowed, m)
-				}
-			}
-		}
-	}
-
-	return
 }
 
 /*************************************************************
@@ -478,8 +345,42 @@ func (r *Router) StaticFiles(path string, root http.FileSystem) {
 	fileServer := http.FileServer(root)
 
 	r.GET(path, func(ctx *Context) {
-		req := ctx.Req
-		req.URL.Path = ctx.Params["filepath"]
-		fileServer.ServeHTTP(ctx.Res, req)
+		req := ctx.req
+		req.URL.Path = ctx.params["filepath"]
+		fileServer.ServeHTTP(ctx.res, req)
 	})
+}
+
+/*************************************************************
+ * help methods
+ *************************************************************/
+
+// String
+func (r *Router) String() string {
+	buf := new(bytes.Buffer)
+
+	fmt.Fprintf(buf, "Routes Count: %d\n", r.routeCounter)
+
+	fmt.Fprint(buf, "Stable(fixed):\n")
+	for _, route := range r.stableRoutes {
+		fmt.Fprintf(buf, " %s\n", route)
+	}
+
+	fmt.Fprint(buf, "Regular(dynamic):\n")
+	for pfx, routes := range r.regularRoutes {
+		fmt.Fprintf(buf, " %s:\n", pfx)
+		for _, route := range routes {
+			fmt.Fprintf(buf, "   %s\n", route.String())
+		}
+	}
+
+	fmt.Fprint(buf, "Irregular(dynamic):\n")
+	for m, routes := range r.irregularRoutes {
+		fmt.Fprintf(buf, " %s:\n", m)
+		for _, route := range routes {
+			fmt.Fprintf(buf, "   %s\n", route.String())
+		}
+	}
+
+	return buf.String()
 }

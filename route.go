@@ -8,6 +8,32 @@ import (
 )
 
 /*************************************************************
+ * Route params
+ *************************************************************/
+
+// params for current route
+type Params map[string]string
+
+func (p Params) String(key string) (val string) {
+	if val, ok := p[key]; ok {
+		return val
+	}
+
+	return
+}
+
+func (p Params) Int(key string) (val int) {
+	if str, ok := p[key]; ok {
+		val, err := strconv.Atoi(str)
+		if err != nil {
+			return val
+		}
+	}
+
+	return
+}
+
+/*************************************************************
  * Route definition
  *************************************************************/
 
@@ -16,6 +42,7 @@ type Route struct {
 	// name   string
 	method string
 
+	// route params, only use for route cache
 	Params Params
 
 	// path/pattern definition for the route. eg "/users" "/users/{id}"
@@ -88,7 +115,7 @@ func (r *Route) getVar(name, def string) string {
 	return def
 }
 
-func (r *Route) match(path string) (ok bool) {
+func (r *Route) match(path string) (ps Params, ok bool) {
 	// check start string
 	if r.start != "" && strings.Index(path, r.start) != 0 {
 		return
@@ -100,53 +127,24 @@ func (r *Route) match(path string) (ok bool) {
 		return
 	}
 
-	r.Params = make(Params)
+	ok = true
+	ps = make(Params, len(ss))
 
 	for i, item := range ss {
 		n := r.matches[i]
-		r.Params[n] = item[1]
+		ps[n] = item[1]
 	}
 
-	return true
+	return
 }
 
 func (r *Route) withParams(ps Params) *Route {
-	return &Route{
-		Params:   ps,
-		method:   r.method,
-		pattern:  r.pattern,
-		handlers: r.handlers,
-	}
+	r.Params = ps
+	return r
 }
 
 func (r *Route) Copy() *Route {
 	var route = *r
 
 	return &route
-}
-
-/*************************************************************
- * Route params
- *************************************************************/
-
-// Params for current route
-type Params map[string]string
-
-func (p Params) String(key string) (val string) {
-	if val, ok := p[key]; ok {
-		return val
-	}
-
-	return
-}
-
-func (p Params) Int(key string) (val int) {
-	if str, ok := p[key]; ok {
-		val, err := strconv.Atoi(str)
-		if err != nil {
-			return val
-		}
-	}
-
-	return
 }

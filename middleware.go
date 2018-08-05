@@ -23,7 +23,7 @@ func (c HandlersChain) Last() HandlerFunc {
  *************************************************************/
 
 func (r *Router) Use(handlers ...HandlerFunc) {
-	r.Handlers = append(r.Handlers, handlers...)
+	r.handlers = append(r.handlers, handlers...)
 }
 
 func combineHandlers(oldHandlers, newHandlers HandlersChain) HandlersChain {

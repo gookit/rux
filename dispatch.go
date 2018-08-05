@@ -2,8 +2,16 @@ package souter
 
 import (
 	"net/http"
-	"strings"
+	"log"
 )
+
+/*************************************************************
+ * dispatch http request
+ *************************************************************/
+
+func (r *Router) RunServe(addr string)  {
+	log.Fatal(http.ListenAndServe(addr, r))
+}
 
 /*************************************************************
  * dispatch http request
@@ -11,31 +19,31 @@ import (
 
 func (r *Router) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	var handlers HandlersChain
-	status, route, allowed := r.Match(req.Method, req.URL.Path)
+	result := r.Match(req.Method, req.URL.Path)
 
 	// not found
-	if status == NotFound {
+	if result.Status == NotFound {
 		if len(r.noRoute) > 0 {
 			handlers = r.noRoute
 		} else {
 			http.NotFound(res, req)
 		}
-	} else if status == NotAllowed {
+	} else if result.Status == NotAllowed {
 		if len(r.noAllowed) > 0 {
 			handlers = r.noAllowed
 		} else {
 			http.Error(
 				res,
-				"method not allowed. allow: "+strings.Join(allowed, ","),
+				"method not allowed. allow: "+result.JoinAllowedMethods(","),
 				405,
 			)
 		}
 	} else {
-		handlers = route.handlers
+		handlers = result.Handlers
 	}
 
-	ctx := newContext(res, req, r.Handlers)
-	ctx.Params = route.Params
+	ctx := newContext(res, req, r.handlers)
+	ctx.params = result.Params
 	ctx.appendHandlers(handlers...)
 
 	ctx.Next()
