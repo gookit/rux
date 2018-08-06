@@ -72,4 +72,4 @@ golint
 
 ## License
 
-MIT
+**MIT**
