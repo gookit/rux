@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"bytes"
+	"fmt"
 )
 
 func BenchmarkOneRoute(B *testing.B) {
@@ -59,16 +61,18 @@ func Benchmark404Many(B *testing.B) {
 }
 
 /*************************************************************
- * helper methods(there are from gin framework)
+ * helper methods(ref the gin framework)
  *************************************************************/
 
 type mockWriter struct {
 	headers http.Header
+	buf *bytes.Buffer
 }
 
 func newMockWriter() *mockWriter {
 	return &mockWriter{
 		http.Header{},
+		&bytes.Buffer{},
 	}
 }
 
@@ -77,14 +81,16 @@ func (m *mockWriter) Header() (h http.Header) {
 }
 
 func (m *mockWriter) Write(p []byte) (n int, err error) {
-	return len(p), nil
+	return m.buf.Write(p)
 }
 
 func (m *mockWriter) WriteString(s string) (n int, err error) {
-	return len(s), nil
+	return m.buf.Write([]byte(s))
 }
 
-func (m *mockWriter) WriteHeader(int) {}
+func (m *mockWriter) WriteHeader(code int) {
+	m.headers.Set("Status", fmt.Sprintf("%d", code))
+}
 
 func runRequest(B *testing.B, r *Router, method, path string) {
 	// create fake request

@@ -80,6 +80,11 @@ func (c *Context) Get(key string) interface{} {
 	return c.values[key]
 }
 
+// Abort run next handlers
+func (c *Context) Abort() {
+	c.index = abortIndex
+}
+
 // Next call next handler
 func (c *Context) Next() {
 	c.index++
@@ -155,11 +160,6 @@ func (c *Context) Param(key string) string {
 // URL get URL instance from request
 func (c *Context) URL() *url.URL {
 	return c.req.URL
-}
-
-// URLQuery return query Values
-func (c *Context) URLQuery() url.Values {
-	return c.req.URL.Query()
 }
 
 // Query return query value by key

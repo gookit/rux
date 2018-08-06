@@ -10,11 +10,6 @@ type HandlerFunc func(c *Context)
 // HandlersChain a handlers chain
 type HandlersChain []HandlerFunc
 
-// Len get handles number
-func (c HandlersChain) Len() int {
-	return len(c)
-}
-
 // Last returns the last handler in the chain. ie. the last handler is the main own.
 func (c HandlersChain) Last() HandlerFunc {
 	length := len(c)
@@ -42,7 +37,7 @@ func (r *Router) Use(handlers ...HandlerFunc) {
 func combineHandlers(oldHandlers, newHandlers HandlersChain) HandlersChain {
 	finalSize := len(oldHandlers) + len(newHandlers)
 	if finalSize >= int(abortIndex) {
-		panic("too many handlers")
+		panic("router: too many handlers")
 	}
 
 	mergedHandlers := make(HandlersChain, finalSize)
