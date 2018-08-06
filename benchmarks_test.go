@@ -32,13 +32,13 @@ func Benchmark5Params(B *testing.B) {
 
 func BenchmarkManyRoutesFist(B *testing.B) {
 	router := New()
-	router.ANY("/ping", func(c *Context) {})
+	router.Any("/ping", func(c *Context) {})
 	runRequest(B, router, "GET", "/ping")
 }
 
 func Benchmark404(B *testing.B) {
 	router := New()
-	router.ANY("/something", func(c *Context) {})
+	router.Any("/something", func(c *Context) {})
 	router.NotFound(func(c *Context) {})
 	runRequest(B, router, "GET", "/ping")
 }

@@ -36,7 +36,6 @@ func (p Params) Int(key string) (val int) {
 			return val
 		}
 	}
-
 	return
 }
 
@@ -62,8 +61,6 @@ type Route struct {
 	handlers HandlersChain
 	// dynamic route param values, only use for route cache
 	params Params
-	// var define for the route. eg ["name": `\w+`]
-	vars map[string]string
 
 	// some options data for the route
 	Opts map[string]interface{}
@@ -85,21 +82,6 @@ func (r *Route) Use(handlers ...HandlerFunc) *Route {
 	return r
 }
 
-// SetVar add var regex for the route path
-func (r *Route) SetVar(name, regex string) *Route {
-	r.vars[name] = regex
-	return r
-}
-
-// SetVars add vars path for the route path
-func (r *Route) SetVars(vars map[string]string) *Route {
-	for name, regex := range vars {
-		r.vars[name] = regex
-	}
-
-	return r
-}
-
 // String route info to string
 func (r *Route) String() string {
 	nuHandlers := len(r.handlers)
@@ -109,18 +91,6 @@ func (r *Route) String() string {
 		"%-6s %-25s --> %s (%d handlers)",
 		r.method, r.path, handlerName, nuHandlers,
 	)
-}
-
-func (r *Route) getVar(name, def string) string {
-	if val, ok := r.vars[name]; ok {
-		return val
-	}
-
-	if val, ok := globalVars[name]; ok {
-		return val
-	}
-
-	return def
 }
 
 func (r *Route) match(path string) (ps Params, ok bool) {
@@ -151,7 +121,6 @@ func (r *Route) match(path string) (ps Params, ok bool) {
 // copy a new instance
 func (r *Route) copyWithParams(ps Params) *Route {
 	var nr = *r
-	nr.vars = nil
 	nr.regex = nil
 	nr.matches = nil
 	nr.params = ps

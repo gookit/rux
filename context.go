@@ -144,7 +144,7 @@ func (c *Context) SetParams(params Params) {
  *************************************************************/
 
 // Param returns the value of the URL param.
-//		router.GET("/user/:id", func(c *gin.Context) {
+//		router.GET("/user/{id}", func(c *gin.Context) {
 //			// a GET request to /user/john
 //			id := c.Param("id") // id == "john"
 //		})

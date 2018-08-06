@@ -1,7 +1,6 @@
 package sux
 
 import (
-	"fmt"
 	"reflect"
 	"regexp"
 	"runtime"
@@ -22,6 +21,14 @@ func SetGlobalVar(name, regex string) {
 // GetGlobalVars get all global path vars
 func GetGlobalVars() map[string]string {
 	return globalVars
+}
+
+func getGlobalVar(name, def string) string {
+	if val, ok := globalVars[name]; ok {
+		return val
+	}
+
+	return def
 }
 
 /*************************************************************
@@ -51,7 +58,7 @@ func (r *Router) parseParamRoute(path string, route *Route) (first string) {
 	var n, v string
 	var rawVar, varRegex []string
 	for _, str := range ss {
-		nvStr := strings.Trim(str, "{} ")
+		nvStr := strings.Trim(str, "{}: ")
 
 		// eg "{uid:\d+}" -> "uid", "\d+"
 		if strings.Index(nvStr, ":") > 0 {
@@ -61,7 +68,7 @@ func (r *Router) parseParamRoute(path string, route *Route) (first string) {
 			varRegex = append(varRegex, "{"+n+"}", "("+v+")")
 		} else {
 			n = nvStr // "{name}" -> "name"
-			v = route.getVar(n, anyMatch)
+			v = getGlobalVar(n, anyMatch)
 			varRegex = append(varRegex, str, "("+v+")")
 		}
 
@@ -144,14 +151,6 @@ func (r *Router) formatPath(path string) string {
 
 func (r *Router) isFixedPath(path string) bool {
 	return strings.Index(path, "{") < 0 && strings.Index(path, "[") < 0
-}
-
-func (r *Router) debugPrintRoute(method, absPath string, handlers HandlersChain) {
-	if r.debug {
-		nuHandlers := len(handlers)
-		handlerName := nameOfFunction(handlers.Last())
-		fmt.Printf("%-6s %-25s --> %s (%d handlers)\n", method, absPath, handlerName, nuHandlers)
-	}
 }
 
 func quotePointChar(path string) string {

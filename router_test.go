@@ -34,11 +34,38 @@ func Example() {
 
 var emptyHandler = func(c *Context) {}
 
+// define a controller
+type SiteController struct {
+}
+
+func (c *SiteController) AddRoutes(r *Router) {
+	r.GET("{id}", c.Get)
+	r.POST("", c.Post)
+}
+
+func (c *SiteController) Get(ctx *Context) {
+	ctx.WriteString("hello, in " + ctx.URL().Path)
+	ctx.WriteString("\n ok")
+}
+
+func (c *SiteController) Post(ctx *Context) {
+	ctx.WriteString("hello, in " + ctx.URL().Path)
+}
+
 func TestRouter(t *testing.T) {
 	art := assert.New(t)
 
 	r := New()
 	art.NotEmpty(r)
+
+	route := r.GET("/get", emptyHandler)
+	route.Use(func(c *Context) {
+		// do something...
+	})
+
+	ret := r.Match("GET", "/get")
+	art.Equal(Found, ret.Status)
+	art.Len(ret.Handlers, 2)
 }
 
 func TestAddRoute(t *testing.T) {
@@ -54,7 +81,7 @@ func TestAddRoute(t *testing.T) {
 
 	// invalid method
 	art.Panics(func() {
-		r.Add("invalid", "/get")
+		r.Add("invalid", "/get", emptyHandler)
 	})
 
 	route := r.GET("/get", emptyHandler)
@@ -63,7 +90,8 @@ func TestAddRoute(t *testing.T) {
 
 	ret := r.Match("GET", "/get")
 	art.Equal(Found, ret.Status)
-	art.Equal(1, ret.Handlers.Len())
+	art.Len(ret.Handlers, 1)
+	art.Equal("github.com/gookit/sux.glob..func1", ret.Handlers.LastName())
 
 	ret = r.Match(HEAD, "/get")
 	art.Equal(Found, ret.Status)
@@ -83,7 +111,7 @@ func TestAddRoute(t *testing.T) {
 		art.Equal(Found, ret.Status)
 	}
 
-	r.ANY("/any", emptyHandler)
+	r.Any("/any", emptyHandler)
 	for _, m := range anyMethods {
 		ret = r.Match(m, "/any")
 		art.Equal(Found, ret.Status)
@@ -91,6 +119,14 @@ func TestAddRoute(t *testing.T) {
 
 	ret = r.Match(GET, "/not-exist")
 	art.Equal(NotFound, ret.Status)
+	art.Nil(ret.Handlers)
+
+	// add a controller
+	r.Controller("/site", &SiteController{})
+	ret = r.Match(GET, "/site/12")
+	art.Equal(Found, ret.Status)
+	ret = r.Match(POST, "/site")
+	art.Equal(Found, ret.Status)
 }
 
 func TestRouter_Group(t *testing.T) {
@@ -102,13 +138,17 @@ func TestRouter_Group(t *testing.T) {
 	r.Group("/users", func(g *Router) {
 		g.GET("", emptyHandler)
 		g.GET("/{id}", emptyHandler)
+	}, func(c *Context) {
+		// add middleware handlers for group
 	})
 
 	ret := r.Match(GET, "/users")
 	art.Equal(Found, ret.Status)
+	art.Len(ret.Handlers, 2)
 
 	ret = r.Match(GET, "/users/23")
 	art.Equal(Found, ret.Status)
+	art.Len(ret.Handlers, 2)
 }
 
 func TestDynamicRoute(t *testing.T) {
@@ -130,6 +170,32 @@ func TestDynamicRoute(t *testing.T) {
 	art.Equal("23", ret.Params.String("id"))
 	art.Equal(23, ret.Params.Int("id"))
 	art.Equal(0, ret.Params.Int("no-key"))
+
+	ret = r.Match(GET, "/users/str")
+	art.Equal(Found, ret.Status)
+	art.Equal("str", ret.Params["id"])
+	ret = r.Match(GET, "/not/exist")
+	art.Equal(NotFound, ret.Status)
+
+	r.GET("/site/settings/{id}", emptyHandler)
+	ret = r.Match(GET, "/site/exist")
+	art.Equal(NotFound, ret.Status)
+
+	// add regex for var
+	r.GET(`/path1/{id:[1-9]\d*}`, emptyHandler)
+	ret = r.Match(GET, "/path1/23")
+	art.Equal(Found, ret.Status)
+	ret = r.Match(GET, "/path1/err")
+	art.Equal(NotFound, ret.Status)
+
+	// use internal var
+	r.GET(`/path2/{num}`, emptyHandler)
+	ret = r.Match(GET, "/path2/23")
+	art.Equal(Found, ret.Status)
+	ret = r.Match(GET, "/path2/-23")
+	art.Equal(NotFound, ret.Status)
+	ret = r.Match(GET, "/path2/err")
+	art.Equal(NotFound, ret.Status)
 }
 
 func TestOptionalRoute(t *testing.T) {
@@ -137,6 +203,11 @@ func TestOptionalRoute(t *testing.T) {
 
 	r := New()
 	art.NotEmpty(r)
+
+	// invalid
+	art.Panics(func() {
+		r.Add(GET, "/blog[/{category}]/{id}", emptyHandler)
+	})
 
 	// simple
 	r.Add(GET, "/about[.html]", emptyHandler)
@@ -169,6 +240,8 @@ func TestMethodNotAllowed(t *testing.T) {
 	r.Add(GET, "/path/some", emptyHandler)
 	r.Add(PUT, "/path/{var}", emptyHandler)
 	r.Add(DELETE, "/path[/{var}]", emptyHandler)
+
+	art.Contains(r.String(), "Routes Count: 3")
 
 	ret := r.Match(GET, "/path/some")
 	art.Equal(Found, ret.Status)

@@ -152,53 +152,53 @@ func New() *Router {
  * register routes
  *************************************************************/
 
-// GET add route and request method allow GET
+// GET add routing and only allow GET request methods
 func (r *Router) GET(path string, handlers ...HandlerFunc) *Route {
 	return r.Add(GET, path, handlers...)
 }
 
-// HEAD add route and request method allow HEAD
+// HEAD add routing and only allow HEAD request methods
 func (r *Router) HEAD(path string, handlers ...HandlerFunc) *Route {
 	return r.Add(HEAD, path, handlers...)
 }
 
-// POST add route and request method allow POST
+// POST add routing and only allow POST request methods
 func (r *Router) POST(path string, handlers ...HandlerFunc) *Route {
 	return r.Add(POST, path, handlers...)
 }
 
-// PUT add route and request method allow PUT
+// PUT add routing and only allow PUT request methods
 func (r *Router) PUT(path string, handlers ...HandlerFunc) *Route {
 	return r.Add(PUT, path, handlers...)
 }
 
-// PATCH add route and request method allow PATCH
+// PATCH add routing and only allow PATCH request methods
 func (r *Router) PATCH(path string, handlers ...HandlerFunc) *Route {
 	return r.Add(PATCH, path, handlers...)
 }
 
-// TRACE add route and request method allow TRACE
+// TRACE add routing and only allow TRACE request methods
 func (r *Router) TRACE(path string, handlers ...HandlerFunc) *Route {
 	return r.Add(TRACE, path, handlers...)
 }
 
-// OPTIONS add route and request method allow OPTIONS
+// OPTIONS add routing and only allow OPTIONS request methods
 func (r *Router) OPTIONS(path string, handlers ...HandlerFunc) *Route {
 	return r.Add(OPTIONS, path, handlers...)
 }
 
-// DELETE add route and request method allow DELETE
+// DELETE add routing and only allow OPTIONS request methods
 func (r *Router) DELETE(path string, handlers ...HandlerFunc) *Route {
 	return r.Add(DELETE, path, handlers...)
 }
 
-// CONNECT add route and request method allow CONNECT
+// CONNECT add routing and only allow CONNECT request methods
 func (r *Router) CONNECT(path string, handlers ...HandlerFunc) *Route {
 	return r.Add(CONNECT, path, handlers...)
 }
 
-// ANY add route and allow any request method
-func (r *Router) ANY(path string, handlers ...HandlerFunc) {
+// Any add route and allow any request methods
+func (r *Router) Any(path string, handlers ...HandlerFunc) {
 	for _, method := range anyMethods {
 		r.Add(method, path, handlers...)
 	}
@@ -220,33 +220,31 @@ func (r *Router) Add(method, path string, handlers ...HandlerFunc) (route *Route
 
 	path = r.formatPath(path)
 	method = strings.ToUpper(method)
-
 	if strings.Index(MethodsStr+",", method) == -1 {
 		panic("router: invalid method name, must in: " + MethodsStr)
 	}
 
 	// create new route instance
-	r.counter++
 	route = newRoute(method, path, handlers)
 
 	// path is fixed(no param vars). eg. "/users"
 	if r.isFixedPath(path) {
 		key := method + " " + path
+		r.counter++
 		r.stableRoutes[key] = route
-
 		return
 	}
 
 	// parsing route path with parameters
 	first := r.parseParamRoute(path, route)
 	if first != "" {
-		rKey := method + " " + first
-		rs, has := r.regularRoutes[rKey]
+		key := method + " " + first
+		rs, has := r.regularRoutes[key]
 		if !has {
 			rs = routes{}
 		}
 
-		r.regularRoutes[rKey] = append(rs, route)
+		r.regularRoutes[key] = append(rs, route)
 	} else {
 		rs, has := r.irregularRoutes[method]
 		if has {
@@ -256,6 +254,7 @@ func (r *Router) Add(method, path string, handlers ...HandlerFunc) (route *Route
 		r.irregularRoutes[method] = append(rs, route)
 	}
 
+	r.counter++
 	return
 }
 
@@ -362,4 +361,12 @@ func (r *Router) String() string {
 	}
 
 	return buf.String()
+}
+
+func (r *Router) debugPrintRoute(method, absPath string, handlers HandlersChain) {
+	if r.debug {
+		nuHandlers := len(handlers)
+		handlerName := nameOfFunction(handlers.Last())
+		fmt.Printf("%-6s %-25s --> %s (%d handlers)\n", method, absPath, handlerName, nuHandlers)
+	}
 }

@@ -25,6 +25,11 @@ func (c HandlersChain) Last() HandlerFunc {
 	return nil
 }
 
+// LastName get the main handler name
+func (c *HandlersChain) LastName() string {
+	return nameOfFunction(c.Last())
+}
+
 /*************************************************************
  * global middleware
  *************************************************************/
