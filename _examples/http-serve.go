@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"log"
 	"html"
-	"time"
 )
 
 func main() {
@@ -25,21 +24,6 @@ func main() {
 
 func fooHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "hello")
-}
-
-func custom() {
-	d := dispatcher.New()
-
-	s := &http.Server{
-		Addr:    ":8080",
-		Handler: d,
-
-		ReadTimeout:    10 * time.Second,
-		WriteTimeout:   10 * time.Second,
-		MaxHeaderBytes: 1 << 20,
-	}
-
-	log.Fatal(s.ListenAndServe())
 }
 
 func mux() {

@@ -3,13 +3,36 @@ package sux
 import (
 	"log"
 	"net/http"
+	"strings"
 )
 
 /*************************************************************
  * dispatch http request
  *************************************************************/
 
-func (r *Router) RunServe(addr string) {
+// Listen create a http server
+func (r *Router) Listen(addr string) {
+	ss := strings.SplitN(addr, ":", 2)
+	ip, port := ss[0], ss[1]
+	if ip == "" {
+		ip = "0.0.0.0"
+		addr = ip + ":" + port
+	}
+
+	log.Printf("About to listen on %s. Go to http://%s", port, addr)
+	log.Fatal(http.ListenAndServe(addr, r))
+}
+
+// ListenTLS create a https server
+func (r *Router) ListenTLS(addr string) {
+	ss := strings.SplitN(addr, ":", 2)
+	ip, port := ss[0], ss[1]
+	if ip == "" {
+		ip = "0.0.0.0"
+		addr = ip + ":" + port
+	}
+
+	log.Printf("About to listen on %s. Go to https://%s", port, addr)
 	log.Fatal(http.ListenAndServe(addr, r))
 }
 

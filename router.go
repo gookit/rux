@@ -50,6 +50,8 @@ type IController interface {
 	AddRoutes(grp *Router)
 }
 
+var anyMethods = []string{GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD, CONNECT, TRACE}
+
 /*************************************************************
  * Router definition
  *************************************************************/
@@ -127,9 +129,7 @@ type Router struct {
 	HandleMethodNotAllowed bool
 }
 
-var anyMethods = []string{GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD, CONNECT, TRACE}
-
-// New
+// New router instance
 func New() *Router {
 	router := &Router{
 		name: "default",
@@ -155,42 +155,52 @@ func New() *Router {
  * register routes
  *************************************************************/
 
+// GET add route and request method allow GET
 func (r *Router) GET(path string, handlers ...HandlerFunc) *Route {
 	return r.Add(GET, path, handlers...)
 }
 
+// HEAD add route and request method allow HEAD
 func (r *Router) HEAD(path string, handlers ...HandlerFunc) *Route {
 	return r.Add(HEAD, path, handlers...)
 }
 
+// POST add route and request method allow POST
 func (r *Router) POST(path string, handlers ...HandlerFunc) *Route {
 	return r.Add(POST, path, handlers...)
 }
 
+// PUT add route and request method allow PUT
 func (r *Router) PUT(path string, handlers ...HandlerFunc) *Route {
 	return r.Add(PUT, path, handlers...)
 }
 
+// GET add route and request method allow GET
 func (r *Router) PATCH(path string, handlers ...HandlerFunc) *Route {
 	return r.Add(PATCH, path, handlers...)
 }
 
+// TRACE add route and request method allow TRACE
 func (r *Router) TRACE(path string, handlers ...HandlerFunc) *Route {
 	return r.Add(TRACE, path, handlers...)
 }
 
+// GET add route and request method allow GET
 func (r *Router) OPTIONS(path string, handlers ...HandlerFunc) *Route {
 	return r.Add(OPTIONS, path, handlers...)
 }
 
+// DELETE add route and request method allow DELETE
 func (r *Router) DELETE(path string, handlers ...HandlerFunc) *Route {
 	return r.Add(DELETE, path, handlers...)
 }
 
+// CONNECT add route and request method allow CONNECT
 func (r *Router) CONNECT(path string, handlers ...HandlerFunc) *Route {
 	return r.Add(CONNECT, path, handlers...)
 }
 
+// ANY add route and allow ANY request method
 func (r *Router) ANY(path string, handlers ...HandlerFunc) {
 	for _, method := range anyMethods {
 		r.Add(method, path, handlers...)
@@ -235,22 +245,18 @@ func (r *Router) Add(method, path string, handlers ...HandlerFunc) (route *Route
 	if first != "" {
 		rKey := method + " " + first
 		rs, has := r.regularRoutes[rKey]
-		if has {
-			rs = append(rs, route)
-		} else {
-			rs = routes{route}
+		if !has {
+			rs = routes{}
 		}
 
-		r.regularRoutes[rKey] = rs
+		r.regularRoutes[rKey] = append(rs, route)
 	} else {
 		rs, has := r.irregularRoutes[method]
 		if has {
-			rs = append(rs, route)
-		} else {
-			rs = routes{route}
+			rs = routes{}
 		}
 
-		r.irregularRoutes[method] = rs
+		r.irregularRoutes[method] = append(rs, route)
 	}
 
 	return
@@ -261,6 +267,7 @@ func (r *Router) Group(prefix string, register func(grp *Router), handlers ...Ha
 	prevPrefix := r.currentGroupPrefix
 	r.currentGroupPrefix = prevPrefix + r.formatPath(prefix)
 
+	// handle prev handlers
 	prevHandlers := r.currentGroupHandlers
 	if len(handlers) > 0 {
 		if len(prevHandlers) > 0 {
@@ -271,8 +278,10 @@ func (r *Router) Group(prefix string, register func(grp *Router), handlers ...Ha
 		}
 	}
 
+	// call register
 	register(r)
 
+	// revert
 	r.currentGroupPrefix = prevPrefix
 	r.currentGroupHandlers = prevHandlers
 }
@@ -282,12 +291,12 @@ func (r *Router) Controller(basePath string, controller IController, handlers ..
 	r.Group(basePath, controller.AddRoutes)
 }
 
-// NotFound handlers
+// NotFound handlers for router
 func (r *Router) NotFound(handlers ...HandlerFunc) {
 	r.noRoute = handlers
 }
 
-// NotAllowed handlers
+// NotAllowed handlers for router
 func (r *Router) NotAllowed(handlers ...HandlerFunc) {
 	r.noAllowed = handlers
 }

@@ -15,6 +15,7 @@ const (
 	abortIndex int8 = math.MaxInt8 / 2
 )
 
+// IContext interface for http context
 type IContext interface {
 	Req() *http.Request
 	Res() http.ResponseWriter
@@ -26,6 +27,10 @@ type IContext interface {
 	SetParams(Params)
 
 	HandlerName() string
+}
+
+// Context for http server
+type DefContext struct {
 }
 
 // Context for http server
@@ -42,18 +47,7 @@ type Context struct {
 	handlers HandlersChain
 }
 
-func newContext(res http.ResponseWriter, req *http.Request, handlers HandlersChain) *Context {
-	return &Context{
-		res: res,
-		req: req,
-
-		index:  -1,
-		values: make(map[string]interface{}),
-
-		handlers: handlers,
-	}
-}
-
+// Init a context
 func (c *Context) Init(res http.ResponseWriter, req *http.Request, handlers HandlersChain) {
 	c.res = res
 	c.req = req
@@ -61,6 +55,7 @@ func (c *Context) Init(res http.ResponseWriter, req *http.Request, handlers Hand
 	c.handlers = handlers
 }
 
+// HandlerName get the main handler name
 func (c *Context) HandlerName() string {
 	return nameOfFunction(c.handlers.Last())
 }
@@ -100,7 +95,7 @@ func (c *Context) AppendHandlers(handlers ...HandlerFunc) {
 	c.handlers = append(c.handlers, handlers...)
 }
 
-// Reset context
+// Reset context data
 func (c *Context) Reset() {
 	// c.Writer = &c.writermem
 	c.params = nil
@@ -171,4 +166,12 @@ func (c *Context) Write(bt []byte) (n int, err error) {
 // WriteBytes byte data to response
 func (c *Context) WriteBytes(bt []byte) (n int, err error) {
 	return c.res.Write(bt)
+}
+
+// Text writes out a string as plain text.
+func (c *Context) Text(status int, str string) (n int, err error) {
+	c.res.WriteHeader(status)
+	c.res.Header().Set("Content-Type", "text/plain; charset=UTF-8")
+
+	return c.res.Write([]byte(str))
 }
