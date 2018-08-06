@@ -4,8 +4,16 @@ package sux
  * middleware definition
  *************************************************************/
 
+// HandlerFunc a handler definition
 type HandlerFunc func(c *Context)
+
+// HandlersChain a handlers chain
 type HandlersChain []HandlerFunc
+
+// Len get handles number
+func (c HandlersChain) Len() int {
+	return len(c)
+}
 
 // Last returns the last handler in the chain. ie. the last handler is the main own.
 func (c HandlersChain) Last() HandlerFunc {

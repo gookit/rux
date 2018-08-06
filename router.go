@@ -8,8 +8,8 @@ import (
 	"sync"
 )
 
+// all http verb methods name
 const (
-	// all http verb methods
 	GET     = "GET"
 	PUT     = "PUT"
 	HEAD    = "HEAD"
@@ -19,16 +19,14 @@ const (
 	DELETE  = "DELETE"
 	CONNECT = "CONNECT"
 	OPTIONS = "OPTIONS"
-
-	// some help constants
-	FavIcon = "/favicon.ico"
-	// supported methods string
-	// more: ,COPY,PURGE,LINK,UNLINK,LOCK,UNLOCK,VIEW,SEARCH,CONNECT,TRACE
-	MethodsStr = "GET,POST,PUT,PATCH,DELETE,OPTIONS,HEAD,CONNECT,TRACE"
 )
 
+// MethodsStr all supported methods string
+// more: ,COPY,PURGE,LINK,UNLINK,LOCK,UNLOCK,VIEW,SEARCH,CONNECT,TRACE
+const MethodsStr = "GET,POST,PUT,PATCH,DELETE,OPTIONS,HEAD,CONNECT,TRACE"
+
+// match status: 1 found 2 not found 3 method not allowed
 const (
-	// match status: 1 found 2 not found 3 method not allowed
 	Found uint8 = iota + 1
 	NotFound
 	NotAllowed
@@ -44,10 +42,10 @@ const (
 	PatternMatchAll                    // /*
 )
 
-// IController
+// IController a simple controller interface
 type IController interface {
-	// [":id": c.GetAction]
-	AddRoutes(grp *Router)
+	// AddRoutes for support register routes in the controller.
+	AddRoutes(g *Router)
 }
 
 var anyMethods = []string{GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD, CONNECT, TRACE}
@@ -90,11 +88,11 @@ type Router struct {
 
 	// regular dynamic routing 规律的动态路由
 	// key is "METHOD first-node":
-	// first node string in the route pattern. "/users/{id}" -> "user"
+	// first node string in the route path. "/users/{id}" -> "user"
 	// {
-	// 	"GET blog": [ Route{pattern:"/blog/:id"}, ...],
-	// 	"POST blog": [ Route{pattern:"/blog/:user/add"}, ...],
-	// 	"GET users": [ Route{pattern:"/users/:id"}, ...],
+	// 	"GET blog": [ Route{path:"/blog/:id"}, ...],
+	// 	"POST blog": [ Route{path:"/blog/:user/add"}, ...],
+	// 	"GET users": [ Route{path:"/users/:id"}, ...],
 	// 	...
 	// }
 	regularRoutes methodRoutes
@@ -137,8 +135,7 @@ func New() *Router {
 		MaxCachedRoute:  1000,
 		IgnoreLastSlash: true,
 
-		stableRoutes: make(map[string]*Route),
-		// cachedRoutes:  make(map[string]*Route),
+		stableRoutes:  make(map[string]*Route),
 		regularRoutes: make(methodRoutes),
 
 		irregularRoutes: make(methodRoutes),
@@ -175,7 +172,7 @@ func (r *Router) PUT(path string, handlers ...HandlerFunc) *Route {
 	return r.Add(PUT, path, handlers...)
 }
 
-// GET add route and request method allow GET
+// PATCH add route and request method allow PATCH
 func (r *Router) PATCH(path string, handlers ...HandlerFunc) *Route {
 	return r.Add(PATCH, path, handlers...)
 }
@@ -185,7 +182,7 @@ func (r *Router) TRACE(path string, handlers ...HandlerFunc) *Route {
 	return r.Add(TRACE, path, handlers...)
 }
 
-// GET add route and request method allow GET
+// OPTIONS add route and request method allow OPTIONS
 func (r *Router) OPTIONS(path string, handlers ...HandlerFunc) *Route {
 	return r.Add(OPTIONS, path, handlers...)
 }
@@ -200,7 +197,7 @@ func (r *Router) CONNECT(path string, handlers ...HandlerFunc) *Route {
 	return r.Add(CONNECT, path, handlers...)
 }
 
-// ANY add route and allow ANY request method
+// ANY add route and allow any request method
 func (r *Router) ANY(path string, handlers ...HandlerFunc) {
 	for _, method := range anyMethods {
 		r.Add(method, path, handlers...)
@@ -263,7 +260,7 @@ func (r *Router) Add(method, path string, handlers ...HandlerFunc) (route *Route
 }
 
 // Group add an group routes
-func (r *Router) Group(prefix string, register func(grp *Router), handlers ...HandlerFunc) {
+func (r *Router) Group(prefix string, register func(g *Router), handlers ...HandlerFunc) {
 	prevPrefix := r.currentGroupPrefix
 	r.currentGroupPrefix = prevPrefix + r.formatPath(prefix)
 
@@ -302,26 +299,22 @@ func (r *Router) NotAllowed(handlers ...HandlerFunc) {
 }
 
 /*************************************************************
- * static file handle methods
+ * static assets file handle
  *************************************************************/
 
+// StaticFile add a static asset file handle
 func (r *Router) StaticFile(path, file string) {
 }
 
+// StaticFunc add a static assets handle func
 func (r *Router) StaticFunc(path string) {
 }
 
+// StaticHandle add a static asset file handle
 func (r *Router) StaticHandle(path string) {
 }
 
 // StaticFiles static files from the given file system root.
-// The path must end with "/*filepath", files are then served from the local
-// path /defined/root/dir/*filepath.
-// For example if root is "/etc" and *filepath is "passwd", the local file
-// "/etc/passwd" would be served.
-// Internally a http.FileServer is used, therefore http.NotFound is used instead
-// of the Router's NotFound handler.
-// To use the operating system's file system implementation,
 // use http.Dir:
 //     router.ServeFiles("/src/*filepath", http.Dir("/var/www"))
 func (r *Router) StaticFiles(path string, root http.FileSystem) {
@@ -330,11 +323,10 @@ func (r *Router) StaticFiles(path string, root http.FileSystem) {
 	}
 
 	fileServer := http.FileServer(root)
-
-	r.GET(path, func(ctx *Context) {
-		req := ctx.req
-		req.URL.Path = ctx.params["filepath"]
-		fileServer.ServeHTTP(ctx.res, req)
+	r.GET(path, func(c *Context) {
+		req := c.req
+		req.URL.Path = c.Param("filepath")
+		fileServer.ServeHTTP(c.res, req)
 	})
 }
 
@@ -342,7 +334,7 @@ func (r *Router) StaticFiles(path string, root http.FileSystem) {
  * help methods
  *************************************************************/
 
-// String
+// String all routes to string
 func (r *Router) String() string {
 	buf := new(bytes.Buffer)
 

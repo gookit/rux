@@ -29,7 +29,7 @@ type IContext interface {
 	HandlerName() string
 }
 
-// Context for http server
+// DefContext for http server
 type DefContext struct {
 }
 
@@ -140,32 +140,54 @@ func (c *Context) SetParams(params Params) {
 }
 
 /*************************************************************
- * Context helper methods
+ * Context: input data
  *************************************************************/
+
+// Param returns the value of the URL param.
+//		router.GET("/user/:id", func(c *gin.Context) {
+//			// a GET request to /user/john
+//			id := c.Param("id") // id == "john"
+//		})
+func (c *Context) Param(key string) string {
+	return c.params.String(key)
+}
 
 // URL get URL instance from request
 func (c *Context) URL() *url.URL {
 	return c.req.URL
 }
 
-// GetRawData return stream data
-func (c *Context) GetRawData() ([]byte, error) {
+// URLQuery return query Values
+func (c *Context) URLQuery() url.Values {
+	return c.req.URL.Query()
+}
+
+// Query return query value by key
+func (c *Context) Query(key string) string {
+	if vs, ok := c.req.URL.Query()[key]; ok && len(vs) > 0 {
+		return vs[0]
+	}
+
+	return ""
+}
+
+// RawData return stream data
+func (c *Context) RawData() ([]byte, error) {
 	return ioutil.ReadAll(c.req.Body)
 }
 
-// WriteString to response
-func (c *Context) WriteString(str string) (n int, err error) {
-	return c.res.Write([]byte(str))
-}
+/*************************************************************
+ * Context: response data
+ *************************************************************/
 
 // Write byte data to response
 func (c *Context) Write(bt []byte) (n int, err error) {
 	return c.res.Write(bt)
 }
 
-// WriteBytes byte data to response
-func (c *Context) WriteBytes(bt []byte) (n int, err error) {
-	return c.res.Write(bt)
+// WriteString to response
+func (c *Context) WriteString(str string) (n int, err error) {
+	return c.res.Write([]byte(str))
 }
 
 // Text writes out a string as plain text.
@@ -174,4 +196,10 @@ func (c *Context) Text(status int, str string) (n int, err error) {
 	c.res.Header().Set("Content-Type", "text/plain; charset=UTF-8")
 
 	return c.res.Write([]byte(str))
+}
+
+// NoContent serve success but no content response
+func (c *Context) NoContent() error {
+	c.res.WriteHeader(http.StatusNoContent)
+	return nil
 }

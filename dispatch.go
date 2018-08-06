@@ -49,7 +49,6 @@ func (r *Router) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	}
 
 	result := r.Match(req.Method, path)
-
 	if result.Status == NotFound {
 		if len(r.noRoute) == 0 {
 			http.NotFound(res, req)

@@ -14,20 +14,14 @@ var globalVars = map[string]string{
 	"num": `[1-9][0-9]*`,
 }
 
+// SetGlobalVar set an global path var
 func SetGlobalVar(name, regex string) {
 	globalVars[name] = regex
 }
 
+// GetGlobalVars get all global path vars
 func GetGlobalVars() map[string]string {
 	return globalVars
-}
-
-func getGlobalVar(name, def string) string {
-	if val, ok := globalVars[name]; ok {
-		return val
-	}
-
-	return def
 }
 
 /*************************************************************

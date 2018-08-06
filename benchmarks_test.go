@@ -1,7 +1,9 @@
 package sux
 
 import (
+	"io"
 	"net/http"
+	"strings"
 	"testing"
 )
 
@@ -98,4 +100,20 @@ func runRequest(B *testing.B, r *Router, method, path string) {
 	for i := 0; i < B.N; i++ {
 		r.ServeHTTP(w, req)
 	}
+}
+
+func mockRequest(r *Router, method, path, bodyStr string) {
+	var body io.Reader
+	if bodyStr != "" {
+		body = strings.NewReader(bodyStr)
+	}
+
+	// create fake request
+	req, err := http.NewRequest(method, path, body)
+	if err != nil {
+		panic(err)
+	}
+
+	w := newMockWriter()
+	r.ServeHTTP(w, req)
 }

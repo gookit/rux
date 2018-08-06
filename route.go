@@ -11,21 +11,28 @@ import (
  * Route params
  *************************************************************/
 
-// params for current route
+// Params for current route
 type Params map[string]string
 
+// Has param key in the params
+func (p Params) Has(key string) bool {
+	_, ok := p[key]
+	return ok
+}
+
+// String get string value by key
 func (p Params) String(key string) (val string) {
 	if val, ok := p[key]; ok {
 		return val
 	}
-
 	return
 }
 
+// Int get int value by key
 func (p Params) Int(key string) (val int) {
 	if str, ok := p[key]; ok {
 		val, err := strconv.Atoi(str)
-		if err != nil {
+		if err == nil {
 			return val
 		}
 	}
@@ -40,41 +47,34 @@ func (p Params) Int(key string) (val int) {
 // Route in the router
 type Route struct {
 	// name   string
+	// path for the route. eg "/users" "/users/{id}"
+	path   string
 	method string
 
-	// path/pattern definition for the route. eg "/users" "/users/{id}"
-	pattern string
-
-	// start string in the route pattern. "/users/{id}" -> "/user/"
+	// start string in the route path. "/users/{id}" -> "/user/"
 	start string
-
-	// regexp for the route pattern
+	hosts []string
+	// regexp for the route path
 	regex *regexp.Regexp
-
+	// matched var names in the route path. eg "/api/{var1}/{var2}" -> [var1, var2]
+	matches []string
 	// handlers list for the route
 	handlers HandlersChain
-
-	// route params, only use for route cache
-	Params Params
+	// dynamic route param values, only use for route cache
+	params Params
+	// var define for the route. eg ["name": `\w+`]
+	vars map[string]string
 
 	// some options data for the route
 	Opts map[string]interface{}
 
-	// var define for thr route. eg ["name": `\w+`]
-	vars map[string]string
-
-	hosts []string
-	// matched var names in the route path. eg "/api/{var1}/{var2}" -> [var1, var2]
-	matches []string
-
-	// domains
 	// defaults
 }
 
 func newRoute(method, path string, handlers HandlersChain) *Route {
 	return &Route{
 		method:   method,
-		pattern:  path,
+		path:     path,
 		handlers: handlers,
 	}
 }
@@ -85,22 +85,29 @@ func (r *Route) Use(handlers ...HandlerFunc) *Route {
 	return r
 }
 
-// Vars add vars pattern for the route path
+// SetVar add var regex for the route path
+func (r *Route) SetVar(name, regex string) *Route {
+	r.vars[name] = regex
+	return r
+}
+
+// SetVars add vars path for the route path
 func (r *Route) SetVars(vars map[string]string) *Route {
-	for name, pattern := range vars {
-		r.vars[name] = pattern
+	for name, regex := range vars {
+		r.vars[name] = regex
 	}
 
 	return r
 }
 
+// String route info to string
 func (r *Route) String() string {
 	nuHandlers := len(r.handlers)
 	handlerName := nameOfFunction(r.handlers.Last())
 
 	return fmt.Sprintf(
 		"%-6s %-25s --> %s (%d handlers)",
-		r.method, r.pattern, handlerName, nuHandlers,
+		r.method, r.path, handlerName, nuHandlers,
 	)
 }
 
@@ -141,13 +148,13 @@ func (r *Route) match(path string) (ps Params, ok bool) {
 	return
 }
 
-func (r *Route) withParams(ps Params) *Route {
-	r.Params = ps
-	return r
-}
+// copy a new instance
+func (r *Route) copyWithParams(ps Params) *Route {
+	var nr = *r
+	nr.vars = nil
+	nr.regex = nil
+	nr.matches = nil
+	nr.params = ps
 
-func (r *Route) Copy() *Route {
-	var route = *r
-
-	return &route
+	return &nr
 }

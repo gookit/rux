@@ -101,15 +101,15 @@ func AppendCharset() {
 
 }
 
-// Empty serve success but no content response
+// Empty alias method of the NoContent()
 func Empty(w http.ResponseWriter) error {
-	w.WriteHeader(http.StatusNoContent)
-	return nil
+	return NoContent(w)
 }
 
-// NoContent alias method of the Empty()
+// NoContent serve success but no content response
 func NoContent(w http.ResponseWriter) error {
-	return Empty(w)
+	w.WriteHeader(http.StatusNoContent)
+	return nil
 }
 
 // Text serve string content as text/plain response
