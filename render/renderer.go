@@ -39,12 +39,15 @@ const (
 	defaultTemplateRightDelim = "}}"
 )
 
+// Handler interface for renderer handler
 type Handler interface {
 	Render(w http.ResponseWriter, status int, data interface{}) error
 }
 
 // M describes handy type that represents data to send as response
 type M map[string]interface{}
+
+// TplDelims for html template
 type TplDelims struct {
 	Left  string
 	Right string
@@ -64,6 +67,7 @@ type Options struct {
 	TplFuncMap  []template.FuncMap
 }
 
+// HtmlTpl definition
 type HtmlTpl struct {
 }
 
@@ -90,13 +94,14 @@ func Config(fn func(*Options)) {
 	fn(opts)
 }
 
-// Init
+// Init the renderer
 func Init() {
 	if opts.AppendCharset {
 
 	}
 }
 
+// AppendCharset for all content types
 func AppendCharset() {
 
 }
@@ -134,6 +139,7 @@ func Data(w http.ResponseWriter, status int, v interface{}) error {
 	return err
 }
 
+// JSON serve string content as json response
 func JSON(w http.ResponseWriter, status int, v interface{}) error {
 	w.Header().Set(ContentType, opts.ContentJSON)
 	w.WriteHeader(status)
