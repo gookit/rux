@@ -34,10 +34,14 @@ func GenRequestID() sux.HandlerFunc {
 
 // PanicsHandler middleware
 func PanicsHandler() sux.HandlerFunc {
+	// if h.printStack {
+	// 	debug.PrintStack()
+	// }
+
 	return func(c *sux.Context) {
 		defer func() {
 			if err := recover(); err != nil {
-				c.NoContent()
+				c.Resp.WriteHeader(500)
 			}
 		}()
 

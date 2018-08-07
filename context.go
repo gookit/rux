@@ -56,6 +56,11 @@ func (c *Context) Values() map[string]interface{} {
 	return c.values
 }
 
+// Router get router instance
+func (c *Context) Router() *Router {
+	return c.router
+}
+
 // Set a value to context by key
 func (c *Context) Set(key string, val interface{}) {
 	c.values[key] = val

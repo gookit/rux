@@ -159,7 +159,7 @@ func New() *Router {
 	}
 
 	router.pool.New = func() interface{} {
-		return &Context{index: -1}
+		return &Context{index: -1, router: router}
 	}
 	return router
 }

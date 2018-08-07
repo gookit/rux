@@ -205,7 +205,7 @@ func main() {
 
 ## Other
 
-- tests
+- run tests
 
 ```bash
 go test -cover
