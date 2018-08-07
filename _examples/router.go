@@ -19,12 +19,12 @@ func main() {
 	r.GET("/about[.html]", defHandle)
 	r.GET("/hi-{name}", defHandle)
 
-	r.Group("/users", func(sub *sux.Router) {
-		sub.GET("/", func(ctx *sux.Context) {
+	r.Group("/users", func() {
+		r.GET("/", func(ctx *sux.Context) {
 			ctx.WriteString("hello, in " + ctx.URL().Path)
 		})
 
-		sub.GET("/{id}", func(ctx *sux.Context) {
+		r.GET("/{id}", func(ctx *sux.Context) {
 			ctx.WriteString("hello, in " + ctx.URL().Path)
 		})
 	})

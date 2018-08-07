@@ -140,9 +140,9 @@ func TestRouter_Group(t *testing.T) {
 	r := New()
 	art.NotEmpty(r)
 
-	r.Group("/users", func(g *Router) {
-		g.GET("", emptyHandler)
-		g.GET("/{id}", emptyHandler)
+	r.Group("/users", func() {
+		r.GET("", emptyHandler)
+		r.GET("/{id}", emptyHandler)
 	}, func(c *Context) {
 		// add middleware handlers for group
 	})
@@ -270,4 +270,9 @@ func TestOther(t *testing.T) {
 	SetGlobalVar("name", `\w+`)
 	m := GetGlobalVars()
 	art.Equal(`\w+`, m["name"])
+
+	Debug(true)
+	art.True(IsDebug())
+	Debug(false)
+	art.False(IsDebug())
 }

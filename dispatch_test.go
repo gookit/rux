@@ -203,6 +203,16 @@ func TestMiddlewareAbort(t *testing.T) {
 	art.Equal("aA", s.str)
 }
 
+func TestGroupMiddleware(t *testing.T) {
+	art := assert.New(t)
+	r := New()
+	art.NotEmpty(r)
+
+	r.Group("/grp", func() {
+		r.GET("/middle", namedHandler) // main handler
+	})
+}
+
 func TestContext(t *testing.T) {
 	art := assert.New(t)
 	r := New()
@@ -225,4 +235,18 @@ func TestContext(t *testing.T) {
 
 	// Call sequence: middle 1 -> middle 2 -> main handler -> middle 1 -> middle 2
 	mockRequest(r, GET, "/ctx", "data")
+}
+
+func TestRouterListen(t *testing.T) {
+	art := assert.New(t)
+	r := New()
+
+	// multi params
+	art.Panics(func() {
+		r.Listen(":8080", "9090")
+	})
+
+	art.Error(r.Listen("invalid"))
+	art.Error(r.ListenTLS("invalid", "", ""))
+	art.Error(r.ListenUnix(""))
 }

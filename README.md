@@ -1,4 +1,4 @@
-# Simple Router
+# sux router
 
 [![GoDoc](https://godoc.org/github.com/gookit/sux?status.svg)](https://godoc.org/github.com/gookit/sux)
 [![Build Status](https://travis-ci.org/gookit/sux.svg?branch=master)](https://travis-ci.org/gookit/sux)
@@ -10,11 +10,18 @@ Simple and fast request router for golang HTTP applications.
 - support route group
 - support route path params
 - support cache recently accessed dynamic routes
-- support route middleware, group middleware
-- support generic `http.Handler` middleware
-- support add `NotFound` handlers and `NotAllowed` handlers
+- support route middleware, group middleware, global middleware
+- support generic `http.Handler` interface middleware
+- support add handlers for handle `NotFound` and `NotAllowed`
 
-## Usage
+> **[中文说明](README_cn.md)**
+
+## Godoc
+
+- [godoc for gopkg](https://godoc.org/gopkg.in/gookit/ini.v1)
+- [godoc for github](https://godoc.org/github.com/gookit/ini)
+
+## Quick start
 
 ```go
 package main
@@ -34,24 +41,32 @@ func main() {
 	r.POST("/post", func(c *sux.Context) {
 		c.Text(200, "hello")
 	})
-	r.Group("/articles", func(g *sux.Router) {
-		g.GET("", func(c *sux.Context) {
+	r.Group("/articles", func() {
+		r.GET("", func(c *sux.Context) {
 			c.Text(200, "view list")
 		})
-		g.POST("", func(c *sux.Context) {
+		r.POST("", func(c *sux.Context) {
 			c.Text(200, "create ok")
 		})
-		g.GET(`/{id:\d+}`, func(c *sux.Context) {
+		r.GET(`/{id:\d+}`, func(c *sux.Context) {
 			c.Text(200, "view detail, id: " + c.Param("id"))
 		})
 	})
 
-    // quick start
+	// quick start
 	r.Listen(":8080")
+	// can also
+	// http.ListenAndServe(":8080", r)
 }
 ```
 
 ## Use Middleware
+
+sux support use middleware
+
+- global middleware
+- group middleware
+- route middleware
 
 ```go
 package main
@@ -111,7 +126,7 @@ func main() {
 
 ## Use http.Handler
 
-sux is support generic `http.Handler` middleware
+sux is support generic `http.Handler` interface middleware
 
 > You can use `sux.WarpHttpHandler()` convert `http.Handler` as `sux.HandlerFunc`
 

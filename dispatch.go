@@ -1,7 +1,8 @@
 package sux
 
 import (
-	"log"
+	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"sort"
@@ -9,49 +10,69 @@ import (
 )
 
 /*************************************************************
- * create http server
+ * starting HTTP serve
  *************************************************************/
 
-// Listen quick create a http server with router
-func (r *Router) Listen(addr ...string) {
-	ip, port := resolveAddress(addr)
-	address := ip + ":" + port
+// Listen quick create a HTTP server with the router
+func (r *Router) Listen(addr ...string) (err error) {
+	defer func() { debugPrintError(err) }()
+	address := resolveAddress(addr)
 
-	log.Printf("About to listen on %s. Go to http://%s", port, address)
-	log.Fatal(http.ListenAndServe(address, r))
+	fmt.Printf("Serve listen on %s. Go to http://%s\n", address, address)
+	err = http.ListenAndServe(address, r)
+	return
 }
 
-// ListenTLS create a https server
-func (r *Router) ListenTLS(addr ...string) {
-	ip, port := resolveAddress(addr)
-	address := ip + ":" + port
+// ListenTLS attaches the router to a http.Server and starts listening and serving HTTPS (secure) requests.
+func (r *Router) ListenTLS(addr, certFile, keyFile string) (err error) {
+	defer func() { debugPrintError(err) }()
+	address := resolveAddress([]string{addr})
 
-	log.Printf("About to listen on %s. Go to https://%s", port, address)
-	log.Fatal(http.ListenAndServe(address, r))
+	fmt.Printf("Serve listen on %s. Go to https://%s\n", address, address)
+	err = http.ListenAndServeTLS(address, certFile, keyFile, r)
+	return
 }
 
-func resolveAddress(addr []string) (ip, port string) {
-	ip = "0.0.0.0"
+// ListenUnix attaches the router to a http.Server and starts listening and serving HTTP requests
+// through the specified unix socket (ie. a file)
+func (r *Router) ListenUnix(file string) (err error) {
+	defer func() { debugPrintError(err) }()
+	fmt.Printf("Serve listen on unix:/%s\n", file)
+
+	os.Remove(file)
+	listener, err := net.Listen("unix", file)
+	if err != nil {
+		return
+	}
+	defer listener.Close()
+
+	err = http.Serve(listener, r)
+	return
+}
+
+func resolveAddress(addr []string) (fullAddr string) {
+	ip := "0.0.0.0"
 	switch len(addr) {
 	case 0:
 		if port := os.Getenv("PORT"); len(port) > 0 {
 			debugPrint("Environment variable PORT=\"%s\"", port)
-			return ip, port
+			return ip + ":" + port
 		}
 		debugPrint("Environment variable PORT is undefined. Using port :8080 by default")
-		return ip, "8080"
+		return ip + ":8080"
 	case 1:
+		var port string
 		if strings.Index(addr[0], ":") != -1 {
 			ss := strings.SplitN(addr[0], ":", 2)
 			if ss[0] != "" {
-				ip = ss[0]
+				return addr[0]
 			}
 			port = ss[1]
 		} else {
 			port = addr[0]
 		}
 
-		return
+		return ip + ":" + port
 	default:
 		panic("too much parameters")
 	}

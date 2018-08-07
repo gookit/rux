@@ -1,3 +1,9 @@
+// Package sux is a simple and fast request router for golang HTTP applications.
+//
+// Source code and other details for the project are available at GitHub:
+// 		https://github.com/gookit/sux
+//
+// usage please ref examples and README
 package sux
 
 import (
@@ -9,7 +15,7 @@ import (
 	"time"
 )
 
-// all http verb methods name
+// all supported HTTP verb methods name
 const (
 	GET     = "GET"
 	PUT     = "PUT"
@@ -22,7 +28,7 @@ const (
 	OPTIONS = "OPTIONS"
 )
 
-// MethodsStr all supported methods string
+// MethodsStr all supported methods string, use for method check
 // more: ,COPY,PURGE,LINK,UNLINK,LOCK,UNLOCK,VIEW,SEARCH,CONNECT,TRACE
 const MethodsStr = "GET,POST,PUT,PATCH,DELETE,OPTIONS,HEAD,CONNECT,TRACE"
 
@@ -57,13 +63,18 @@ func Debug(val bool) {
 	debug = val
 }
 
+// IsDebug return sux is debug mode.
+func IsDebug() bool {
+	return debug
+}
+
 /*************************************************************
  * Router definition
  *************************************************************/
 
 type routes []*Route
 
-// "GET": [ Route, ...]
+// like "GET": [ Route, ...]
 type methodRoutes map[string]routes
 
 // Router definition
@@ -225,7 +236,7 @@ func (r *Router) Add(method, path string, handler HandlerFunc, middleware ...Han
 
 	path = r.formatPath(path)
 	method = strings.ToUpper(method)
-	if strings.Index(MethodsStr+",", method) == -1 {
+	if strings.Index(","+MethodsStr, ","+method) == -1 {
 		panic("router: invalid method name, must in: " + MethodsStr)
 	}
 
@@ -264,7 +275,7 @@ func (r *Router) Add(method, path string, handler HandlerFunc, middleware ...Han
 }
 
 // Group add an group routes
-func (r *Router) Group(prefix string, register func(g *Router), middleware ...HandlerFunc) {
+func (r *Router) Group(prefix string, register func(), middleware ...HandlerFunc) {
 	prevPrefix := r.currentGroupPrefix
 	r.currentGroupPrefix = prevPrefix + r.formatPath(prefix)
 
@@ -280,7 +291,7 @@ func (r *Router) Group(prefix string, register func(g *Router), middleware ...Ha
 	}
 
 	// call register
-	register(r)
+	register()
 
 	// revert
 	r.currentGroupPrefix = prevPrefix
@@ -289,7 +300,9 @@ func (r *Router) Group(prefix string, register func(g *Router), middleware ...Ha
 
 // Controller register some routes by a controller
 func (r *Router) Controller(basePath string, controller IController, middleware ...HandlerFunc) {
-	r.Group(basePath, controller.AddRoutes, middleware...)
+	r.Group(basePath, func() {
+		controller.AddRoutes(r)
+	}, middleware...)
 }
 
 // NotFound handlers for router
@@ -374,9 +387,15 @@ func debugPrintRoute(route *Route) {
 	}
 }
 
+func debugPrintError(err error) {
+	if err != nil {
+		debugPrint("[ERROR] %v\n", err)
+	}
+}
+
 func debugPrint(f string, v ...interface{}) {
 	if debug {
 		msg := fmt.Sprintf(f, v...)
-		fmt.Printf("[DEBUG] %s %s\n", time.Now().Format("2006-01-02 15:04:05"), msg)
+		fmt.Printf("[sux-DEBUG] %s %s\n", time.Now().Format("2006-01-02 15:04:05"), msg)
 	}
 }

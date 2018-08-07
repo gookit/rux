@@ -28,14 +28,14 @@ func main() {
 	r.POST("/post", func(c *sux.Context) {
 		c.Text(200, "hello " + c.URL().Path)
 	})
-	r.Group("/articles", func(g *sux.Router) {
-		g.GET("", func(c *sux.Context) {
+	r.Group("/articles", func() {
+		r.GET("", func(c *sux.Context) {
 			c.Text(200, "view list")
 		})
-		g.POST("", func(c *sux.Context) {
+		r.POST("", func(c *sux.Context) {
 			c.Text(200, "create ok")
 		})
-		g.GET(`/{id:\d+}`, func(c *sux.Context) {
+		r.GET(`/{id:\d+}`, func(c *sux.Context) {
 			c.Text(200, "view detail, id: " + c.Param("id"))
 		})
 	})
