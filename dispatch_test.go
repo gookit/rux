@@ -52,7 +52,7 @@ func TestRouter_ServeHTTP(t *testing.T) {
 	mockRequest(r, GET, "/", "")
 	art.Equal("ok", s.str)
 
-	// use params
+	// use Params
 	r.GET("/users/{id}", func(c *Context) {
 		s.set("id:" + c.Param("id"))
 	})
@@ -137,7 +137,7 @@ func TestRouteMiddleware(t *testing.T) {
 		c.Next()
 		s.append("B")
 	})
-	// Call sequence: middle 1 -> middle 2 -> main handler -> middle 1 -> middle 2
+	// Call sequence: middle 1 -> middle 2 -> main handler -> middle 2 -> middle 1
 	s.reset()
 	mockRequest(r, GET, "/middle2", "")
 	art.Equal("ab-O-BA", s.str)
@@ -172,7 +172,7 @@ func TestRouteMiddleware(t *testing.T) {
 		c.Next()
 		s.append("B")
 	})
-	// Call sequence: middle 1 -> middle 2 -> main handler -> middle 1 -> middle 2
+	// Call sequence: middle 1 -> middle 2 -> main handler -> middle 2 -> middle 1
 	s.reset()
 	mockRequest(r, GET, "/middle4", "")
 	art.Equal("ab-O-BA", s.str)
@@ -207,20 +207,22 @@ func TestContext(t *testing.T) {
 	art := assert.New(t)
 	r := New()
 
-	route := r.GET("/ctx", namedHandler)
-	route.Use(func(c *Context) {
+	route := r.GET("/ctx", namedHandler) // main handler
+
+	route.Use(func(c *Context) { // middle 1
 		art.NotEmpty(c.Handler())
 		art.Equal("github.com/gookit/sux.namedHandler", c.HandlerName())
 		// set a new context data
 		c.Set("newKey", "val")
 		c.Next()
 		art.Equal("namedHandler1", c.Get("name").(string))
-	}, func(c *Context) { // Will not execute
+	}, func(c *Context) { // middle 2
 		art.Equal("val", c.Get("newKey").(string))
 		c.Next()
 		art.Equal("namedHandler", c.Get("name").(string))
 		c.Set("name", "namedHandler1") // change value
 	})
 
+	// Call sequence: middle 1 -> middle 2 -> main handler -> middle 1 -> middle 2
 	mockRequest(r, GET, "/ctx", "data")
 }

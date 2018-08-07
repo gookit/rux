@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 )
 
 // all http verb methods name
@@ -48,7 +49,13 @@ type IController interface {
 	AddRoutes(g *Router)
 }
 
+var debug bool
 var anyMethods = []string{GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD, CONNECT, TRACE}
+
+// Debug switch debug mode
+func Debug(val bool) {
+	debug = val
+}
 
 /*************************************************************
  * Router definition
@@ -65,7 +72,6 @@ type Router struct {
 	name string
 	pool sync.Pool
 
-	debug   bool
 	counter int
 	// mark init is completed
 	initialized bool
@@ -322,9 +328,9 @@ func (r *Router) StaticFiles(path string, root http.FileSystem) {
 
 	fileServer := http.FileServer(root)
 	r.GET(path, func(c *Context) {
-		req := c.req
+		req := c.Req
 		req.URL.Path = c.Param("filepath")
-		fileServer.ServeHTTP(c.res, req)
+		fileServer.ServeHTTP(c.Resp, req)
 	})
 }
 
@@ -362,10 +368,15 @@ func (r *Router) String() string {
 	return buf.String()
 }
 
-func (r *Router) debugPrintRoute(method, absPath string, handlers HandlersChain) {
-	if r.debug {
-		nuHandlers := len(handlers)
-		handlerName := nameOfFunction(handlers.Last())
-		fmt.Printf("%-6s %-25s --> %s (%d handlers)\n", method, absPath, handlerName, nuHandlers)
+func debugPrintRoute(route *Route) {
+	if debug {
+		fmt.Println(route.String())
+	}
+}
+
+func debugPrint(f string, v ...interface{}) {
+	if debug {
+		msg := fmt.Sprintf(f, v...)
+		fmt.Printf("[DEBUG] %s %s\n", time.Now().Format("2006-01-02 15:04:05"), msg)
 	}
 }

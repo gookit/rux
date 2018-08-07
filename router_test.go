@@ -226,7 +226,7 @@ func TestOptionalRoute(t *testing.T) {
 	ret = r.Match(GET, "/about.html")
 	art.Equal(Found, ret.Status)
 
-	// with params
+	// with Params
 	r.Add(GET, "/blog[/{category}]", emptyHandler)
 
 	ret = r.Match(GET, "/blog")
@@ -258,10 +258,10 @@ func TestMethodNotAllowed(t *testing.T) {
 	art.Len(ret.Handlers, 0)
 	art.Len(ret.AllowedMethods, 3)
 
-	allowedStr := ret.JoinAllowedMethods(",")
-	art.Contains(allowedStr, "GET")
-	art.Contains(allowedStr, "PUT")
-	art.Contains(allowedStr, "DELETE")
+	allowed := ret.AllowedMethods
+	art.Contains(allowed, "GET")
+	art.Contains(allowed, "PUT")
+	art.Contains(allowed, "DELETE")
 }
 
 func TestOther(t *testing.T) {

@@ -2,9 +2,10 @@ package sux
 
 import (
 	"io/ioutil"
-	"math"
+	"net"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 /*************************************************************
@@ -12,34 +13,20 @@ import (
  *************************************************************/
 
 const (
-	abortIndex int8 = math.MaxInt8 / 2
+	// abortIndex int8 = math.MaxInt8 / 2
+	abortIndex int8 = 63
 )
-
-// IContext interface for http context
-type IContext interface {
-	Req() *http.Request
-	Res() http.ResponseWriter
-	Init(http.ResponseWriter, *http.Request, HandlersChain)
-
-	Next()
-	Reset()
-	Params() Params
-	SetParams(Params)
-	HandlerName() string
-}
-
-// DefContext for http server
-type DefContext struct {
-}
 
 // Context for http server
 type Context struct {
-	req *http.Request
-	res http.ResponseWriter
+	Req  *http.Request
+	Resp http.ResponseWriter
+	// current route Params, if route has var Params
+	Params Params
 
 	index int8
-	// current route params, if route has var params
-	params Params
+	// current router instance
+	router *Router
 	// context data, you can save some custom data.
 	values map[string]interface{}
 	// all handlers for current request
@@ -47,9 +34,9 @@ type Context struct {
 }
 
 // Init a context
-func (c *Context) InitRequest(res http.ResponseWriter, req *http.Request, handlers HandlersChain) {
-	c.res = res
-	c.req = req
+func (c *Context) InitRequest(w http.ResponseWriter, req *http.Request, handlers HandlersChain) {
+	c.Req = req
+	c.Resp = w
 	c.values = make(map[string]interface{})
 	c.handlers = handlers
 }
@@ -98,7 +85,7 @@ func (c *Context) Next() {
 func (c *Context) Reset() {
 	// c.Writer = &c.writermem
 	c.index = -1
-	c.params = nil
+	c.Params = nil
 	c.values = nil
 	c.handlers = nil
 	// c.Errors = c.Errors[0:0]
@@ -115,32 +102,22 @@ func (c *Context) Copy() *Context {
 }
 
 /*************************************************************
- * getter/setter methods
+ * Context: request data
  *************************************************************/
 
-// Req get request instance
-func (c *Context) Req() *http.Request {
-	return c.req
+// URL get URL instance from request
+func (c *Context) URL() *url.URL {
+	return c.Req.URL
 }
 
-// Res get response instance
-func (c *Context) Res() http.ResponseWriter {
-	return c.res
-}
+// Query return query value by key
+func (c *Context) Query(key string) string {
+	if vs, ok := c.Req.URL.Query()[key]; ok && len(vs) > 0 {
+		return vs[0]
+	}
 
-// Params get current route params
-func (c *Context) Params() Params {
-	return c.params
+	return ""
 }
-
-// SetParams to the context
-func (c *Context) SetParams(params Params) {
-	c.params = params
-}
-
-/*************************************************************
- * Context: input data
- *************************************************************/
 
 // Param returns the value of the URL param.
 // 		router.GET("/user/{id}", func(c *sux.Context) {
@@ -148,18 +125,13 @@ func (c *Context) SetParams(params Params) {
 // 			id := c.Param("id") // id == "john"
 // 		})
 func (c *Context) Param(key string) string {
-	return c.params.String(key)
+	return c.Params.String(key)
 }
 
-// URL get URL instance from request
-func (c *Context) URL() *url.URL {
-	return c.req.URL
-}
-
-// Query return query value by key
-func (c *Context) Query(key string) string {
-	if vs, ok := c.req.URL.Query()[key]; ok && len(vs) > 0 {
-		return vs[0]
+// Header return header value by key
+func (c *Context) Header(key string) string {
+	if values, _ := c.Req.Header[key]; len(values) > 0 {
+		return values[0]
 	}
 
 	return ""
@@ -167,7 +139,47 @@ func (c *Context) Query(key string) string {
 
 // RawData return stream data
 func (c *Context) RawData() ([]byte, error) {
-	return ioutil.ReadAll(c.req.Body)
+	return ioutil.ReadAll(c.Req.Body)
+}
+
+// IsWebSocket returns true if the request headers indicate that a webSocket
+// handshake is being initiated by the client.
+func (c *Context) IsWebSocket() bool {
+	if strings.Contains(strings.ToLower(c.Header("Connection")), "upgrade") &&
+		strings.ToLower(c.Header("Upgrade")) == "websocket" {
+		return true
+	}
+	return false
+}
+
+// ClientIP implements a best effort algorithm to return the real client IP
+func (c *Context) ClientIP() string {
+	clientIP := c.Header("X-Forwarded-For")
+	if index := strings.IndexByte(clientIP, ','); index >= 0 {
+		clientIP = clientIP[0:index]
+	}
+
+	clientIP = strings.TrimSpace(clientIP)
+	if len(clientIP) > 0 {
+		return clientIP
+	}
+
+	clientIP = strings.TrimSpace(c.Header("X-Real-Ip"))
+	if len(clientIP) > 0 {
+		return clientIP
+	}
+
+	// if c.AppEngine {
+	// 	if addr := c.Req.Header.Get("X-Appengine-Remote-Addr"); addr != "" {
+	// 		return addr
+	// 	}
+	// }
+
+	if ip, _, err := net.SplitHostPort(strings.TrimSpace(c.Req.RemoteAddr)); err == nil {
+		return ip
+	}
+
+	return ""
 }
 
 /*************************************************************
@@ -176,44 +188,44 @@ func (c *Context) RawData() ([]byte, error) {
 
 // Write byte data to response
 func (c *Context) Write(bt []byte) (n int, err error) {
-	return c.res.Write(bt)
+	return c.Resp.Write(bt)
 }
 
 // WriteString to response
 func (c *Context) WriteString(str string) (n int, err error) {
-	return c.res.Write([]byte(str))
+	return c.Resp.Write([]byte(str))
 }
 
 // Text writes out a string as plain text.
 func (c *Context) Text(status int, str string) (err error) {
-	c.res.WriteHeader(status)
-	c.res.Header().Set("Content-Type", "text/plain; charset=UTF-8")
+	c.Resp.WriteHeader(status)
+	c.Resp.Header().Set("Content-Type", "text/plain; charset=UTF-8")
 
-	_, err = c.res.Write([]byte(str))
+	_, err = c.Resp.Write([]byte(str))
 	return
 }
 
 // JSONBytes writes out a string as json data.
 func (c *Context) JSONBytes(status int, bs []byte) (err error) {
-	c.res.WriteHeader(status)
-	c.res.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	c.Resp.WriteHeader(status)
+	c.Resp.Header().Set("Content-Type", "application/json; charset=UTF-8")
 
-	_, err = c.res.Write(bs)
+	_, err = c.Resp.Write(bs)
 	return
 }
 
 // NoContent serve success but no content response
 func (c *Context) NoContent() error {
-	c.res.WriteHeader(http.StatusNoContent)
+	c.Resp.WriteHeader(http.StatusNoContent)
 	return nil
 }
 
 // SetHeader for the response
 func (c *Context) SetHeader(key, value string) {
-	c.res.Header().Set(key, value)
+	c.Resp.Header().Set(key, value)
 }
 
 // SetStatus code for the response
 func (c *Context) SetStatus(status int) {
-	c.res.WriteHeader(status)
+	c.Resp.WriteHeader(status)
 }

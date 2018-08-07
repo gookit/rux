@@ -8,7 +8,7 @@ import (
 type MatchResult struct {
 	// Status match status: 1 found 2 not found 3 method not allowed
 	Status uint8
-	// Params route path params, when Status = 1 and has path vars.
+	// Params route path Params, when Status = 1 and has path vars.
 	Params Params
 	// Handler the main handler for the route(Status = 1)
 	Handler HandlerFunc
@@ -22,11 +22,6 @@ var notFoundResult = &MatchResult{Status: NotFound}
 
 func newMatchResult(status uint8, handler HandlerFunc, handlers HandlersChain) *MatchResult {
 	return &MatchResult{Status: status, Handler: handler, Handlers: handlers}
-}
-
-// JoinAllowedMethods join allowed methods to string
-func (mr *MatchResult) JoinAllowedMethods(sep string) string {
-	return strings.Join(mr.AllowedMethods, sep)
 }
 
 /*************************************************************
@@ -112,7 +107,7 @@ func (r *Router) match(method, path string) (ret *MatchResult) {
 	return notFoundResult
 }
 
-// cache dynamic params route when EnableRouteCache is true
+// cache dynamic Params route when EnableRouteCache is true
 func (r *Router) cacheDynamicRoute(path string, ps Params, route *Route) {
 	if !r.EnableRouteCache {
 		return
@@ -138,7 +133,7 @@ func (r *Router) cacheDynamicRoute(path string, ps Params, route *Route) {
 
 	key := route.method + " " + path
 
-	// copy new route instance. Notice: cache matched params
+	// copy new route instance. Notice: cache matched Params
 	r.cachedRoutes[key] = route.copyWithParams(ps)
 }
 

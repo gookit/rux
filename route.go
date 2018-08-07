@@ -8,13 +8,13 @@ import (
 )
 
 /*************************************************************
- * Route params
+ * Route Params
  *************************************************************/
 
 // Params for current route
 type Params map[string]string
 
-// Has param key in the params
+// Has param key in the Params
 func (p Params) Has(key string) bool {
 	_, ok := p[key]
 	return ok

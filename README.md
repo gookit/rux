@@ -5,11 +5,14 @@
 [![Coverage Status](https://coveralls.io/repos/github/gookit/sux/badge.svg?branch=master)](https://coveralls.io/github/gookit/sux?branch=master)
 [![Go Report Card](https://goreportcard.com/badge/github.com/gookit/sux)](https://goreportcard.com/report/github.com/gookit/sux)
 
-A simple and fast router for golang http application
+Simple and fast request router for golang HTTP applications.
 
 - support route group
 - support route path params
 - support cache recently accessed dynamic routes
+- support route middleware, group middleware
+- support generic `http.Handler` middleware
+- support add `NotFound` handlers and `NotAllowed` handlers
 
 ## Usage
 
@@ -43,11 +46,12 @@ func main() {
 		})
 	})
 
+    // quick start
 	r.Listen(":8080")
 }
 ```
 
-## Middleware handlers
+## Use Middleware
 
 ```go
 package main
@@ -60,6 +64,12 @@ import (
 func main() {
 	s := ""
 	r := sux.New()
+	
+	// add global middleware
+	r.Use(func(c *sux.Context) {
+	    // do something ...
+	})
+	
 	// use middleware for the route
 	route := r.GET("/middle", func(c *sux.Context) { // main handler
 		s += "-O-"
@@ -82,9 +92,58 @@ func main() {
 }
 ```
 
-- Call sequence: `middle 1 -> middle 2 -> main handler -> middle 1 -> middle 2`
+- Call sequence: `middle 1 -> middle 2 -> main handler -> middle 2 -> middle 1`
+
+```text
+        +----------------------------+
+        | middle 1                   |
+        |  +---------------------+   |
+        |  | middle 2            |   |
+ start  |  |  +---------------+  |   | end
+------->|  |  |     main      |  |   |--->----
+        |  |  |    handler    |  |   |
+        |  |  |_______________|  |   |    
+        |  |_____________________|   |  
+        |____________________________|
+```
 
 > more please see [dispatch_test.go](dispatch_test.go) middleware tests
+
+## Use http.Handler
+
+sux is support generic `http.Handler` middleware
+
+> You can use `sux.WarpHttpHandler()` convert `http.Handler` as `sux.HandlerFunc`
+
+```go
+package main
+
+import (
+	"net/http"
+	"github.com/gookit/sux"
+	// here we use gorilla/handlers, it provides some generic handlers.
+	"github.com/gorilla/handlers"
+)
+
+func main() {
+	r := sux.New()
+	
+	// create a simple generic http.Handler
+	h0 := http.HandlerFunc(func (w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("new-key", "val")
+	})
+	
+	r.Use(sux.WarpHttpHandler(h0), sux.WarpHttpHandler(handlers.ProxyHeaders()))
+	
+	r.GET("/", func(c *sux.Context) {
+		c.Text(200, "hello")
+	})
+	// add routes ...
+	
+    // Wrap our server with our gzip handler to gzip compress all responses.
+    http.ListenAndServe(":8000", handlers.CompressHandler(r))
+}
+```
 
 ## Multi domains
 

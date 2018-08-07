@@ -2,11 +2,23 @@ package main
 
 import (
 	"github.com/gookit/sux"
+	"github.com/gookit/sux/middleware"
+	"net/http"
 )
 
 // go run ./_examples/serve.go
 func main() {
+	// open debug
+	sux.Debug(true)
+
 	r := sux.New()
+
+	gh := http.HandlerFunc(func (w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("new-key", "val")
+	})
+
+	r.Use(middleware.RequestLogger(), sux.WarpHttpHandler(gh))
+
 	r.GET("/", func(c *sux.Context) {
 		c.Text(200, "hello " + c.URL().Path)
 	})
@@ -30,7 +42,11 @@ func main() {
 
 	r.Controller("/blog", &BlogController{})
 
+	// quick start
 	r.Listen(":18080")
+
+	// apply pre-handlers
+	// http.ListenAndServe(":18080", handlers.HTTPMethodOverrideHandler(r))
 }
 
 // BlogController define a controller
@@ -46,7 +62,7 @@ func (c *BlogController) AddRoutes(r *sux.Router) {
 // Get action
 func (c *BlogController) Get(ctx *sux.Context) {
 	ctx.WriteString("hello, in " + ctx.URL().Path)
-	ctx.WriteString("\n ok")
+	ctx.WriteString("\nok")
 }
 
 // Post action
