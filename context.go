@@ -149,10 +149,10 @@ func (c *Context) SetParams(params Params) {
  *************************************************************/
 
 // Param returns the value of the URL param.
-//		router.GET("/user/{id}", func(c *gin.Context) {
-//			// a GET request to /user/john
-//			id := c.Param("id") // id == "john"
-//		})
+// 		router.GET("/user/{id}", func(c *gin.Context) {
+// 			// a GET request to /user/john
+// 			id := c.Param("id") // id == "john"
+// 		})
 func (c *Context) Param(key string) string {
 	return c.params.String(key)
 }
@@ -191,11 +191,21 @@ func (c *Context) WriteString(str string) (n int, err error) {
 }
 
 // Text writes out a string as plain text.
-func (c *Context) Text(status int, str string) (n int, err error) {
+func (c *Context) Text(status int, str string) (err error) {
 	c.res.WriteHeader(status)
 	c.res.Header().Set("Content-Type", "text/plain; charset=UTF-8")
 
-	return c.res.Write([]byte(str))
+	_, err = c.res.Write([]byte(str))
+	return
+}
+
+// JSONBytes writes out a string as json data.
+func (c *Context) JSONBytes(status int, bs []byte) (err error) {
+	c.res.WriteHeader(status)
+	c.res.Header().Set("Content-Type", "application/json; charset=UTF-8")
+
+	_, err = c.res.Write(bs)
+	return
 }
 
 // NoContent serve success but no content response

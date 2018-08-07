@@ -50,20 +50,23 @@ func defHandle(ctx *sux.Context) {
 	ctx.WriteString("hello, in " + ctx.URL().Path)
 }
 
-// define a controller
+// SiteController define a controller
 type SiteController struct {
 }
 
+// AddRoutes for the controller
 func (c *SiteController) AddRoutes(r *sux.Router) {
 	r.GET("{id}", c.Get)
 	r.POST("", c.Post)
 }
 
+// Get action
 func (c *SiteController) Get(ctx *sux.Context) {
 	ctx.WriteString("hello, in " + ctx.URL().Path)
 	ctx.WriteString("\n ok")
 }
 
+// Post action
 func (c *SiteController) Post(ctx *sux.Context) {
 	ctx.WriteString("hello, in " + ctx.URL().Path)
 }
