@@ -55,12 +55,15 @@ type Route struct {
 	hosts []string
 	// regexp for the route path
 	regex *regexp.Regexp
-	// matched var names in the route path. eg "/api/{var1}/{var2}" -> [var1, var2]
-	matches []string
-	// handlers list for the route
-	handlers HandlersChain
 	// dynamic route param values, only use for route cache
 	params Params
+	// matched var names in the route path. eg "/api/{var1}/{var2}" -> [var1, var2]
+	matches []string
+
+	// the main handler for the route
+	handler HandlerFunc
+	// middleware handlers list for the route
+	handlers HandlersChain
 
 	// some options data for the route
 	Opts map[string]interface{}
@@ -68,31 +71,33 @@ type Route struct {
 	// defaults
 }
 
-func newRoute(method, path string, handlers HandlersChain) *Route {
+func newRoute(method, path string, handler HandlerFunc, handlers HandlersChain) *Route {
 	return &Route{
-		method:   method,
-		path:     path,
+		path:   path,
+		method: method,
+
+		handler:  handler,
 		handlers: handlers,
 	}
 }
 
-// Use some middleware handlers
-func (r *Route) Use(handlers ...HandlerFunc) *Route {
-	r.handlers = append(r.handlers, handlers...)
+// Use add middleware handlers to the route
+func (r *Route) Use(middleware ...HandlerFunc) *Route {
+	r.handlers = append(r.handlers, middleware...)
 	return r
 }
 
-// String route info to string
-func (r *Route) String() string {
-	nuHandlers := len(r.handlers)
-	handlerName := nameOfFunction(r.handlers.Last())
-
-	return fmt.Sprintf(
-		"%-6s %-25s --> %s (%d handlers)",
-		r.method, r.path, handlerName, nuHandlers,
-	)
+// HandlerName get the main handler name
+func (r *Route) HandlerName() string {
+	return nameOfFunction(r.handler)
 }
 
+// Handler returns the main handler.
+func (r *Route) Handler() HandlerFunc {
+	return r.handler
+}
+
+// match a regex route
 func (r *Route) match(path string) (ps Params, ok bool) {
 	// check start string
 	if r.start != "" && strings.Index(path, r.start) != 0 {
@@ -107,7 +112,6 @@ func (r *Route) match(path string) (ps Params, ok bool) {
 
 	ok = true
 	ps = make(Params, len(ss))
-
 	for i, item := range ss {
 		if len(item) > 1 {
 			n := r.matches[i]
@@ -126,4 +130,14 @@ func (r *Route) copyWithParams(ps Params) *Route {
 	nr.params = ps
 
 	return &nr
+}
+
+// String route info to string
+func (r *Route) String() string {
+	nuHandlers := len(r.handlers)
+
+	return fmt.Sprintf(
+		"%-6s %-25s --> %s (%d middleware)",
+		r.method, r.path, r.HandlerName(), nuHandlers,
+	)
 }

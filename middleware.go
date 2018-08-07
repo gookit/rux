@@ -7,7 +7,7 @@ package sux
 // HandlerFunc a handler definition
 type HandlerFunc func(c *Context)
 
-// HandlersChain a handlers chain
+// HandlersChain middleware handlers chain definition
 type HandlersChain []HandlerFunc
 
 // Last returns the last handler in the chain. ie. the last handler is the main own.
@@ -21,7 +21,7 @@ func (c HandlersChain) Last() HandlerFunc {
 }
 
 // LastName get the main handler name
-func (c *HandlersChain) LastName() string {
+func (c HandlersChain) LastName() string {
 	return nameOfFunction(c.Last())
 }
 

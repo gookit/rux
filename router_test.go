@@ -34,7 +34,7 @@ func Example() {
 
 var emptyHandler = func(c *Context) {}
 
-// define a controller
+// SiteController define a controller
 type SiteController struct {
 }
 
@@ -52,6 +52,10 @@ func (c *SiteController) Post(ctx *Context) {
 	ctx.WriteString("hello, in " + ctx.URL().Path)
 }
 
+func namedHandler(c *Context) {
+	c.Set("name", "namedHandler")
+}
+
 func TestRouter(t *testing.T) {
 	art := assert.New(t)
 
@@ -65,7 +69,7 @@ func TestRouter(t *testing.T) {
 
 	ret := r.Match("GET", "/get")
 	art.Equal(Found, ret.Status)
-	art.Len(ret.Handlers, 2)
+	art.Len(ret.Handlers, 1)
 }
 
 func TestAddRoute(t *testing.T) {
@@ -76,7 +80,7 @@ func TestAddRoute(t *testing.T) {
 
 	// no handler
 	art.Panics(func() {
-		r.GET("/get")
+		r.GET("/get", nil)
 	})
 
 	// invalid method
@@ -84,14 +88,15 @@ func TestAddRoute(t *testing.T) {
 		r.Add("invalid", "/get", emptyHandler)
 	})
 
-	route := r.GET("/get", emptyHandler)
-	art.NotEmpty(route)
+	route := r.GET("/get", namedHandler)
+	art.NotEmpty(route.Handler())
 	art.Equal("/get", route.path)
+	// art.Equal(fmt.Sprint(*namedHandler), route.Handler())
+	art.Equal("github.com/gookit/sux.namedHandler", route.HandlerName())
 
 	ret := r.Match("GET", "/get")
 	art.Equal(Found, ret.Status)
-	art.Len(ret.Handlers, 1)
-	art.Equal("github.com/gookit/sux.glob..func1", ret.Handlers.LastName())
+	art.NotEmpty(ret.Handler)
 
 	ret = r.Match(HEAD, "/get")
 	art.Equal(Found, ret.Status)
@@ -144,11 +149,13 @@ func TestRouter_Group(t *testing.T) {
 
 	ret := r.Match(GET, "/users")
 	art.Equal(Found, ret.Status)
-	art.Len(ret.Handlers, 2)
+	art.NotEmpty(ret.Handler)
+	art.Len(ret.Handlers, 1)
 
 	ret = r.Match(GET, "/users/23")
 	art.Equal(Found, ret.Status)
-	art.Len(ret.Handlers, 2)
+	art.NotEmpty(ret.Handler)
+	art.Len(ret.Handlers, 1)
 }
 
 func TestDynamicRoute(t *testing.T) {

@@ -49,34 +49,43 @@ func (r *Router) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	}
 
 	result := r.Match(req.Method, path)
-	if result.Status == NotFound {
+	switch result.Status {
+	case NotFound:
 		if len(r.noRoute) == 0 {
 			http.NotFound(res, req)
 			return
 		}
 
 		handlers = r.noRoute
-	} else if result.Status == NotAllowed {
+	case NotAllowed:
 		if len(r.noAllowed) == 0 {
-			http.Error(
-				res,
-				"method not allowed. allow: "+result.JoinAllowedMethods(","),
-				405,
-			)
+			http.Error(res, "method not allowed. allow: "+result.JoinAllowedMethods(","), 405)
 			return
 		}
 
 		handlers = r.noAllowed
-	} else {
+	default:
 		handlers = result.Handlers
+
+		// has global middleware handlers
+		if len(r.handlers) > 0 {
+			handlers = append(handlers, r.handlers...)
+		}
+
+		// add main handler
+		handlers = append(handlers, result.Handler)
 	}
 
+	// get context
 	ctx := r.pool.Get().(*Context)
 	ctx.Reset()
-
-	ctx.Init(res, req, r.handlers)
 	ctx.SetParams(result.Params)
-	ctx.AppendHandlers(handlers...)
+	ctx.InitRequest(res, req, handlers)
+
+	// add allowed methods to context
+	if result.Status == NotAllowed {
+		ctx.Set("allowedMethods", result.AllowedMethods)
+	}
 
 	ctx.Next()
 	// ctx.Res.WriteHeaderNow()

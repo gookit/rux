@@ -1,12 +1,12 @@
 package sux
 
 import (
+	"bytes"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
 	"testing"
-	"bytes"
-	"fmt"
 )
 
 func BenchmarkOneRoute(B *testing.B) {
@@ -66,7 +66,7 @@ func Benchmark404Many(B *testing.B) {
 
 type mockWriter struct {
 	headers http.Header
-	buf *bytes.Buffer
+	buf     *bytes.Buffer
 }
 
 func newMockWriter() *mockWriter {

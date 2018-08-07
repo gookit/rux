@@ -4,6 +4,7 @@ import (
 	"github.com/gookit/sux"
 )
 
+// go run ./_examples/serve.go
 func main() {
 	r := sux.New()
 	r.GET("/", func(c *sux.Context) {

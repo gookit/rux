@@ -1,4 +1,4 @@
-package middleware
+package handlers
 
 import "github.com/gookit/sux"
 

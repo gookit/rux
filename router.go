@@ -144,7 +144,6 @@ func New() *Router {
 	router.pool.New = func() interface{} {
 		return &Context{index: -1}
 	}
-
 	return router
 }
 
@@ -153,60 +152,60 @@ func New() *Router {
  *************************************************************/
 
 // GET add routing and only allow GET request methods
-func (r *Router) GET(path string, handlers ...HandlerFunc) *Route {
-	return r.Add(GET, path, handlers...)
+func (r *Router) GET(path string, handler HandlerFunc, middleware ...HandlerFunc) *Route {
+	return r.Add(GET, path, handler, middleware...)
 }
 
 // HEAD add routing and only allow HEAD request methods
-func (r *Router) HEAD(path string, handlers ...HandlerFunc) *Route {
-	return r.Add(HEAD, path, handlers...)
+func (r *Router) HEAD(path string, handler HandlerFunc, middleware ...HandlerFunc) *Route {
+	return r.Add(HEAD, path, handler, middleware...)
 }
 
 // POST add routing and only allow POST request methods
-func (r *Router) POST(path string, handlers ...HandlerFunc) *Route {
-	return r.Add(POST, path, handlers...)
+func (r *Router) POST(path string, handler HandlerFunc, middleware ...HandlerFunc) *Route {
+	return r.Add(POST, path, handler, middleware...)
 }
 
 // PUT add routing and only allow PUT request methods
-func (r *Router) PUT(path string, handlers ...HandlerFunc) *Route {
-	return r.Add(PUT, path, handlers...)
+func (r *Router) PUT(path string, handler HandlerFunc, middleware ...HandlerFunc) *Route {
+	return r.Add(PUT, path, handler, middleware...)
 }
 
 // PATCH add routing and only allow PATCH request methods
-func (r *Router) PATCH(path string, handlers ...HandlerFunc) *Route {
-	return r.Add(PATCH, path, handlers...)
+func (r *Router) PATCH(path string, handler HandlerFunc, middleware ...HandlerFunc) *Route {
+	return r.Add(PATCH, path, handler, middleware...)
 }
 
 // TRACE add routing and only allow TRACE request methods
-func (r *Router) TRACE(path string, handlers ...HandlerFunc) *Route {
-	return r.Add(TRACE, path, handlers...)
+func (r *Router) TRACE(path string, handler HandlerFunc, middleware ...HandlerFunc) *Route {
+	return r.Add(TRACE, path, handler, middleware...)
 }
 
 // OPTIONS add routing and only allow OPTIONS request methods
-func (r *Router) OPTIONS(path string, handlers ...HandlerFunc) *Route {
-	return r.Add(OPTIONS, path, handlers...)
+func (r *Router) OPTIONS(path string, handler HandlerFunc, middleware ...HandlerFunc) *Route {
+	return r.Add(OPTIONS, path, handler, middleware...)
 }
 
 // DELETE add routing and only allow OPTIONS request methods
-func (r *Router) DELETE(path string, handlers ...HandlerFunc) *Route {
-	return r.Add(DELETE, path, handlers...)
+func (r *Router) DELETE(path string, handler HandlerFunc, middleware ...HandlerFunc) *Route {
+	return r.Add(DELETE, path, handler, middleware...)
 }
 
 // CONNECT add routing and only allow CONNECT request methods
-func (r *Router) CONNECT(path string, handlers ...HandlerFunc) *Route {
-	return r.Add(CONNECT, path, handlers...)
+func (r *Router) CONNECT(path string, handler HandlerFunc, middleware ...HandlerFunc) *Route {
+	return r.Add(CONNECT, path, handler, middleware...)
 }
 
 // Any add route and allow any request methods
-func (r *Router) Any(path string, handlers ...HandlerFunc) {
+func (r *Router) Any(path string, handler HandlerFunc, middleware ...HandlerFunc) {
 	for _, method := range anyMethods {
-		r.Add(method, path, handlers...)
+		r.Add(method, path, handler, middleware...)
 	}
 }
 
 // Add a route to router
-func (r *Router) Add(method, path string, handlers ...HandlerFunc) (route *Route) {
-	if len(handlers) == 0 {
+func (r *Router) Add(method, path string, handler HandlerFunc, middleware ...HandlerFunc) (route *Route) {
+	if handler == nil {
 		panic("router: must set handler for the route " + path)
 	}
 
@@ -215,7 +214,7 @@ func (r *Router) Add(method, path string, handlers ...HandlerFunc) (route *Route
 	}
 
 	if len(r.currentGroupHandlers) > 0 {
-		handlers = combineHandlers(r.currentGroupHandlers, handlers)
+		middleware = combineHandlers(r.currentGroupHandlers, middleware)
 	}
 
 	path = r.formatPath(path)
@@ -225,7 +224,7 @@ func (r *Router) Add(method, path string, handlers ...HandlerFunc) (route *Route
 	}
 
 	// create new route instance
-	route = newRoute(method, path, handlers)
+	route = newRoute(method, path, handler, middleware)
 
 	// path is fixed(no param vars). eg. "/users"
 	if r.isFixedPath(path) {
@@ -259,18 +258,18 @@ func (r *Router) Add(method, path string, handlers ...HandlerFunc) (route *Route
 }
 
 // Group add an group routes
-func (r *Router) Group(prefix string, register func(g *Router), handlers ...HandlerFunc) {
+func (r *Router) Group(prefix string, register func(g *Router), middleware ...HandlerFunc) {
 	prevPrefix := r.currentGroupPrefix
 	r.currentGroupPrefix = prevPrefix + r.formatPath(prefix)
 
-	// handle prev handlers
+	// handle prev middleware
 	prevHandlers := r.currentGroupHandlers
-	if len(handlers) > 0 {
+	if len(middleware) > 0 {
 		if len(prevHandlers) > 0 {
 			r.currentGroupHandlers = append(r.currentGroupHandlers, prevHandlers...)
-			r.currentGroupHandlers = append(r.currentGroupHandlers, handlers...)
+			r.currentGroupHandlers = append(r.currentGroupHandlers, middleware...)
 		} else {
-			r.currentGroupHandlers = handlers
+			r.currentGroupHandlers = middleware
 		}
 	}
 
@@ -283,8 +282,8 @@ func (r *Router) Group(prefix string, register func(g *Router), handlers ...Hand
 }
 
 // Controller register some routes by a controller
-func (r *Router) Controller(basePath string, controller IController, handlers ...HandlerFunc) {
-	r.Group(basePath, controller.AddRoutes)
+func (r *Router) Controller(basePath string, controller IController, middleware ...HandlerFunc) {
+	r.Group(basePath, controller.AddRoutes, middleware...)
 }
 
 // NotFound handlers for router

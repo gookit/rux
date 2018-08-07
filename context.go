@@ -25,7 +25,6 @@ type IContext interface {
 	Reset()
 	Params() Params
 	SetParams(Params)
-
 	HandlerName() string
 }
 
@@ -48,7 +47,7 @@ type Context struct {
 }
 
 // Init a context
-func (c *Context) Init(res http.ResponseWriter, req *http.Request, handlers HandlersChain) {
+func (c *Context) InitRequest(res http.ResponseWriter, req *http.Request, handlers HandlersChain) {
 	c.res = res
 	c.req = req
 	c.values = make(map[string]interface{})
@@ -80,12 +79,12 @@ func (c *Context) Get(key string) interface{} {
 	return c.values[key]
 }
 
-// Abort run next handlers
+// Abort will abort at the end of this middleware run
 func (c *Context) Abort() {
 	c.index = abortIndex
 }
 
-// Next call next handler
+// Next run next handler
 func (c *Context) Next() {
 	c.index++
 	s := int8(len(c.handlers))
@@ -95,18 +94,13 @@ func (c *Context) Next() {
 	}
 }
 
-// AppendHandlers to the context
-func (c *Context) AppendHandlers(handlers ...HandlerFunc) {
-	c.handlers = append(c.handlers, handlers...)
-}
-
 // Reset context data
 func (c *Context) Reset() {
 	// c.Writer = &c.writermem
-	c.params = nil
-	c.handlers = nil
 	c.index = -1
+	c.params = nil
 	c.values = nil
+	c.handlers = nil
 	// c.Errors = c.Errors[0:0]
 	// c.Accepted = nil
 }
@@ -149,7 +143,7 @@ func (c *Context) SetParams(params Params) {
  *************************************************************/
 
 // Param returns the value of the URL param.
-// 		router.GET("/user/{id}", func(c *gin.Context) {
+// 		router.GET("/user/{id}", func(c *sux.Context) {
 // 			// a GET request to /user/john
 // 			id := c.Param("id") // id == "john"
 // 		})
@@ -212,4 +206,14 @@ func (c *Context) JSONBytes(status int, bs []byte) (err error) {
 func (c *Context) NoContent() error {
 	c.res.WriteHeader(http.StatusNoContent)
 	return nil
+}
+
+// SetHeader for the response
+func (c *Context) SetHeader(key, value string) {
+	c.res.Header().Set(key, value)
+}
+
+// SetStatus code for the response
+func (c *Context) SetStatus(status int) {
+	c.res.WriteHeader(status)
 }
