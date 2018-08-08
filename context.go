@@ -29,7 +29,9 @@ type Context struct {
 	router *Router
 	// context data, you can save some custom data.
 	values map[string]interface{}
-	// all handlers for current request
+	// all handlers for current request.
+	// call priority: global -> group -> route -> main handler
+	// Notice: last always is main handler of the matched route.
 	handlers HandlersChain
 }
 

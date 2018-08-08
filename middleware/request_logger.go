@@ -70,12 +70,12 @@ func RequestLogger() sux.HandlerFunc {
 		fmt.Printf(
 			// 2006-01-02 15:04:05 [sux] GET /articles 200 10.0.0.1 "use-agent" 0.034ms
 			// `%s %s %s %d %s "%s" %sms` + "\n",
-			"%s %s %s %d %s %sms\n",
+			"%s %s %s [%d] %s %sms\n",
 			start.Format("2006/01/02 15:04:05"),
-			c.Req.Method,
-			c.Req.RequestURI,
-			sw.Status(),
 			c.ClientIP(),
+			c.Req.Method,
+			sw.Status(),
+			c.Req.RequestURI,
 			// c.Header("User-Agent"),
 			calcElapsedTime(start),
 		)

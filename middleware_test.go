@@ -6,99 +6,92 @@ import (
 )
 
 func TestRouteMiddleware(t *testing.T) {
-	art := assert.New(t)
-
 	r := New()
-	s := &aStr{}
+	art := assert.New(t)
 
 	// add one middleware
 	r.GET("/middle", func(c *Context) {
-		s.append("-O-")
+		c.WriteString("-O-")
 	}, func(c *Context) {
-		s.append("a")
+		c.WriteString("a")
 		c.Next()
-		s.append("b")
+		c.WriteString("b")
 	})
 
-	mockRequest(r, GET, "/middle", "")
-	art.Equal("a-O-b", s.str)
+	w := mockRequest(r, GET, "/middle", "")
+	art.Equal("a-O-b", w.String())
 
 	// add multi middleware
 	r.GET("/middle2", func(c *Context) { // main handler
-		s.append("-O-")
+		c.WriteString("-O-")
 	}, func(c *Context) { // middle 1
-		s.append("a")
+		c.WriteString("a")
 		c.Next()
-		s.append("A")
+		c.WriteString("A")
 	}, func(c *Context) { // middle 2
-		s.append("b")
+		c.WriteString("b")
 		c.Next()
-		s.append("B")
+		c.WriteString("B")
 	})
 	// Call sequence: middle 1 -> middle 2 -> main handler -> middle 2 -> middle 1
-	s.reset()
-	mockRequest(r, GET, "/middle2", "")
-	art.Equal("ab-O-BA", s.str)
+	w = mockRequest(r, GET, "/middle2", "")
+	art.Equal("ab-O-BA", w.String())
 
 	// add multi middleware(don't call next)
 	r.GET("/middle3", func(c *Context) { // main handler
-		s.append("-O-")
+		c.WriteString("-O-")
 	}, func(c *Context) { // middle 1
-		s.append("a")
+		c.WriteString("a")
 		// c.Next()
-		s.append("A")
+		c.WriteString("A")
 	}, func(c *Context) { // middle 2
-		s.append("b")
+		c.WriteString("b")
 		// c.Next()
-		s.append("B")
+		c.WriteString("B")
 	})
 	// Call sequence: middle 1 -> middle 2 -> main handler
-	s.reset()
-	mockRequest(r, GET, "/middle3", "")
-	art.Equal("aAbB-O-", s.str)
+	w = mockRequest(r, GET, "/middle3", "")
+	art.Equal("aAbB-O-", w.String())
 
 	// add middleware use method Use()
 	route := r.GET("/middle4", func(c *Context) { // main handler
-		s.append("-O-")
+		c.WriteString("-O-")
 	})
 	route.Use(func(c *Context) { // middle 1
-		s.append("a")
+		c.WriteString("a")
 		c.Next()
-		s.append("A")
+		c.WriteString("A")
 	}, func(c *Context) { // middle 2
-		s.append("b")
+		c.WriteString("b")
 		c.Next()
-		s.append("B")
+		c.WriteString("B")
 	})
 	// Call sequence: middle 1 -> middle 2 -> main handler -> middle 2 -> middle 1
-	s.reset()
-	mockRequest(r, GET, "/middle4", "")
-	art.Equal("ab-O-BA", s.str)
+	w = mockRequest(r, GET, "/middle4", "")
+	art.Equal("ab-O-BA", w.String())
 }
 
 func TestMiddlewareAbort(t *testing.T) {
 	art := assert.New(t)
 
 	r := New()
-	s := &aStr{}
 
 	// use middleware, will termination execution early by Abort()
 	r.GET("/abort", func(c *Context) { // Will not execute
-		s.append("-O-")
+		c.WriteString("-O-")
 	}, func(c *Context) {
-		s.append("a")
+		c.WriteString("a")
 		// c.Next()
 		c.Abort() // Will abort at the end of this middleware run
-		s.append("A")
+		c.WriteString("A")
 	}, func(c *Context) { // Will not execute
-		s.append("b")
+		c.WriteString("b")
 		c.Next()
-		s.append("B")
+		c.WriteString("B")
 	})
 	// Call sequence: middle 1
-	s.reset()
-	mockRequest(r, GET, "/abort", "")
-	art.Equal("aA", s.str)
+	w := mockRequest(r, GET, "/abort", "")
+	art.Equal("aA", w.String())
 }
 
 func TestGlobalMiddleware(t *testing.T) {
@@ -107,9 +100,53 @@ func TestGlobalMiddleware(t *testing.T) {
 	art.NotEmpty(r)
 
 	r.Use(func(c *Context) {
-		c.Set("gKey", "val")
+		c.WriteString("z")
+		c.Next()
+		c.WriteString("Z")
 	})
-	r.GET("/middle", namedHandler) // main handler
+
+	// eg1: only global middles
+	r.GET("/middle", func(c *Context) { // main handler
+		c.WriteString("-O-")
+	})
+	w := mockRequest(r, GET, "/middle", "")
+	art.Equal("z-O-Z", w.String())
+
+	// eg2: global + route middle
+	r.GET("/middle1", func(c *Context) { // main handler
+		c.WriteString("-O-")
+	}).Use(func(c *Context) {
+		c.WriteString("b")
+		c.Next()
+		c.WriteString("B")
+	})
+	w = mockRequest(r, GET, "/middle1", "")
+	art.Equal("zb-O-BZ", w.String())
+
+	r.Group("/grp", func() {
+		// eg3: global + group middles
+		r.GET("/middle", func(c *Context) { // main handler
+			c.WriteString("-O-")
+		})
+
+		// eg4: global + group + route middles
+		r.GET("/middle1", func(c *Context) { // main handler
+			c.WriteString("-O-")
+		}).Use(func(c *Context) {
+			c.WriteString("c")
+			c.Next()
+			c.WriteString("C")
+		})
+	}, func(c *Context) {
+		c.WriteString("b")
+		c.Next()
+		c.WriteString("B")
+	})
+	w = mockRequest(r, GET, "/grp/middle", "")
+	art.Equal("zb-O-BZ", w.String())
+	w = mockRequest(r, GET, "/grp/middle1", "")
+	art.Equal("zbc-O-CBZ", w.String())
+
 }
 
 func TestGroupMiddleware(t *testing.T) {
@@ -118,6 +155,50 @@ func TestGroupMiddleware(t *testing.T) {
 	art.NotEmpty(r)
 
 	r.Group("/grp", func() {
-		r.GET("/middle", namedHandler) // main handler
+		r.GET("/middle", func(c *Context) { // main handler
+			c.WriteString("-O-")
+		})
+
+		r.GET("/middle1", func(c *Context) { // main handler
+			c.WriteString("-O-")
+		}).Use(func(c *Context) {
+			c.WriteString("a")
+			c.Next()
+			c.WriteString("A")
+		})
+
+		// multi group level
+		r.Group("/sub-grp", func() {
+			r.GET("/middle", func(c *Context) { // main handler
+				c.WriteString("-O-")
+			})
+			r.GET("/middle1", func(c *Context) { // main handler
+				c.WriteString("-O-")
+			}).Use(func(c *Context) {
+				c.WriteString("a")
+				c.Next()
+				c.WriteString("A")
+			})
+		}, func(c *Context) {
+			c.WriteString("x")
+			c.Next()
+			c.WriteString("X")
+		})
+	}, func(c *Context) {
+		c.WriteString("z")
+		c.Next()
+		c.WriteString("Z")
+	}, func(c *Context) {
+		c.WriteString("y")
+		c.Next()
+		c.WriteString("Y")
 	})
+	w := mockRequest(r, GET, "/grp/middle", "")
+	art.Equal("zy-O-YZ", w.String())
+	w = mockRequest(r, GET, "/grp/middle1", "")
+	art.Equal("zya-O-AYZ", w.String())
+	w = mockRequest(r, GET, "/grp/sub-grp/middle", "")
+	art.Equal("zyx-O-XYZ", w.String())
+	w = mockRequest(r, GET, "/grp/sub-grp/middle1", "")
+	art.Equal("zyxa-O-AXYZ", w.String())
 }

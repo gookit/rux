@@ -16,6 +16,13 @@ func WarpHttpHandler(gh http.Handler) HandlerFunc {
 	}
 }
 
+// WarpHttpHandlerFunc warp an generic http.HandlerFunc as an middleware HandlerFunc
+func WarpHttpHandlerFunc(gh http.HandlerFunc) HandlerFunc {
+	return func(c *Context) {
+		gh(c.Resp, c.Req)
+	}
+}
+
 // HandlersChain middleware handlers chain definition
 type HandlersChain []HandlerFunc
 

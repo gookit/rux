@@ -82,6 +82,10 @@ func (m *mockWriter) Status() int {
 	return m.status
 }
 
+func (m *mockWriter) String() string {
+	return m.buf.String()
+}
+
 func (m *mockWriter) Header() (h http.Header) {
 	return m.headers
 }
@@ -98,6 +102,41 @@ func (m *mockWriter) WriteHeader(code int) {
 	m.status = code
 }
 
+type m map[string]string
+type mockData struct {
+	Body  string
+	Heads map[string]string
+}
+
+func mockRequest(h http.Handler, method, path, bodyStr string) *mockWriter {
+	return requestWithData(h, method, path, &mockData{Body: bodyStr})
+}
+
+func requestWithData(h http.Handler, method, path string, data *mockData) *mockWriter {
+	var body io.Reader
+	if data.Body != "" {
+		body = strings.NewReader(data.Body)
+	}
+
+	// create fake request
+	req, err := http.NewRequest(method, path, body)
+	if err != nil {
+		panic(err)
+	}
+	req.RequestURI = req.URL.String()
+
+	if len(data.Heads) > 0 {
+		// req.Header.Set("Content-Type", "text/plain")
+		for k, v := range data.Heads {
+			req.Header.Set(k, v)
+		}
+	}
+
+	w := newMockWriter()
+	h.ServeHTTP(w, req)
+	return w
+}
+
 func runRequest(B *testing.B, r *Router, method, path string) {
 	// create fake request
 	req, err := http.NewRequest(method, path, nil)
@@ -112,23 +151,6 @@ func runRequest(B *testing.B, r *Router, method, path string) {
 	for i := 0; i < B.N; i++ {
 		r.ServeHTTP(w, req)
 	}
-}
-
-func mockRequest(r *Router, method, path, bodyStr string) *mockWriter {
-	var body io.Reader
-	if bodyStr != "" {
-		body = strings.NewReader(bodyStr)
-	}
-
-	// create fake request
-	req, err := http.NewRequest(method, path, body)
-	if err != nil {
-		panic(err)
-	}
-
-	w := newMockWriter()
-	r.ServeHTTP(w, req)
-	return w
 }
 
 var oldStdout *os.File

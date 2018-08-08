@@ -81,7 +81,6 @@ import (
 )
 
 func main() {
-	s := ""
 	r := sux.New()
 	
 	// add global middleware
@@ -91,23 +90,23 @@ func main() {
 	
 	// use middleware for the route
 	route := r.GET("/middle", func(c *sux.Context) { // main handler
-		s += "-O-"
+		c.WriteString("-O-")
 	}, func(c *sux.Context) { // middle 1
-     		s += "a"
+     		c.WriteString("a")
      		c.Next() // Notice: call Next()
-     		s += "A"
-     		// c.Abort() // if call Abort(), will abort at the end of this middleware run
+     		c.WriteString("A")
+     		// if call Abort(), will abort at the end of this middleware run
+     		// c.Abort() 
      	})
 	// add by Use()
 	route.Use(func(c *sux.Context) { // middle 2
-		s += "b"
+		c.WriteString("b")
 		c.Next()
-		s += "B"
+		c.WriteString("B")
 	})
 
-	// now, send a GET request to /middle
-	fmt.Print(s)
-	// OUT: ab-O-BA
+	// now, access the URI /middle
+	// will output: ab-O-BA
 }
 ```
 

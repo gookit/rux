@@ -231,6 +231,7 @@ func (r *Router) Add(method, path string, handler HandlerFunc, middleware ...Han
 	}
 
 	if len(r.currentGroupHandlers) > 0 {
+		// middleware = append(r.currentGroupHandlers, middleware...)
 		middleware = combineHandlers(r.currentGroupHandlers, middleware)
 	}
 
@@ -282,8 +283,8 @@ func (r *Router) Group(prefix string, register func(), middleware ...HandlerFunc
 	// handle prev middleware
 	prevHandlers := r.currentGroupHandlers
 	if len(middleware) > 0 {
+		// multi level group routes.
 		if len(prevHandlers) > 0 {
-			r.currentGroupHandlers = append(r.currentGroupHandlers, prevHandlers...)
 			r.currentGroupHandlers = append(r.currentGroupHandlers, middleware...)
 		} else {
 			r.currentGroupHandlers = middleware

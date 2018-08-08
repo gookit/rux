@@ -1,43 +1,23 @@
 package main
 
 import (
-	"os"
 	"fmt"
 )
 
-var oldStdout *os.File
-
 func main()  {
-	discardStdout()
-	fmt.Println("Hello, playground")
-	restoreStdout()
-	fmt.Println("Hello, playground 2")
-	// Output:
-	// Hello, playground 2
-}
+	var s1 []int
 
-// usage:
-// discardStdout()
-// fmt.Println("Hello, playground")
-// restoreStdout()
-func discardStdout() error {
-	// save old os.Stdout
-	oldStdout = os.Stdout
+	s2 := append(s1, 2,3)
+	s3 := append(s1, 4,5)
 
-	stdout, err := os.OpenFile(os.DevNull, os.O_WRONLY, 0)
-	if err == nil {
-		os.Stdout = stdout
-	}
+	fmt.Printf("%v %+v\n", s2, s3)
+	// Output: [2 3] [4 5]
 
-	return err
-}
+	s11 := make([]int, 5)
 
-func restoreStdout()  {
-	if oldStdout != nil {
-		// close now
-		os.Stdout.Close()
-		// restore
-		os.Stdout = oldStdout
-		oldStdout = nil
-	}
+	s12 := append(s11, 2,3)
+	s13 := append(s11, 4,5)
+
+	fmt.Printf("%v %+v\n", s12, s13)
+	// Output: [0 0 0 0 0 2 3] [0 0 0 0 0 4 5]
 }

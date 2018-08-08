@@ -78,10 +78,11 @@ func resolveAddress(addr []string) (fullAddr string) {
 	}
 }
 
-// WrapHttpHandlers apply some pre http handlers for the router
+// WrapHttpHandlers apply some pre http handlers for the router.
 // usage:
 // 	import "github.com/gookit/sux/handlers"
-//  // ... create router and add routes
+//	r := sux.New()
+//  // ... add routes
 //	handler := r.WrapHttpHandlers(handlers.HTTPMethodOverrideHandler)
 // 	http.ListenAndServe(":8080", handler)
 func (r *Router) WrapHttpHandlers(preHandlers ...func(h http.Handler) http.Handler) http.Handler {
@@ -101,9 +102,12 @@ func (r *Router) WrapHttpHandlers(preHandlers ...func(h http.Handler) http.Handl
  * dispatch http request
  *************************************************************/
 
-func (r *Router) ServeHTTP(res http.ResponseWriter, req *http.Request) {
-	var handlers HandlersChain
+var default404Handler = func(c *Context) {
+	http.NotFound(c.Resp, c.Req)
+}
 
+// ServeHTTP for handle HTTP request, response data to client.
+func (r *Router) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	path := req.URL.Path
 	if r.UseEncodedPath {
 		path = req.URL.EscapedPath()
@@ -111,6 +115,7 @@ func (r *Router) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 	// match route
 	result := r.Match(req.Method, path)
+	handlers := result.Handlers
 	switch result.Status {
 	case NotFound:
 		if len(r.noRoute) == 0 {
@@ -123,7 +128,6 @@ func (r *Router) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		if len(r.noAllowed) == 0 {
 			allowed := result.AllowedMethods
 			sort.Strings(allowed)
-
 			res.Header().Set("Allow", strings.Join(allowed, ", "))
 			if req.Method == "OPTIONS" {
 				res.WriteHeader(200)
@@ -135,14 +139,12 @@ func (r *Router) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 		handlers = r.noAllowed
 	default:
-		handlers = result.Handlers
-
 		// has global middleware handlers
 		if len(r.handlers) > 0 {
-			handlers = append(handlers, r.handlers...)
+			handlers = append(r.handlers, handlers...)
 		}
 
-		// add main handler
+		// append main handler
 		handlers = append(handlers, result.Handler)
 	}
 
@@ -159,6 +161,7 @@ func (r *Router) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		ctx.Set("allowedMethods", result.AllowedMethods)
 	}
 
+	// processing
 	ctx.Next()
 	// ctx.Resp.WriteHeaderNow()
 

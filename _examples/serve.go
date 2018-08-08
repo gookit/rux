@@ -42,6 +42,23 @@ func main() {
 		})
 	})
 
+	// use middleware for the route
+	route := r.GET("/middle", func(c *sux.Context) { // main handler
+		c.WriteString("-O-")
+	}, func(c *sux.Context) { // middle 1
+		c.WriteString("a")
+		c.Next() // Notice: call Next()
+		c.WriteString("A")
+		// if call Abort(), will abort at the end of this middleware run
+		// c.Abort()
+	})
+	// add by Use()
+	route.Use(func(c *sux.Context) { // middle 2
+		c.WriteString("b")
+		c.Next()
+		c.WriteString("B")
+	})
+
 	r.Controller("/blog", &BlogController{})
 
 	// quick start
