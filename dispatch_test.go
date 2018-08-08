@@ -49,12 +49,12 @@ func TestRouterListen(t *testing.T) {
 	})
 
 	discardStdout()
-	art.Error(r.Listen("invalid"))
-	art.Error(r.Listen(":invalid"))
-	art.Error(r.Listen("127.0.0.1:invalid"))
-	art.Error(r.ListenTLS("invalid", "", ""))
+	art.Error(r.Listen("invalid]"))
+	art.Error(r.Listen(":invalid]"))
+	art.Error(r.Listen("127.0.0.1:invalid]"))
+	art.Error(r.ListenTLS("invalid]", "", ""))
 	art.Error(r.ListenUnix(""))
-	os.Setenv("PORT", "invalid")
+	os.Setenv("PORT", "invalid]")
 	art.Error(r.Listen())
 	restoreStdout()
 }
