@@ -114,22 +114,32 @@ func TestContext(t *testing.T) {
 	route := r.GET("/ctx", namedHandler) // main handler
 
 	route.Use(func(c *Context) { // middle 1
+		// -> STEP 1:
 		art.NotEmpty(c.Handler())
+		art.NotEmpty(c.Router())
+		art.NotEmpty(c.Copy())
 		art.Equal("github.com/gookit/sux.namedHandler", c.HandlerName())
 		// set a new context data
 		c.Set("newKey", "val")
+
 		c.Next()
+
+		// STEP 4 ->:
 		art.Equal("namedHandler1", c.Get("name").(string))
 	}, func(c *Context) { // middle 2
+		// -> STEP 2:
 		_, ok := c.Values()["newKey"]
 		art.True(ok)
 		art.Equal("val", c.Get("newKey").(string))
+
 		c.Next()
+
+		// STEP 3 ->:
 		art.Equal("namedHandler", c.Get("name").(string))
 		c.Set("name", "namedHandler1") // change value
 	})
 
-	// Call sequence: middle 1 -> middle 2 -> main handler -> middle 1 -> middle 2
+	// Call sequence: middle 1 -> middle 2 -> main handler -> middle 2 -> middle 1
 	mockRequest(r, GET, "/ctx", "data")
 }
 
@@ -142,7 +152,9 @@ func TestRouterListen(t *testing.T) {
 		r.Listen(":8080", "9090")
 	})
 
+	discardStdout()
 	art.Error(r.Listen("invalid"))
 	art.Error(r.ListenTLS("invalid", "", ""))
 	art.Error(r.ListenUnix(""))
+	restoreStdout()
 }

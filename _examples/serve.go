@@ -4,6 +4,7 @@ import (
 	"github.com/gookit/sux"
 	"github.com/gookit/sux/middleware"
 	"net/http"
+	"github.com/gookit/sux/handlers"
 )
 
 // go run ./_examples/serve.go
@@ -22,6 +23,7 @@ func main() {
 	r.GET("/", func(c *sux.Context) {
 		c.Text(200, "hello " + c.URL().Path)
 	})
+	r.GET("/routes", handlers.DumpRoutesHandler())
 	r.GET("/users/{id}", func(c *sux.Context) {
 		c.Text(200, "hello " + c.URL().Path)
 	})

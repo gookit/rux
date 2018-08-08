@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 	"testing"
 )
@@ -128,4 +129,32 @@ func mockRequest(r *Router, method, path, bodyStr string) *mockWriter {
 	w := newMockWriter()
 	r.ServeHTTP(w, req)
 	return w
+}
+
+var oldStdout *os.File
+
+// usage:
+// discardStdout()
+// fmt.Println("Hello, playground")
+// restoreStdout()
+func discardStdout() error {
+	// save old os.Stdout
+	oldStdout = os.Stdout
+
+	stdout, err := os.OpenFile(os.DevNull, os.O_WRONLY, 0)
+	if err == nil {
+		os.Stdout = stdout
+	}
+
+	return err
+}
+
+func restoreStdout() {
+	if oldStdout != nil {
+		// close now
+		os.Stdout.Close()
+		// restore
+		os.Stdout = oldStdout
+		oldStdout = nil
+	}
 }

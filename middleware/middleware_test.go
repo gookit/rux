@@ -5,15 +5,18 @@ import (
 	"github.com/gookit/sux"
 	"github.com/stretchr/testify/assert"
 	"io"
+	"io/ioutil"
 	"net/http"
+	"os"
 	"strings"
 	"testing"
 )
 
-func TestMiddleware(t *testing.T) {
+func TestSomeMiddleware(t *testing.T) {
+	r := sux.New()
 	art := assert.New(t)
 
-	r := sux.New()
+	// add reqID to context
 	r.GET("/rid", func(c *sux.Context) {
 		rid := c.Get("reqID").(string)
 		art.Len(rid, 32)
@@ -22,22 +25,49 @@ func TestMiddleware(t *testing.T) {
 	w := mockRequest(r, "GET", "/rid", "")
 	art.Equal(200, w.Status())
 
+	// ignore /favicon.ico request
 	r.GET("/favicon.ico", func(c *sux.Context) {}, SkipFavIcon())
 	w = mockRequest(r, "GET", "/favicon.ico", "")
 	art.Equal(204, w.Status())
 
+	// catch panic
 	r.GET("/panic", func(c *sux.Context) {
 		panic("error msg")
 	}, PanicsHandler())
 	w = mockRequest(r, "GET", "/panic", "")
 	art.Equal(500, w.Status())
 
+}
+
+func TestRequestLogger(t *testing.T) {
+	r := sux.New()
+	art := assert.New(t)
+
+	// log req
+	rewriteStdout()
 	r.GET("/req-log", func(c *sux.Context) {
 		c.Text(200, "hello")
 	}, RequestLogger())
-	w = mockRequest(r, "GET", "/req-log", "")
+
+	w := mockRequest(r, "GET", "/req-log", "")
 	art.Equal(200, w.Status())
 	art.Equal("hello", w.buf.String())
+
+	out := restoreStdout()
+	art.Contains(out, "/req-log")
+
+	// skip log
+	rewriteStdout()
+	r.GET("/status", func(c *sux.Context) {
+		c.WriteString("hello")
+	}, RequestLogger())
+
+	w = mockRequest(r, "GET", "/status", "")
+	art.Equal(200, w.Status())
+	art.Equal("hello", w.buf.String())
+
+	out = restoreStdout()
+	art.Equal(out, "")
 }
 
 /*************************************************************
@@ -94,4 +124,39 @@ func mockRequest(r *sux.Router, method, path, bodyStr string) *mockWriter {
 	w := newMockWriter()
 	r.ServeHTTP(w, req)
 	return w
+}
+
+var oldStdout, newReader *os.File
+
+// usage:
+// rewriteStdout()
+// fmt.Println("Hello, playground")
+// msg := restoreStdout()
+func rewriteStdout() {
+	oldStdout = os.Stdout
+	r, w, _ := os.Pipe()
+	newReader = r
+	os.Stdout = w
+}
+
+func restoreStdout() string {
+	if newReader == nil {
+		return ""
+	}
+
+	// Notice: must close writer before read data
+	// close now reader
+	os.Stdout.Close()
+	// restore
+	os.Stdout = oldStdout
+	oldStdout = nil
+
+	// read data
+	out, _ := ioutil.ReadAll(newReader)
+
+	// close reader
+	newReader.Close()
+	newReader = nil
+
+	return string(out)
 }

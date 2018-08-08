@@ -101,6 +101,17 @@ func TestMiddlewareAbort(t *testing.T) {
 	art.Equal("aA", s.str)
 }
 
+func TestGlobalMiddleware(t *testing.T) {
+	art := assert.New(t)
+	r := New()
+	art.NotEmpty(r)
+
+	r.Use(func(c *Context) {
+		c.Set("gKey", "val")
+	})
+	r.GET("/middle", namedHandler) // main handler
+}
+
 func TestGroupMiddleware(t *testing.T) {
 	art := assert.New(t)
 	r := New()
