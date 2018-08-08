@@ -102,63 +102,71 @@ func (r *Router) WrapHttpHandlers(preHandlers ...func(h http.Handler) http.Handl
  * dispatch http request
  *************************************************************/
 
-var default404Handler = func(c *Context) {
+// KeyAllowedMethods key name in the context
+const KeyAllowedMethods = "_allowedMethods"
+
+var internal404Handler HandlerFunc = func(c *Context) {
 	http.NotFound(c.Resp, c.Req)
+}
+
+var internal405Handler HandlerFunc = func(c *Context) {
+	allowed := c.Get(KeyAllowedMethods).([]string)
+	sort.Strings(allowed)
+	c.SetHeader("Allow", strings.Join(allowed, ", "))
+	
+	if c.Req.Method == "OPTIONS" {
+		c.SetStatus(200)
+	} else {
+		http.Error(c.Resp, "Method not allowed", 405)
+	}
 }
 
 // ServeHTTP for handle HTTP request, response data to client.
 func (r *Router) ServeHTTP(res http.ResponseWriter, req *http.Request) {
+	var handlers HandlersChain
+
 	path := req.URL.Path
 	if r.UseEncodedPath {
 		path = req.URL.EscapedPath()
 	}
 
-	// match route
-	result := r.Match(req.Method, path)
-	handlers := result.Handlers
-	switch result.Status {
-	case NotFound:
-		if len(r.noRoute) == 0 {
-			http.NotFound(res, req)
-			return
-		}
-
-		handlers = r.noRoute
-	case NotAllowed:
-		if len(r.noAllowed) == 0 {
-			allowed := result.AllowedMethods
-			sort.Strings(allowed)
-			res.Header().Set("Allow", strings.Join(allowed, ", "))
-			if req.Method == "OPTIONS" {
-				res.WriteHeader(200)
-			} else {
-				http.Error(res, "Method not allowed", 405)
-			}
-			return
-		}
-
-		handlers = r.noAllowed
-	default:
-		// has global middleware handlers
-		if len(r.handlers) > 0 {
-			handlers = append(r.handlers, handlers...)
-		}
-
-		// append main handler
-		handlers = append(handlers, result.Handler)
+	if len(r.noRoute) == 0 {
+		r.noRoute = HandlersChain{internal404Handler}
 	}
 
-	// now, call all handlers
+	// match route
+	result := r.Match(req.Method, path)
 
 	// get context
 	ctx := r.pool.Get().(*Context)
 	ctx.Reset()
 	ctx.Params = result.Params
-	ctx.InitRequest(res, req, handlers)
 
-	// add allowed methods to context
+	// check match result
+	switch result.Status {
+	case Found:
+		// append main handler to last
+		handlers = append(result.Handlers, result.Handler)
+	case NotFound:
+		handlers = r.noRoute
+	case NotAllowed:
+		if len(r.noAllowed) == 0 {
+			r.noAllowed = HandlersChain{internal405Handler}
+		}
+
+		handlers = r.noAllowed
+	}
+
+	// has global middleware handlers
+	if len(r.handlers) > 0 {
+		handlers = append(r.handlers, handlers...)
+	}
+
+	// init context
+	ctx.InitRequest(res, req, handlers)
 	if result.Status == NotAllowed {
-		ctx.Set("allowedMethods", result.AllowedMethods)
+		// add allowed methods to context
+		ctx.Set(KeyAllowedMethods, result.AllowedMethods)
 	}
 
 	// processing
@@ -166,6 +174,6 @@ func (r *Router) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	// ctx.Resp.WriteHeaderNow()
 
 	// release
-	result = nil
 	r.pool.Put(ctx)
+	result = nil
 }

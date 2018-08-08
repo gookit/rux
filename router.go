@@ -28,9 +28,9 @@ const (
 	OPTIONS = "OPTIONS"
 )
 
-// MethodsStr all supported methods string, use for method check
+// AllMethods all supported methods string, use for method check
 // more: ,COPY,PURGE,LINK,UNLINK,LOCK,UNLOCK,VIEW,SEARCH,CONNECT,TRACE
-const MethodsStr = "GET,POST,PUT,PATCH,DELETE,OPTIONS,HEAD,CONNECT,TRACE"
+const AllMethods = "GET,POST,PUT,PATCH,DELETE,OPTIONS,HEAD,CONNECT,TRACE"
 
 // match status: 1 found 2 not found 3 method not allowed
 const (
@@ -237,8 +237,8 @@ func (r *Router) Add(method, path string, handler HandlerFunc, middleware ...Han
 
 	path = r.formatPath(path)
 	method = strings.ToUpper(method)
-	if strings.Index(","+MethodsStr, ","+method) == -1 {
-		panic("router: invalid method name, must in: " + MethodsStr)
+	if strings.Index(","+AllMethods, ","+method) == -1 {
+		panic("router: invalid method name, must in: " + AllMethods)
 	}
 
 	// create new route instance

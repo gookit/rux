@@ -149,6 +149,16 @@ func (c *Context) RawData() ([]byte, error) {
 	return ioutil.ReadAll(c.Req.Body)
 }
 
+// IsAjax check request is ajax request
+func (c *Context) IsAjax() bool {
+	return c.Header("X-Requested-With") == "XMLHttpRequest"
+}
+
+// IsMethod returns true if current is equal to input method name
+func (c *Context) IsMethod(method string) bool {
+	return c.Req.Method == method
+}
+
 // IsWebSocket returns true if the request headers indicate that a webSocket
 // handshake is being initiated by the client.
 func (c *Context) IsWebSocket() bool {

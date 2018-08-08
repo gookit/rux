@@ -192,6 +192,9 @@ func TestContext(t *testing.T) {
 		art.NotEmpty(c.Handler())
 		art.NotEmpty(c.Router())
 		art.NotEmpty(c.Copy())
+		art.False(c.IsWebSocket())
+		art.False(c.IsAjax())
+		art.True(c.IsMethod("GET"))
 		art.Equal("github.com/gookit/sux.namedHandler", c.HandlerName())
 		// set a new context data
 		c.Set("newKey", "val")
@@ -215,6 +218,8 @@ func TestContext(t *testing.T) {
 
 	// Call sequence: middle 1 -> middle 2 -> main handler -> middle 2 -> middle 1
 	mockRequest(r, GET, "/ctx", "data")
+
+
 }
 
 func TestContext_ClientIP(t *testing.T) {
