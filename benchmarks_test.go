@@ -2,7 +2,6 @@ package sux
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -65,15 +64,21 @@ func Benchmark404Many(B *testing.B) {
  *************************************************************/
 
 type mockWriter struct {
-	headers http.Header
 	buf     *bytes.Buffer
+	status  int
+	headers http.Header
 }
 
 func newMockWriter() *mockWriter {
 	return &mockWriter{
-		http.Header{},
 		&bytes.Buffer{},
+		200,
+		http.Header{},
 	}
+}
+
+func (m *mockWriter) Status() int {
+	return m.status
 }
 
 func (m *mockWriter) Header() (h http.Header) {
@@ -89,7 +94,7 @@ func (m *mockWriter) WriteString(s string) (n int, err error) {
 }
 
 func (m *mockWriter) WriteHeader(code int) {
-	m.headers.Set("Status", fmt.Sprintf("%d", code))
+	m.status = code
 }
 
 func runRequest(B *testing.B, r *Router, method, path string) {
@@ -108,7 +113,7 @@ func runRequest(B *testing.B, r *Router, method, path string) {
 	}
 }
 
-func mockRequest(r *Router, method, path, bodyStr string) {
+func mockRequest(r *Router, method, path, bodyStr string) *mockWriter {
 	var body io.Reader
 	if bodyStr != "" {
 		body = strings.NewReader(bodyStr)
@@ -122,4 +127,5 @@ func mockRequest(r *Router, method, path, bodyStr string) {
 
 	w := newMockWriter()
 	r.ServeHTTP(w, req)
+	return w
 }

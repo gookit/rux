@@ -62,11 +62,15 @@ func main() {
 
 ## Use Middleware
 
-sux support use middleware
+sux support use middleware, allow:
 
 - global middleware
 - group middleware
 - route middleware
+
+**Call priority**: `global middleware -> group middleware -> route middleware`
+
+### Example
 
 ```go
 package main
@@ -107,7 +111,8 @@ func main() {
 }
 ```
 
-- Call sequence: `middle 1 -> middle 2 -> main handler -> middle 2 -> middle 1`
+- **Call sequence**: `middle 1 -> middle 2 -> main handler -> middle 2 -> middle 1`
+- **Flow chart**:
 
 ```text
         +----------------------------+
@@ -122,7 +127,7 @@ func main() {
         |____________________________|
 ```
 
-> more please see [dispatch_test.go](dispatch_test.go) middleware tests
+> more please see [middleware_test.go](middleware_test.go) middleware tests
 
 ## Use http.Handler
 

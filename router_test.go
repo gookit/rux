@@ -276,3 +276,7 @@ func TestOther(t *testing.T) {
 	Debug(false)
 	art.False(IsDebug())
 }
+
+func TestRouterOption(t *testing.T) {
+
+}
