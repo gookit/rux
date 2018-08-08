@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"testing"
+	"runtime"
 )
 
 func ExampleRouter_ServeHTTP() {
@@ -47,6 +48,10 @@ func TestRouterListen(t *testing.T) {
 	art.Panics(func() {
 		r.Listen(":8080", "9090")
 	})
+
+	if runtime.GOOS != "darwin" {
+		return
+	}
 
 	discardStdout()
 	art.Error(r.Listen("invalid]"))
