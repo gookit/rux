@@ -187,7 +187,6 @@ func TestContext(t *testing.T) {
 	r := New()
 
 	route := r.GET("/ctx", namedHandler) // main handler
-
 	route.Use(func(c *Context) { // middle 1
 		// -> STEP 1:
 		art.NotEmpty(c.Handler())
@@ -220,6 +219,13 @@ func TestContext(t *testing.T) {
 	// Call sequence: middle 1 -> middle 2 -> main handler -> middle 2 -> middle 1
 	mockRequest(r, GET, "/ctx", "data")
 
+	r.GET("/ws", func(c *Context) {
+		art.True(c.IsWebSocket())
+	})
+	requestWithData(r, GET, "/ws", &mockData{Heads: m{
+		"Connection": "upgrade",
+		"Upgrade": "websocket",
+	}})
 }
 
 func TestContext_ClientIP(t *testing.T) {

@@ -13,7 +13,6 @@ import (
 	"reflect"
 	"runtime"
 	"strings"
-	"time"
 )
 
 /*************************************************************
@@ -157,9 +156,10 @@ func nameOfFunction(f interface{}) string {
 }
 
 func debugPrintRoute(route *Route) {
-	if debug {
-		fmt.Println("[SUX-DEBUG]", route.String())
-	}
+	// if debug {
+	// 	fmt.Println("[SUX-DEBUG]", route.String())
+	// }
+	debugPrint(route.String())
 }
 
 func debugPrintError(err error) {
@@ -171,6 +171,7 @@ func debugPrintError(err error) {
 func debugPrint(f string, v ...interface{}) {
 	if debug {
 		msg := fmt.Sprintf(f, v...)
-		fmt.Printf("[SUX-DEBUG] %s %s\n", time.Now().Format("2006-01-02 15:04:05"), msg)
+		// fmt.Printf("[SUX-DEBUG] %s %s\n", time.Now().Format("2006-01-02 15:04:05"), msg)
+		fmt.Printf("[SUX-DEBUG] %s\n", msg)
 	}
 }

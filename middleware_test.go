@@ -101,7 +101,7 @@ func TestContext_Abort(t *testing.T) {
 		c.WriteString("a")
 		// c.Next()
 		// Will abort at the end of this middleware run
-		c.AbortThen().Redirect("/other")
+		c.AbortThen().Redirect("/other", 302)
 		c.WriteString("A")
 	}, func(c *Context) { // Will not execute
 		c.WriteString("b")
@@ -111,7 +111,7 @@ func TestContext_Abort(t *testing.T) {
 	// Call sequence: middle 1
 	w = mockRequest(r, GET, "/abort1", "")
 	art.NotEqual("aA", w.String())
-	art.Equal(301, w.Status())
+	art.Equal(302, w.Status())
 }
 
 func TestGlobalMiddleware(t *testing.T) {
