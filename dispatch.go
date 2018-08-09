@@ -50,34 +50,6 @@ func (r *Router) ListenUnix(file string) (err error) {
 	return
 }
 
-func resolveAddress(addr []string) (fullAddr string) {
-	ip := "0.0.0.0"
-	switch len(addr) {
-	case 0:
-		if port := os.Getenv("PORT"); len(port) > 0 {
-			debugPrint("Environment variable PORT=\"%s\"", port)
-			return ip + ":" + port
-		}
-		debugPrint("Environment variable PORT is undefined. Using port :8080 by default")
-		return ip + ":8080"
-	case 1:
-		var port string
-		if strings.Index(addr[0], ":") != -1 {
-			ss := strings.SplitN(addr[0], ":", 2)
-			if ss[0] != "" {
-				return addr[0]
-			}
-			port = ss[1]
-		} else {
-			port = addr[0]
-		}
-
-		return ip + ":" + port
-	default:
-		panic("too much parameters")
-	}
-}
-
 // WrapHttpHandlers apply some pre http handlers for the router.
 // usage:
 // 	import "github.com/gookit/sux/handlers"
@@ -113,7 +85,7 @@ var internal405Handler HandlerFunc = func(c *Context) {
 	allowed := c.Get(KeyAllowedMethods).([]string)
 	sort.Strings(allowed)
 	c.SetHeader("Allow", strings.Join(allowed, ", "))
-	
+
 	if c.Req.Method == "OPTIONS" {
 		c.SetStatus(200)
 	} else {
@@ -126,7 +98,7 @@ func (r *Router) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	var handlers HandlersChain
 
 	path := req.URL.Path
-	if r.UseEncodedPath {
+	if r.useEncodedPath {
 		path = req.URL.EscapedPath()
 	}
 

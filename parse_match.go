@@ -1,8 +1,97 @@
 package sux
 
 import (
+	"regexp"
 	"strings"
 )
+
+/*************************************************************
+ * route parse
+ *************************************************************/
+
+const (
+	// allMatch = `.+`
+	anyMatch = `[^/]+`
+)
+
+// "/users/{id}" "/users/{id:\d+}" `/users/{uid:\d+}/blog/{id}`
+var varRegex = regexp.MustCompile(`{([^/]+)}`)
+
+// Parsing routes with parameters
+func (r *Router) parseParamRoute(path string, route *Route) (first string) {
+	// collect route Params
+	ss := varRegex.FindAllString(path, -1)
+
+	// no vars, but contains optional char
+	if len(ss) == 0 {
+		regexStr := checkAndParseOptional(quotePointChar(path))
+		route.regex = regexp.MustCompile("^" + regexStr + "$")
+		return
+	}
+
+	var n, v string
+	var rawVar, varRegex []string
+	for _, str := range ss {
+		nvStr := strings.Trim(str, "{}: ")
+
+		// eg "{uid:\d+}" -> "uid", "\d+"
+		if strings.IndexByte(nvStr, ':') > 0 {
+			nv := strings.SplitN(nvStr, ":", 2)
+			n, v = strings.TrimSpace(nv[0]), strings.TrimSpace(nv[1])
+			rawVar = append(rawVar, str, "{"+n+"}")
+			varRegex = append(varRegex, "{"+n+"}", "("+v+")")
+		} else {
+			n = nvStr // "{name}" -> "name"
+			v = getGlobalVar(n, anyMatch)
+			varRegex = append(varRegex, str, "("+v+")")
+		}
+
+		route.matches = append(route.matches, n)
+	}
+
+	// `/users/{uid:\d+}/blog/{id}` -> `/users/{uid}/blog/{id}`
+	if len(rawVar) > 0 {
+		path = strings.NewReplacer(rawVar...).Replace(path)
+	}
+
+	// "." -> "\."
+	path = quotePointChar(path)
+	argPos := strings.IndexByte(path, '{')
+	optPos := strings.IndexByte(path, '[')
+	minPos := argPos
+
+	// has optional char. /blog[/{id}]
+	if optPos > 0 && argPos > optPos {
+		minPos = optPos
+	}
+
+	start := path[0:minPos]
+	if len(start) > 1 {
+		route.start = start
+
+		if pos := strings.IndexByte(start[1:], '/'); pos > 1 {
+			first = start[1 : pos+1]
+			// start string only one node. "/users/"
+			if len(start)-len(first) == 2 {
+				route.start = ""
+			}
+		}
+	}
+
+	// has optional char. /blog[/{id}]  -> /blog(?:/{id})
+	if optPos > 0 {
+		path = checkAndParseOptional(path)
+	}
+
+	// replace {var} -> regex str
+	regexStr := strings.NewReplacer(varRegex...).Replace(path)
+	route.regex = regexp.MustCompile("^" + regexStr + "$")
+	return
+}
+
+/*************************************************************
+ * route match
+ *************************************************************/
 
 // MatchResult for the route match
 type MatchResult struct {
@@ -20,16 +109,16 @@ type MatchResult struct {
 
 var notFoundResult = &MatchResult{Status: NotFound}
 
-func newMatchResult(status uint8, handler HandlerFunc, handlers HandlersChain) *MatchResult {
-	return &MatchResult{Status: status, Handler: handler, Handlers: handlers}
+func newMatchResult(status uint8, h HandlerFunc, hs HandlersChain) *MatchResult {
+	return &MatchResult{Status: status, Handler: h, Handlers: hs}
 }
-
-/*************************************************************
- * route match
- *************************************************************/
 
 // Match route by given request METHOD and URI path
 func (r *Router) Match(method, path string) (result *MatchResult) {
+	if r.interceptAll != "" {
+		path = r.interceptAll
+	}
+
 	path = r.formatPath(path)
 	method = strings.ToUpper(method)
 
@@ -48,7 +137,7 @@ func (r *Router) Match(method, path string) (result *MatchResult) {
 	}
 
 	// don't handle method not allowed, will return not found
-	if !r.HandleMethodNotAllowed {
+	if !r.handleMethodNotAllowed {
 		return
 	}
 
@@ -76,7 +165,7 @@ func (r *Router) match(method, path string) (ret *MatchResult) {
 	}
 
 	// find in regular routes
-	if pos := strings.Index(path[1:], "/"); pos > 1 {
+	if pos := strings.IndexByte(path[1:], '/'); pos > 1 {
 		first := path[1 : pos+1]
 		key = method + " " + first
 
@@ -109,15 +198,15 @@ func (r *Router) match(method, path string) (ret *MatchResult) {
 
 // cache dynamic Params route when EnableRouteCache is true
 func (r *Router) cacheDynamicRoute(path string, ps Params, route *Route) {
-	if !r.EnableRouteCache {
+	if !r.enableCaching {
 		return
 	}
 
 	if r.cachedRoutes == nil {
-		r.cachedRoutes = make(map[string]*Route, r.MaxCachedRoute)
-	} else if len(r.cachedRoutes) >= int(r.MaxCachedRoute) {
+		r.cachedRoutes = make(map[string]*Route, r.maxNumCaches)
+	} else if len(r.cachedRoutes) >= int(r.maxNumCaches) {
 		num := 0
-		maxClean := int(r.MaxCachedRoute / 10)
+		maxClean := int(r.maxNumCaches / 10)
 
 		// clean up 1/10 each time
 		for k := range r.cachedRoutes {
@@ -155,7 +244,7 @@ func (r *Router) findAllowedMethods(method, path string) (allowed []string) {
 	}
 
 	// in regular routes
-	if pos := strings.Index(path[1:], "/"); pos > 1 {
+	if pos := strings.IndexByte(path[1:], '/'); pos > 1 {
 		first := path[1 : pos+1]
 		for _, m := range anyMethods {
 			if m == method {

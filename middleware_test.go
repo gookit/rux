@@ -2,6 +2,7 @@ package sux
 
 import (
 	"github.com/stretchr/testify/assert"
+	"net/http"
 	"testing"
 )
 
@@ -71,7 +72,7 @@ func TestRouteMiddleware(t *testing.T) {
 	art.Equal("ab-O-BA", w.String())
 }
 
-func TestMiddlewareAbort(t *testing.T) {
+func TestContext_Abort(t *testing.T) {
 	art := assert.New(t)
 
 	r := New()
@@ -92,6 +93,25 @@ func TestMiddlewareAbort(t *testing.T) {
 	// Call sequence: middle 1
 	w := mockRequest(r, GET, "/abort", "")
 	art.Equal("aA", w.String())
+
+	// use middleware, will termination execution early by AbortThen()
+	r.GET("/abort1", func(c *Context) { // Will not execute
+		c.WriteString("-O-")
+	}, func(c *Context) {
+		c.WriteString("a")
+		// c.Next()
+		// Will abort at the end of this middleware run
+		c.AbortThen().Redirect("/other")
+		c.WriteString("A")
+	}, func(c *Context) { // Will not execute
+		c.WriteString("b")
+		c.Next()
+		c.WriteString("B")
+	})
+	// Call sequence: middle 1
+	w = mockRequest(r, GET, "/abort1", "")
+	art.NotEqual("aA", w.String())
+	art.Equal(301, w.Status())
 }
 
 func TestGlobalMiddleware(t *testing.T) {
@@ -201,4 +221,32 @@ func TestGroupMiddleware(t *testing.T) {
 	art.Equal("zyx-O-XYZ", w.String())
 	w = mockRequest(r, GET, "/grp/sub-grp/middle1", "")
 	art.Equal("zyxa-O-AXYZ", w.String())
+}
+
+func TestWarpHttpHandler(t *testing.T) {
+	r := New()
+	art := assert.New(t)
+	gh := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("he"))
+	})
+
+	r.GET("/path", func(c *Context) {
+		c.WriteString("o")
+	}).Use(
+		WarpHttpHandler(gh),
+		WarpHttpHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Write([]byte("ll"))
+		})))
+	w := mockRequest(r, GET, "/path", "")
+	art.Equal("hello", w.String())
+
+	r.GET("/path1", func(c *Context) {
+		c.WriteString("o")
+	}).Use(
+		WarpHttpHandlerFunc(gh),
+		WarpHttpHandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Write([]byte("ll"))
+		}))
+	w = mockRequest(r, GET, "/path1", "")
+	art.Equal("hello", w.String())
 }

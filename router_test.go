@@ -67,6 +67,11 @@ func TestRouter(t *testing.T) {
 		// do something...
 	})
 
+	// cannot set options on after init
+	art.Panics(func() {
+		r.WithOptions(HandleMethodNotAllowed)
+	})
+
 	ret := r.Match("GET", "/get")
 	art.Equal(Found, ret.Status)
 	art.Len(ret.Handlers, 1)
@@ -125,6 +130,8 @@ func TestAddRoute(t *testing.T) {
 	ret = r.Match(GET, "/not-exist")
 	art.Equal(NotFound, ret.Status)
 	art.Nil(ret.Handlers)
+	art.Len(ret.Handlers, 0)
+	art.Nil(ret.Handlers.Last())
 
 	// add a controller
 	r.Controller("/site", &SiteController{})
@@ -143,8 +150,19 @@ func TestRouter_Group(t *testing.T) {
 	r.Group("/users", func() {
 		r.GET("", emptyHandler)
 		r.GET("/{id}", emptyHandler)
+
+		// overflow max num of the route handlers
+		art.Panics(func() {
+			var i int8 = -1
+			var hs HandlersChain
+			for ; i <= abortIndex; i++ {
+				hs = append(hs, emptyHandler)
+			}
+
+			r.GET("/overflow", emptyHandler, hs...)
+		})
 	}, func(c *Context) {
-		// add middleware handlers for group
+		// ...
 	})
 
 	ret := r.Match(GET, "/users")
@@ -238,11 +256,9 @@ func TestOptionalRoute(t *testing.T) {
 func TestMethodNotAllowed(t *testing.T) {
 	art := assert.New(t)
 
-	r := New()
-	art.NotEmpty(r)
-
 	// enable handle not allowed
-	r.HandleMethodNotAllowed = true
+	r := New(HandleMethodNotAllowed)
+	art.True(r.handleMethodNotAllowed)
 
 	r.Add(GET, "/path/some", emptyHandler)
 	r.Add(PUT, "/path/{var}", emptyHandler)
@@ -271,12 +287,81 @@ func TestOther(t *testing.T) {
 	m := GetGlobalVars()
 	art.Equal(`\w+`, m["name"])
 
+	// open debug
 	Debug(true)
 	art.True(IsDebug())
+	r := New()
+	r.GET("/debug", emptyHandler)
 	Debug(false)
 	art.False(IsDebug())
 }
 
-func TestRouterOption(t *testing.T) {
+func TestRouter_WithOptions(t *testing.T) {
+	art := assert.New(t)
 
+	// Option: StrictLastSlash
+	r := New(StrictLastSlash)
+	art.True(r.strictLastSlash)
+
+	r.GET("/users", func(c *Context) {
+		c.Text(200, "val0")
+	})
+	r.GET("/users/", func(c *Context) {
+		c.Text(200, "val1")
+	})
+
+	w := mockRequest(r, "GET", "/users", "")
+	art.Equal("val0", w.String())
+	w = mockRequest(r, "GET", "/users/", "")
+	art.Equal("val1", w.String())
+
+	// Option: UseEncodedPath
+	r = New()
+	r.WithOptions(UseEncodedPath)
+	r.GET("/users/with spaces", func(c *Context) {
+		c.Text(200, "val0")
+	})
+	// "with spaces" -> "with%20spaces"
+	r.GET("/users/with%20spaces", func(c *Context) {
+		c.Text(200, "val1")
+	})
+	w = mockRequest(r, "GET", "/users/with%20spaces", "")
+	art.Equal("val1", w.String())
+	w = mockRequest(r, "GET", "/users/with spaces", "")
+	art.Equal("val1", w.String())
+
+	// Option: InterceptAll
+	r = New(InterceptAll("/coming-soon"))
+	// Notice: must add a route and path equals to 'InterceptAll' and use Any()
+	r.Any("/coming-soon", func(c *Context) {
+		c.Text(200, "coming-soon")
+	})
+	r.GET("/users", func(c *Context) {
+		c.Text(200, "val0")
+	})
+
+	w = mockRequest(r, "GET", "/users", "")
+	art.Equal("coming-soon", w.String())
+	w = mockRequest(r, "GET", "/not-exist", "")
+	art.Equal("coming-soon", w.String())
+	w = mockRequest(r, "POST", "/not-exist", "")
+	art.Equal("coming-soon", w.String())
+
+	// Option: EnableCaching, MaxNumCaches
+	r = New(EnableCaching, MaxNumCaches(10))
+	simpleHandler := func(c *Context) {
+		c.Text(200, "id:"+c.Param("id"))
+	}
+	r.GET("/users/{id}", simpleHandler)
+	w = mockRequest(r, "GET", "/users/23", "")
+	art.Equal("id:23", w.String())
+	w = mockRequest(r, "GET", "/users/23", "")
+	art.Equal("id:23", w.String())
+	art.Len(r.cachedRoutes, 1)
+
+	for id := range []int{19: 0} {
+		idStr := fmt.Sprint(id)
+		w = mockRequest(r, "GET", "/users/"+idStr, "")
+		art.Equal("id:"+idStr, w.String())
+	}
 }

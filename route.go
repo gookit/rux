@@ -137,7 +137,7 @@ func (r *Route) String() string {
 	nuHandlers := len(r.handlers)
 
 	return fmt.Sprintf(
-		"%-6s %-25s --> %s (%d middleware)",
+		"%-7s %-25s --> %s (%d middleware)",
 		r.method, r.path, r.HandlerName(), nuHandlers,
 	)
 }

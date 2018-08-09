@@ -5,8 +5,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"os"
-	"testing"
 	"runtime"
+	"testing"
 )
 
 func ExampleRouter_ServeHTTP() {
@@ -126,7 +126,8 @@ func TestRouter_ServeHTTP(t *testing.T) {
 	art.Equal(200, w.Status())
 
 	// enable handle method not allowed
-	r.HandleMethodNotAllowed = true
+	r = New(HandleMethodNotAllowed)
+	r.GET("/users/{id}", emptyHandler)
 
 	// no handler for NotAllowed
 	s.reset()
@@ -218,7 +219,6 @@ func TestContext(t *testing.T) {
 
 	// Call sequence: middle 1 -> middle 2 -> main handler -> middle 2 -> middle 1
 	mockRequest(r, GET, "/ctx", "data")
-
 
 }
 

@@ -1,6 +1,8 @@
 package sux
 
-import "net/http"
+import (
+	"net/http"
+)
 
 /*************************************************************
  * middleware definition
@@ -8,20 +10,6 @@ import "net/http"
 
 // HandlerFunc a handler definition
 type HandlerFunc func(c *Context)
-
-// WarpHttpHandler warp an generic http.Handler as an middleware HandlerFunc
-func WarpHttpHandler(gh http.Handler) HandlerFunc {
-	return func(c *Context) {
-		gh.ServeHTTP(c.Resp, c.Req)
-	}
-}
-
-// WarpHttpHandlerFunc warp an generic http.HandlerFunc as an middleware HandlerFunc
-func WarpHttpHandlerFunc(gh http.HandlerFunc) HandlerFunc {
-	return func(c *Context) {
-		gh(c.Resp, c.Req)
-	}
-}
 
 // HandlersChain middleware handlers chain definition
 type HandlersChain []HandlerFunc
@@ -36,9 +24,18 @@ func (c HandlersChain) Last() HandlerFunc {
 	return nil
 }
 
-// LastName get the main handler name
-func (c HandlersChain) LastName() string {
-	return nameOfFunction(c.Last())
+// WarpHttpHandler warp an generic http.Handler as an middleware HandlerFunc
+func WarpHttpHandler(gh http.Handler) HandlerFunc {
+	return func(c *Context) {
+		gh.ServeHTTP(c.Resp, c.Req)
+	}
+}
+
+// WarpHttpHandlerFunc warp an generic http.HandlerFunc as an middleware HandlerFunc
+func WarpHttpHandlerFunc(gh http.HandlerFunc) HandlerFunc {
+	return func(c *Context) {
+		gh(c.Resp, c.Req)
+	}
 }
 
 /*************************************************************

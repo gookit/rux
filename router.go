@@ -1,18 +1,9 @@
-// Package sux is a simple and fast request router for golang HTTP applications.
-//
-// Source code and other details for the project are available at GitHub:
-// 		https://github.com/gookit/sux
-//
-// usage please ref examples and README
 package sux
 
 import (
-	"bytes"
-	"fmt"
 	"net/http"
 	"strings"
 	"sync"
-	"time"
 )
 
 // all supported HTTP verb methods name
@@ -130,38 +121,99 @@ type Router struct {
 	noAllowed HandlersChain
 	handlers  HandlersChain
 
-	// intercept all request. eg. "/site/error"
-	InterceptAll string
-	// use encoded path for match route
-	UseEncodedPath bool
+	//
+	// Router Options:
+	//
+	// intercept all request, then redirect to the path. eg. "/coming-soon" "/in-maintenance"
+	interceptAll string
 	// maximum number of cached dynamic routes. default is 1000
-	MaxCachedRoute uint16
+	maxNumCaches uint16
 	// cache recently accessed dynamic routes. default is False
-	EnableRouteCache bool
-	// Ignore last slash char('/'). If is True, will clear last '/'. default is True
-	IgnoreLastSlash bool
-	// If True, the router checks if another method is allowed for the current route. default is False
-	HandleMethodNotAllowed bool
+	enableCaching bool
+	// use encoded path for match route. default is False
+	useEncodedPath bool
+	// strict last slash char('/'). If is True, will strict compare last '/'. default is False
+	strictLastSlash bool
+	// whether checks if another method is allowed for the current route. default is False
+	handleMethodNotAllowed bool
 }
 
-// New router instance
-func New() *Router {
+// New router instance, can with some options.
+// quick start:
+// 		r := New()
+//		r.GET("/path", MyAction)
+//
+// with options:
+// 		r := New(EnableCaching, MaxNumCaches(1000))
+//		r.GET("/path", MyAction)
+//
+func New(options ...func(*Router)) *Router {
 	router := &Router{
 		name: "default",
 
-		MaxCachedRoute:  1000,
-		IgnoreLastSlash: true,
+		maxNumCaches: 1000,
+		stableRoutes: make(map[string]*Route),
 
-		stableRoutes:  make(map[string]*Route),
-		regularRoutes: make(methodRoutes),
-
+		regularRoutes:   make(methodRoutes),
 		irregularRoutes: make(methodRoutes),
 	}
 
+	// with some options
+	router.WithOptions(options...)
 	router.pool.New = func() interface{} {
 		return &Context{index: -1, router: router}
 	}
+
 	return router
+}
+
+/*************************************************************
+ * Router options
+ *************************************************************/
+
+// InterceptAll setting for the router
+func InterceptAll(path string) func(*Router) {
+	return func(r *Router) {
+		r.interceptAll = strings.TrimSpace(path)
+	}
+}
+
+// MaxNumCaches setting for the router
+func MaxNumCaches(num uint16) func(*Router) {
+	return func(r *Router) {
+		r.maxNumCaches = num
+	}
+}
+
+// UseEncodedPath enable for the router
+func UseEncodedPath(r *Router) {
+	r.useEncodedPath = true
+}
+
+// EnableCaching for the router
+func EnableCaching(r *Router) {
+	r.enableCaching = true
+}
+
+// StrictLastSlash enable for the router
+func StrictLastSlash(r *Router) {
+	r.strictLastSlash = true
+}
+
+// HandleMethodNotAllowed enable for the router
+func HandleMethodNotAllowed(r *Router) {
+	r.handleMethodNotAllowed = true
+}
+
+// WithOptions for the router
+func (r *Router) WithOptions(options ...func(*Router)) {
+	if r.initialized {
+		panic("router: unable to set options after initialization is complete")
+	}
+
+	for _, opt := range options {
+		opt(r)
+	}
 }
 
 /*************************************************************
@@ -226,6 +278,10 @@ func (r *Router) Add(method, path string, handler HandlerFunc, middleware ...Han
 		panic("router: must set handler for the route " + path)
 	}
 
+	if !r.initialized {
+		r.initialized = true
+	}
+
 	if r.currentGroupPrefix != "" {
 		path = r.currentGroupPrefix + r.formatPath(path)
 	}
@@ -249,6 +305,7 @@ func (r *Router) Add(method, path string, handler HandlerFunc, middleware ...Han
 		key := method + " " + path
 		r.counter++
 		r.stableRoutes[key] = route
+		debugPrintRoute(route)
 		return
 	}
 
@@ -272,6 +329,7 @@ func (r *Router) Add(method, path string, handler HandlerFunc, middleware ...Han
 	}
 
 	r.counter++
+	debugPrintRoute(route)
 	return
 }
 
@@ -346,57 +404,4 @@ func (r *Router) StaticFiles(path string, root http.FileSystem) {
 		req.URL.Path = c.Param("filepath")
 		fileServer.ServeHTTP(c.Resp, req)
 	})
-}
-
-/*************************************************************
- * help methods
- *************************************************************/
-
-// String all routes to string
-func (r *Router) String() string {
-	buf := new(bytes.Buffer)
-
-	fmt.Fprintf(buf, "Routes Count: %d\n", r.counter)
-
-	fmt.Fprint(buf, "Stable(fixed):\n")
-	for _, route := range r.stableRoutes {
-		fmt.Fprintf(buf, " %s\n", route)
-	}
-
-	fmt.Fprint(buf, "Regular(dynamic):\n")
-	for pfx, routes := range r.regularRoutes {
-		fmt.Fprintf(buf, " %s:\n", pfx)
-		for _, route := range routes {
-			fmt.Fprintf(buf, "   %s\n", route.String())
-		}
-	}
-
-	fmt.Fprint(buf, "Irregular(dynamic):\n")
-	for m, routes := range r.irregularRoutes {
-		fmt.Fprintf(buf, " %s:\n", m)
-		for _, route := range routes {
-			fmt.Fprintf(buf, "   %s\n", route.String())
-		}
-	}
-
-	return buf.String()
-}
-
-func debugPrintRoute(route *Route) {
-	if debug {
-		fmt.Println(route.String())
-	}
-}
-
-func debugPrintError(err error) {
-	if err != nil {
-		debugPrint("[ERROR] %v\n", err)
-	}
-}
-
-func debugPrint(f string, v ...interface{}) {
-	if debug {
-		msg := fmt.Sprintf(f, v...)
-		fmt.Printf("[sux-DEBUG] %s %s\n", time.Now().Format("2006-01-02 15:04:05"), msg)
-	}
 }

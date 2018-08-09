@@ -78,6 +78,12 @@ func (c *Context) Abort() {
 	c.index = abortIndex
 }
 
+// AbortThen will abort at the end of this middleware run, and return context to continue.
+func (c *Context) AbortThen() *Context {
+	c.index = abortIndex
+	return c
+}
+
 // Next run next handler
 func (c *Context) Next() {
 	c.index++
@@ -231,18 +237,29 @@ func (c *Context) JSONBytes(status int, bs []byte) (err error) {
 	return
 }
 
+// SetHeader for the response
+func (c *Context) SetHeader(key, value string) {
+	c.Resp.Header().Set(key, value)
+}
+
 // NoContent serve success but no content response
 func (c *Context) NoContent() error {
 	c.Resp.WriteHeader(http.StatusNoContent)
 	return nil
 }
 
-// SetHeader for the response
-func (c *Context) SetHeader(key, value string) {
-	c.Resp.Header().Set(key, value)
-}
-
 // SetStatus code for the response
 func (c *Context) SetStatus(status int) {
 	c.Resp.WriteHeader(status)
+}
+
+// Redirect other URL with status code(3xx e.g 301, 302).
+func (c *Context) Redirect(path string, optionalCode ...int) {
+	// default is http.StatusMovedPermanently
+	code := 301
+	if len(optionalCode) > 0 {
+		code = optionalCode[0]
+	}
+
+	http.Redirect(c.Resp, c.Req, path, code)
 }
