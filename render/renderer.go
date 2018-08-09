@@ -6,28 +6,11 @@ package render
 import (
 	"bytes"
 	"encoding/json"
+	"encoding/xml"
 	"errors"
 	"html/template"
+	"io"
 	"net/http"
-)
-
-const (
-	// ContentType header key
-	ContentType = "Content-Type"
-	// ContentText represents content type text/plain
-	ContentText = "text/plain"
-	// ContentJSON represents content type application/json
-	ContentJSON = "application/json"
-	// ContentJSONP represents content type application/javascript
-	ContentJSONP = "application/javascript"
-	// ContentXML represents content type application/xml
-	ContentXML = "application/xml"
-	// ContentYAML represents content type application/x-yaml
-	ContentYAML = "application/x-yaml"
-	// ContentHTML represents content type text/html
-	ContentHTML = "text/html"
-	// ContentBinary represents content type application/octet-stream
-	ContentBinary = "application/octet-stream"
 )
 
 const (
@@ -61,6 +44,12 @@ type Options struct {
 	Charset       string
 	AppendCharset bool
 
+	JSONIndent bool
+	JSONPrefix string
+
+	XMLIndent bool
+	XMLPrefix string
+
 	// template render
 	TplDelims   TplDelims
 	TplSuffixes []string
@@ -89,6 +78,78 @@ var opts = &Options{
 	TplSuffixes: []string{"tpl"},
 }
 
+// Renderer definition
+type Renderer struct {
+	opts    Options
+	drivers map[string]Driver
+}
+
+func New() *Renderer {
+	return &Renderer{}
+}
+
+func (r *Renderer) Render(w io.Writer, d Driver, data interface{}) error {
+	err := d.Render(w, data)
+
+	// if hw, ok := w.(http.ResponseWriter); err != nil && !r.opts.DisableHTTPErrorRendering && ok {
+	// 	http.Error(hw, err.Error(), http.StatusInternalServerError)
+	// }
+
+	return err
+}
+
+// Text write text to Writer
+func (r *Renderer) Text(w io.Writer, status int, v string) error {
+	_, err := w.Write([]byte(v))
+	return err
+}
+
+// JSON serve string content as json response
+func (r *Renderer) JSON(w io.Writer, v interface{}) error {
+	bs, err := jsonMarshal(v, r.opts.JSONIndent, false)
+	if err != nil {
+		return err
+	}
+
+	if r.opts.JSONPrefix != "" {
+		w.Write([]byte(r.opts.JSONPrefix))
+	}
+
+	_, err = w.Write(bs)
+	return err
+}
+
+func (r *Renderer) HTML(w io.Writer, template string, v interface{}) error {
+	if template == "" {
+		return errors.New("renderer: template name not exist")
+	}
+
+	hr := &HtmlRenderer{}
+	return hr.Render(w, v)
+}
+
+// XML serve data as XML response
+func (r *Renderer) XML(w io.Writer, v interface{}) error {
+	var bs []byte
+	var err error
+
+	if r.opts.XMLIndent {
+		bs, err = xml.MarshalIndent(v, "", " ")
+	} else {
+		bs, err = xml.Marshal(v)
+	}
+	if err != nil {
+		return err
+	}
+
+	if r.opts.XMLPrefix != "" {
+		w.Write([]byte(r.opts.XMLPrefix))
+	}
+
+	_, err = w.Write(bs)
+	return err
+}
+
 // Config the render package
 func Config(fn func(*Options)) {
 	fn(opts)
@@ -106,74 +167,10 @@ func AppendCharset() {
 
 }
 
-// Empty alias method of the NoContent()
-func Empty(w http.ResponseWriter) error {
-	return NoContent(w)
-}
-
-// NoContent serve success but no content response
-func NoContent(w http.ResponseWriter) error {
-	w.WriteHeader(http.StatusNoContent)
-	return nil
-}
-
-// Text serve string content as text/plain response
-func Text(w http.ResponseWriter, status int, v string) error {
-	w.WriteHeader(status)
-	w.Header().Set(ContentType, "text/plain; charset=UTF-8")
-	_, err := w.Write([]byte(v))
-
-	return err
-}
-
-// String alias method of the Text()
-func String(w http.ResponseWriter, status int, v string) error {
-	return Text(w, status, v)
-}
-
 // Data is the generic function called by XML, JSON, Data, HTML, and can be called by custom implementations.
 func Data(w http.ResponseWriter, status int, v interface{}) error {
 	w.WriteHeader(status)
 	_, err := w.Write(v.([]byte))
-
-	return err
-}
-
-// JSON serve string content as json response
-func JSON(w http.ResponseWriter, status int, v interface{}) error {
-	w.Header().Set(ContentType, opts.ContentJSON)
-	w.WriteHeader(status)
-
-	bs, err := jsonMarshal(v, false, false)
-	if err != nil {
-		return err
-	}
-
-	// if opts.JSONPrefix != "" {
-	// 	w.Write([]byte(r.opts.JSONPrefix))
-	// }
-
-	_, err = w.Write(bs)
-	return err
-}
-
-// JSONP serve data as JSONP response
-func JSONP(w http.ResponseWriter, status int, callback string, v interface{}) error {
-	w.Header().Set(ContentType, opts.ContentJSONP)
-	w.WriteHeader(status)
-
-	bs, err := jsonMarshal(v, false, false)
-	if err != nil {
-		return err
-	}
-
-	if callback == "" {
-		return errors.New("renderer: callback can not bet empty")
-	}
-
-	w.Write([]byte(callback + "("))
-	_, err = w.Write(bs)
-	w.Write([]byte(");"))
 
 	return err
 }

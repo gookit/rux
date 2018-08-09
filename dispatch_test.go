@@ -187,7 +187,7 @@ func TestContext(t *testing.T) {
 	r := New()
 
 	route := r.GET("/ctx", namedHandler) // main handler
-	route.Use(func(c *Context) { // middle 1
+	route.Use(func(c *Context) {         // middle 1
 		// -> STEP 1:
 		art.NotEmpty(c.Handler())
 		art.NotEmpty(c.Router())
@@ -224,7 +224,7 @@ func TestContext(t *testing.T) {
 	})
 	requestWithData(r, GET, "/ws", &mockData{Heads: m{
 		"Connection": "upgrade",
-		"Upgrade": "websocket",
+		"Upgrade":    "websocket",
 	}})
 }
 

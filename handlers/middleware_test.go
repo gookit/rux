@@ -1,4 +1,4 @@
-package middleware
+package handlers
 
 import (
 	"bytes"
@@ -108,10 +108,20 @@ func (m *mockWriter) WriteHeader(code int) {
 	m.status = code
 }
 
-func mockRequest(r *sux.Router, method, path, bodyStr string) *mockWriter {
+type m map[string]string
+type mockData struct {
+	Body  string
+	Heads map[string]string
+}
+
+func mockRequest(h http.Handler, method, path, bodyStr string) *mockWriter {
+	return requestWithData(h, method, path, &mockData{Body: bodyStr})
+}
+
+func requestWithData(h http.Handler, method, path string, data *mockData) *mockWriter {
 	var body io.Reader
-	if bodyStr != "" {
-		body = strings.NewReader(bodyStr)
+	if data.Body != "" {
+		body = strings.NewReader(data.Body)
 	}
 
 	// create fake request
@@ -121,8 +131,15 @@ func mockRequest(r *sux.Router, method, path, bodyStr string) *mockWriter {
 	}
 	req.RequestURI = req.URL.String()
 
+	if len(data.Heads) > 0 {
+		// req.Header.Set("Content-Type", "text/plain")
+		for k, v := range data.Heads {
+			req.Header.Set(k, v)
+		}
+	}
+
 	w := newMockWriter()
-	r.ServeHTTP(w, req)
+	h.ServeHTTP(w, req)
 	return w
 }
 
