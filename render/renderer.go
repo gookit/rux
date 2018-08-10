@@ -38,11 +38,7 @@ type TplDelims struct {
 
 // Options for the renderer
 type Options struct {
-	// supported content types
-	ContentBinary, ContentHTML, ContentXML, ContentText, ContentJSON, ContentJSONP string
-
-	Charset       string
-	AppendCharset bool
+	Debug bool
 
 	JSONIndent bool
 	JSONPrefix string
@@ -51,41 +47,62 @@ type Options struct {
 	XMLPrefix string
 
 	// template render
+	TplLayout   string
 	TplDelims   TplDelims
 	TplSuffixes []string
-	TplFuncMap  []template.FuncMap
+	TplFuncMap  template.FuncMap
 }
 
-// HtmlTpl definition
-type HtmlTpl struct {
-}
-
-var tplEngine *template.Template
-var opts = &Options{
-	ContentXML:    ContentXML,
-	ContentText:   ContentText,
-	ContentHTML:   ContentHTML,
-	ContentJSON:   ContentJSON,
-	ContentJSONP:  ContentJSONP,
-	ContentBinary: ContentBinary,
-
-	// Charset content data charset
-	Charset: defaultCharset,
-	// AppendCharset on response content
-	AppendCharset: true,
-
-	TplDelims:   TplDelims{"{{", "}}"},
-	TplSuffixes: []string{"tpl"},
+// HtmlTemplate definition
+type HtmlTemplate struct {
+	engine   *template.Template
+	viewsDir string
 }
 
 // Renderer definition
 type Renderer struct {
-	opts    Options
-	drivers map[string]Driver
+	opts       Options
+	drivers    map[string]Driver
+	HTMLRender *template.Template
 }
 
-func New() *Renderer {
-	return &Renderer{}
+func New(config ...func(*Options)) *Renderer {
+	r := &Renderer{
+		opts: Options{
+			TplDelims:   TplDelims{"{{", "}}"},
+			TplSuffixes: []string{"tpl"},
+		},
+	}
+
+	// apply user config
+	if len(config) > 0 {
+		config[0](&r.opts)
+	}
+
+	return r
+}
+
+// LoadTemplateGlob
+// usage:
+// 	LoadTemplateGlob("views/*")
+// 	LoadTemplateGlob("views/**/*")
+func (r *HTTPRenderer) LoadTemplateGlob(pattern string) {
+	r.HTMLRender = template.Must(template.New("").
+		Delims(r.opts.TplDelims.Left, r.opts.TplDelims.Right).
+		Funcs(r.opts.TplFuncMap).
+		ParseGlob(pattern),
+	)
+}
+
+// LoadTemplateFiles
+// usage:
+// 	LoadTemplateFiles("path/file1.tpl", "path/file2.tpl")
+func (r *HTTPRenderer) LoadTemplateFiles(files ...string) {
+	r.HTMLRender = template.Must(template.New("").
+		Delims(r.opts.TplDelims.Left, r.opts.TplDelims.Right).
+		Funcs(r.opts.TplFuncMap).
+		ParseFiles(files...),
+	)
 }
 
 func (r *Renderer) Render(w io.Writer, d Driver, data interface{}) error {
@@ -148,23 +165,6 @@ func (r *Renderer) XML(w io.Writer, v interface{}) error {
 
 	_, err = w.Write(bs)
 	return err
-}
-
-// Config the render package
-func Config(fn func(*Options)) {
-	fn(opts)
-}
-
-// Init the renderer
-func Init() {
-	if opts.AppendCharset {
-
-	}
-}
-
-// AppendCharset for all content types
-func AppendCharset() {
-
 }
 
 // Data is the generic function called by XML, JSON, Data, HTML, and can be called by custom implementations.

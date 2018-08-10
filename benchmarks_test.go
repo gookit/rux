@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
@@ -135,6 +136,17 @@ func requestWithData(h http.Handler, method, path string, data *mockData) *mockW
 	w := newMockWriter()
 	h.ServeHTTP(w, req)
 	return w
+}
+
+func simpleRequest(h http.Handler, method, path string) *httptest.ResponseRecorder {
+	resp := httptest.NewRecorder()
+	req, err := http.NewRequest(method, path, nil)
+	if err != nil {
+		panic(err)
+	}
+
+	h.ServeHTTP(resp, req)
+	return resp
 }
 
 func runRequest(B *testing.B, r *Router, method, path string) {

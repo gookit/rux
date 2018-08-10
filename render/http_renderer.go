@@ -26,20 +26,60 @@ const (
 
 type HttpOptions struct {
 	Options
-	ContentXXX string
+	// supported content types
+	ContentBinary, ContentHTML, ContentXML, ContentText, ContentJSON, ContentJSONP string
+
+	// DefaultCharset content data charset
+	DefaultCharset string
+	// AppendCharset on response content
+	AppendCharset bool
 }
 
 // HTTPRenderer definition
 type HTTPRenderer struct {
 	Renderer
-	opts    HttpOptions
-	drivers map[string]Driver
+	opts HttpOptions
+	// mark init is completed
+	initialized bool
 }
 
-func NewHTTPRenderer() *HTTPRenderer {
-	return &HTTPRenderer{
-		opts: HttpOptions{Options: Options{ContentJSON: ContentJSON}},
+func NewHTTPRenderer(config ...func(*HttpOptions)) *HTTPRenderer {
+	base := New()
+	baseOpts := base.opts
+
+	r := &HTTPRenderer{
+		Renderer: *base,
+		opts: HttpOptions{
+			Options: baseOpts,
+
+			ContentXML:    ContentXML,
+			ContentText:   ContentText,
+			ContentHTML:   ContentHTML,
+			ContentJSON:   ContentJSON,
+			ContentJSONP:  ContentJSONP,
+			ContentBinary: ContentBinary,
+
+			DefaultCharset: defaultCharset,
+			AppendCharset:  true,
+		},
 	}
+
+	// apply user config
+	if len(config) > 0 {
+		config[0](&r.opts)
+	}
+
+	if r.opts.AppendCharset {
+		AppendCharset()
+	}
+
+	base = nil
+	return r
+}
+
+// AppendCharset for all content types
+func AppendCharset() {
+
 }
 
 // Empty alias method of the NoContent()
@@ -69,7 +109,7 @@ func (r *HTTPRenderer) Text(w http.ResponseWriter, status int, v string) error {
 
 // JSON serve string content as json response
 func (r *HTTPRenderer) JSON(w http.ResponseWriter, status int, v interface{}) error {
-	w.Header().Set(ContentType, opts.ContentJSON)
+	w.Header().Set(ContentType, r.opts.ContentJSON)
 	w.WriteHeader(status)
 
 	return r.Renderer.JSON(w, v)
@@ -77,7 +117,7 @@ func (r *HTTPRenderer) JSON(w http.ResponseWriter, status int, v interface{}) er
 
 // JSONP serve data as JSONP response
 func (r *HTTPRenderer) JSONP(w http.ResponseWriter, status int, callback string, v interface{}) error {
-	w.Header().Set(ContentType, opts.ContentJSONP)
+	w.Header().Set(ContentType, r.opts.ContentJSONP)
 	w.WriteHeader(status)
 
 	bs, err := jsonMarshal(v, false, false)

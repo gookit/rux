@@ -74,15 +74,15 @@ func (r *Router) WrapHttpHandlers(preHandlers ...func(h http.Handler) http.Handl
  * dispatch http request
  *************************************************************/
 
-// KeyAllowedMethods key name in the context
-const KeyAllowedMethods = "_allowedMethods"
+// CTXAllowedMethods key name in the context
+const CTXAllowedMethods = "_allowedMethods"
 
 var internal404Handler HandlerFunc = func(c *Context) {
 	http.NotFound(c.Resp, c.Req)
 }
 
 var internal405Handler HandlerFunc = func(c *Context) {
-	allowed := c.Get(KeyAllowedMethods).([]string)
+	allowed := c.Get(CTXAllowedMethods).([]string)
 	sort.Strings(allowed)
 	c.SetHeader("Allow", strings.Join(allowed, ", "))
 
@@ -138,7 +138,7 @@ func (r *Router) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	ctx.InitRequest(res, req, handlers)
 	if result.Status == NotAllowed {
 		// add allowed methods to context
-		ctx.Set(KeyAllowedMethods, result.AllowedMethods)
+		ctx.Set(CTXAllowedMethods, result.AllowedMethods)
 	}
 
 	// processing

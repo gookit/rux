@@ -5,7 +5,10 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
+	"path"
 	"strings"
+	"time"
 )
 
 /*************************************************************
@@ -41,36 +44,6 @@ func (c *Context) InitRequest(w http.ResponseWriter, req *http.Request, handlers
 	c.Resp = w
 	c.values = make(map[string]interface{})
 	c.handlers = handlers
-}
-
-// HandlerName get the main handler name
-func (c *Context) HandlerName() string {
-	return nameOfFunction(c.handlers.Last())
-}
-
-// Handler returns the main handler.
-func (c *Context) Handler() HandlerFunc {
-	return c.handlers.Last()
-}
-
-// Values get all values
-func (c *Context) Values() map[string]interface{} {
-	return c.values
-}
-
-// Router get router instance
-func (c *Context) Router() *Router {
-	return c.router
-}
-
-// Set a value to context by key
-func (c *Context) Set(key string, val interface{}) {
-	c.values[key] = val
-}
-
-// Get a value from context
-func (c *Context) Get(key string) interface{} {
-	return c.values[key]
 }
 
 // Abort will abort at the end of this middleware run
@@ -114,6 +87,40 @@ func (c *Context) Copy() *Context {
 	return &ctx
 }
 
+// Set a value to context by key.
+// usage:
+// 		c.Set("key", "value")
+// 		// ...
+// 		val := c.Get("key") // "value"
+func (c *Context) Set(key string, val interface{}) {
+	c.values[key] = val
+}
+
+// Get a value from context
+func (c *Context) Get(key string) interface{} {
+	return c.values[key]
+}
+
+// Values get all values
+func (c *Context) Values() map[string]interface{} {
+	return c.values
+}
+
+// Handler returns the main handler.
+func (c *Context) Handler() HandlerFunc {
+	return c.handlers.Last()
+}
+
+// HandlerName get the main handler name
+func (c *Context) HandlerName() string {
+	return nameOfFunction(c.handlers.Last())
+}
+
+// Router get router instance
+func (c *Context) Router() *Router {
+	return c.router
+}
+
 /*************************************************************
  * Context: request data
  *************************************************************/
@@ -148,6 +155,17 @@ func (c *Context) Header(key string) string {
 	}
 
 	return ""
+}
+
+// ReqCtxValue get context value from http.Request.ctx
+// example:
+// 		// record value to Request.ctx
+// 		r := c.Req
+// 		r = r.WithContext(context.WithValue(r.Context(), "key", "value"))
+// 		// ...
+// 		val := c.ReqCtxValue("key") // "value"
+func (c *Context) ReqCtxValue(key interface{}) interface{} {
+	return c.Req.Context().Value("originalMethod")
 }
 
 // RawData return stream data
@@ -209,6 +227,16 @@ func (c *Context) ClientIP() string {
  * Context: response data
  *************************************************************/
 
+// SetStatus code for the response
+func (c *Context) SetStatus(status int) {
+	c.Resp.WriteHeader(status)
+}
+
+// SetHeader for the response
+func (c *Context) SetHeader(key, value string) {
+	c.Resp.Header().Set(key, value)
+}
+
 // Write byte data to response
 func (c *Context) Write(bt []byte) (n int, err error) {
 	return c.Resp.Write(bt)
@@ -217,6 +245,11 @@ func (c *Context) Write(bt []byte) (n int, err error) {
 // WriteString to response
 func (c *Context) WriteString(str string) (n int, err error) {
 	return c.Resp.Write([]byte(str))
+}
+
+// HTTPError response
+func (c *Context) HTTPError(msg string, status int) {
+	http.Error(c.Resp, msg, status)
 }
 
 // Text writes out a string as plain text.
@@ -237,20 +270,35 @@ func (c *Context) JSONBytes(status int, bs []byte) (err error) {
 	return
 }
 
-// SetHeader for the response
-func (c *Context) SetHeader(key, value string) {
-	c.Resp.Header().Set(key, value)
-}
-
 // NoContent serve success but no content response
 func (c *Context) NoContent() error {
 	c.Resp.WriteHeader(http.StatusNoContent)
 	return nil
 }
 
-// SetStatus code for the response
-func (c *Context) SetStatus(status int) {
-	c.Resp.WriteHeader(status)
+// File writes the specified file into the body stream in a efficient way.
+func (c *Context) File(filepath string) {
+	http.ServeFile(c.Resp, c.Req, filepath)
+}
+
+// FileContent serves given file as text content to response.
+func (c *Context) FileContent(file string, names ...string) {
+	var name string
+	if len(names) > 0 {
+		name = names[0]
+	} else {
+		name = path.Base(file)
+	}
+
+	f, err := os.Open(file)
+	if err != nil {
+		http.Error(c.Resp, "Internal Server Error", 500)
+		return
+	}
+	defer f.Close()
+
+	c.setRawContentHeader()
+	http.ServeContent(c.Resp, c.Req, name, time.Now(), f)
 }
 
 // Redirect other URL with status code(3xx e.g 301, 302).
@@ -262,4 +310,12 @@ func (c *Context) Redirect(path string, optionalCode ...int) {
 	}
 
 	http.Redirect(c.Resp, c.Req, path, code)
+}
+
+func (c *Context) setRawContentHeader() {
+	c.Resp.Header().Set("Content-Description", "Raw content")
+	c.Resp.Header().Set("Content-Type", "text/plain")
+	c.Resp.Header().Set("Expires", "0")
+	c.Resp.Header().Set("Cache-Control", "must-revalidate")
+	c.Resp.Header().Set("Pragma", "public")
 }
