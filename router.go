@@ -1,6 +1,7 @@
 package sux
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 	"sync"
@@ -141,11 +142,11 @@ type Router struct {
 // New router instance, can with some options.
 // quick start:
 // 		r := New()
-//		r.GET("/path", MyAction)
+// 		r.GET("/path", MyAction)
 //
 // with options:
 // 		r := New(EnableCaching, MaxNumCaches(1000))
-//		r.GET("/path", MyAction)
+// 		r.GET("/path", MyAction)
 //
 func New(options ...func(*Router)) *Router {
 	router := &Router{
@@ -379,29 +380,39 @@ func (r *Router) NotAllowed(handlers ...HandlerFunc) {
  *************************************************************/
 
 // StaticFile add a static asset file handle
-func (r *Router) StaticFile(path, file string) {
-}
-
-// StaticFunc add a static assets handle func
-func (r *Router) StaticFunc(path string) {
+func (r *Router) StaticFile(path, filePath string) {
+	r.GET(path, func(c *Context) {
+		c.File(filePath)
+	})
 }
 
 // StaticHandle add a static asset file handle
-func (r *Router) StaticHandle(path string) {
+func (r *Router) StaticFunc(path string, handler func(c *Context)) {
+	r.GET(path, handler)
 }
 
-// StaticFiles static files from the given file system root.
-// use http.Dir:
-//     router.ServeFiles("/src/*filepath", http.Dir("/var/www"))
-func (r *Router) StaticFiles(path string, root http.FileSystem) {
-	if len(path) < 10 || path[len(path)-10:] != "/*filepath" {
-		panic("path must end with /*filepath in path '" + path + "'")
-	}
+// StaticHandle add a static asset file handle
+// usage:
+// 		r.StaticDir("/assets", "/static")
+// access GET /assets/css/site.css -> will find /static/css/site.css
+func (r *Router) StaticDir(prefixUrl string, fileDir string) {
+	fsHandler := http.StripPrefix(prefixUrl, http.FileServer(http.Dir(fileDir)))
 
-	fileServer := http.FileServer(root)
-	r.GET(path, func(c *Context) {
-		req := c.Req
-		req.URL.Path = c.Param("filepath")
-		fileServer.ServeHTTP(c.Resp, req)
+	r.GET(prefixUrl+"/"+allMatch, func(c *Context) {
+		fsHandler.ServeHTTP(c.Resp, c.Req)
+	})
+}
+
+// StaticFiles static files from the given file system root. and allow limit extensions.
+// usage:
+//     router.ServeFiles("/src", "/var/www", "css|js|html")
+func (r *Router) StaticFiles(prefixUrl string, rootDir string, exts string) {
+	fsHandler := http.FileServer(http.Dir(rootDir))
+	// ignore prefix when find real file.
+	fsHandler = http.StripPrefix(prefixUrl, fsHandler)
+
+	// eg "/assets/(?:.+\.(?:css|js|html))"
+	r.GET(fmt.Sprintf(`%s/{file:.+\.(?:%s)}`, prefixUrl, exts), func(c *Context) {
+		fsHandler.ServeHTTP(c.Resp, c.Req)
 	})
 }
