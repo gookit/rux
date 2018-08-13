@@ -1,6 +1,7 @@
 package sux
 
 import (
+	"context"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -19,6 +20,9 @@ const (
 	// abortIndex int8 = math.MaxInt8 / 2
 	abortIndex int8 = 63
 )
+
+// M a short name for `map[string]interface{}`
+type M map[string]interface{}
 
 // Context for http server
 type Context struct {
@@ -161,11 +165,19 @@ func (c *Context) Header(key string) string {
 // example:
 // 		// record value to Request.ctx
 // 		r := c.Req
-// 		r = r.WithContext(context.WithValue(r.Context(), "key", "value"))
+// 		c.Req = r.WithContext(context.WithValue(r.Context(), "key", "value"))
 // 		// ...
 // 		val := c.ReqCtxValue("key") // "value"
 func (c *Context) ReqCtxValue(key interface{}) interface{} {
 	return c.Req.Context().Value("originalMethod")
+}
+
+// WithReqCtxValue with request ctx Value.
+// usage:
+// ctx.WithReqCtxValue()
+func (c *Context) WithReqCtxValue(key, val interface{}) {
+	r := c.Req
+	c.Req = r.WithContext(context.WithValue(r.Context(), key, val))
 }
 
 // RawData return stream data

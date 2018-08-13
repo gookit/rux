@@ -24,8 +24,8 @@ func TestDumpRoutesHandler(t *testing.T) {
 
 	r.GET("/routes", DumpRoutesHandler())
 
-	w := mockRequest(r, "GET", "/routes", "")
-	art.Contains(w.buf.String(), "Routes Count: 1")
+	w := mockRequest(r, "GET", "/routes", nil)
+	art.Contains(w.Body.String(), "Routes Count: 1")
 }
 
 func TestHTTPMethodOverrideHandler(t *testing.T) {
@@ -36,21 +36,21 @@ func TestHTTPMethodOverrideHandler(t *testing.T) {
 
 	r.PUT("/put", func(c *sux.Context) {
 		// real method save on the request.Context
-		art.Equal("POST", c.Req.Context().Value("originalMethod"))
+		art.Equal("POST", c.ReqCtxValue("originalMethod"))
 		c.Text(200, "put")
 	})
 
 	// send POST as PUT
-	w := requestWithData(h, "POST", "/put", &mockData{
-		Heads: m{"X-HTTP-Method-Override": "PUT"},
+	w := mockRequest(h, "POST", "/put", &md{
+		H: m{"X-HTTP-Method-Override": "PUT"},
 	})
-	art.Equal(200, w.status)
-	art.Equal("put", w.buf.String())
+	art.Equal(200, w.Code)
+	art.Equal("put", w.Body.String())
 
-	w = requestWithData(h, "POST", "/put", &mockData{
-		Heads: m{"Content-Type": "application/x-www-form-urlencoded"},
-		Body:  "_method=put",
+	w = mockRequest(h, "POST", "/put", &md{
+		H: m{"Content-Type": "application/x-www-form-urlencoded"},
+		B: "_method=put",
 	})
-	art.Equal(200, w.status)
-	art.Equal("put", w.buf.String())
+	art.Equal(200, w.Code)
+	art.Equal("put", w.Body.String())
 }

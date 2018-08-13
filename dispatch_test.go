@@ -72,25 +72,24 @@ func TestRouter_ServeHTTP(t *testing.T) {
 
 	// simple
 	r.GET("/", func(c *Context) {
-		s.set("ok")
-
+		c.WriteString("ok")
 		art.Equal(c.URL().Path, "/")
 	})
-	mockRequest(r, GET, "/", "")
-	art.Equal("ok", s.str)
+	w := mockRequest(r, GET, "/", nil)
+	art.Equal("ok", w.Body.String())
 
 	// use Params
 	r.GET("/users/{id}", func(c *Context) {
 		s.set("id:" + c.Param("id"))
 	})
-	mockRequest(r, GET, "/users/23", "")
+	mockRequest(r, GET, "/users/23", nil)
 	art.Equal("id:23", s.str)
-	mockRequest(r, GET, "/users/tom", "")
+	mockRequest(r, GET, "/users/tom", nil)
 	art.Equal("id:tom", s.str)
 
 	// not exist
 	s.reset()
-	mockRequest(r, GET, "/users", "")
+	mockRequest(r, GET, "/users", nil)
 	art.Equal("", s.str)
 
 	// receive input data
@@ -104,26 +103,26 @@ func TestRouter_ServeHTTP(t *testing.T) {
 		}
 	})
 	s.reset()
-	mockRequest(r, POST, "/users", "data")
+	mockRequest(r, POST, "/users", &md{B: "data"})
 	art.Equal("body:data", s.str)
 	s.reset()
-	w := mockRequest(r, POST, "/users?page=2", "data")
+	w = mockRequest(r, POST, "/users?page=2", &md{B: "data"})
 	art.Equal("body:data,page=2", s.str)
-	art.Equal(200, w.Status())
+	art.Equal(200, w.Code)
 
 	// no handler for NotFound
 	s.reset()
-	w = mockRequest(r, GET, "/not-exist", "")
+	w = mockRequest(r, GET, "/not-exist", nil)
 	art.Equal("", s.str)
-	art.Equal(404, w.Status())
+	art.Equal(404, w.Code)
 
 	// add not found handler
 	r.NotFound(func(c *Context) {
 		s.set("not-found")
 	})
-	w = mockRequest(r, GET, "/not-exist", "")
+	w = mockRequest(r, GET, "/not-exist", nil)
 	art.Equal("not-found", s.str)
-	art.Equal(200, w.Status())
+	art.Equal(200, w.Code)
 
 	// enable handle method not allowed
 	r = New(HandleMethodNotAllowed)
@@ -131,25 +130,25 @@ func TestRouter_ServeHTTP(t *testing.T) {
 
 	// no handler for NotAllowed
 	s.reset()
-	w = mockRequest(r, POST, "/users/21", "")
+	w = mockRequest(r, POST, "/users/21", nil)
 	art.Equal("", s.str)
-	art.Equal(405, w.Status())
+	art.Equal(405, w.Code)
 	art.Contains(w.Header().Get("allow"), "GET")
 
 	// but allow OPTIONS request
-	w = mockRequest(r, OPTIONS, "/users/21", "")
-	art.Equal(200, w.Status())
+	w = mockRequest(r, OPTIONS, "/users/21", nil)
+	art.Equal(200, w.Code)
 
 	// add handler
 	r.NotAllowed(func(c *Context) {
 		s.set("not-allowed")
 	})
 	s.reset()
-	mockRequest(r, POST, "/users/23", "")
+	mockRequest(r, POST, "/users/23", nil)
 	art.Equal("not-allowed", s.str)
 
 	s.reset()
-	mockRequest(r, OPTIONS, "/users/23", "")
+	mockRequest(r, OPTIONS, "/users/23", nil)
 	art.Equal("not-allowed", s.str)
 }
 
@@ -158,28 +157,30 @@ func TestRouter_WrapHttpHandlers(t *testing.T) {
 	art := assert.New(t)
 
 	r.GET("/", func(c *Context) {
-		c.WriteString("hello")
+		c.WriteString("-O-")
 	})
 
 	// create some http.Handler
 	gh := func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			h.ServeHTTP(w, r)
-			w.Write([]byte(",tom"))
 			w.WriteHeader(503)
+			w.Write([]byte("a"))
+			h.ServeHTTP(w, r)
+			w.Write([]byte("d"))
 		})
 	}
 	gh1 := func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte("res: "))
+			w.Write([]byte("b"))
 			h.ServeHTTP(w, r)
+			w.Write([]byte("c"))
 		})
 	}
 
 	h := r.WrapHttpHandlers(gh, gh1)
-	w := mockRequest(h, "GET", "/", "")
-	art.Equal(503, w.Status())
-	art.Equal("res: hello,tom", w.buf.String())
+	w := mockRequest(h, "GET", "/", nil)
+	art.Equal(503, w.Code)
+	art.Equal("ab-O-cd", w.Body.String())
 }
 
 func TestContext(t *testing.T) {
@@ -217,12 +218,12 @@ func TestContext(t *testing.T) {
 	})
 
 	// Call sequence: middle 1 -> middle 2 -> main handler -> middle 2 -> middle 1
-	mockRequest(r, GET, "/ctx", "data")
+	mockRequest(r, GET, "/ctx", nil)
 
 	r.GET("/ws", func(c *Context) {
 		art.True(c.IsWebSocket())
 	})
-	requestWithData(r, GET, "/ws", &mockData{Heads: m{
+	mockRequest(r, GET, "/ws", &md{H: m{
 		"Connection": "upgrade",
 		"Upgrade":    "websocket",
 	}})
@@ -236,33 +237,33 @@ func TestContext_ClientIP(t *testing.T) {
 	r.GET(uri, func(c *Context) {
 		c.WriteString(c.ClientIP())
 	})
-	w := requestWithData(r, GET, uri, &mockData{Heads: m{"X-Forwarded-For": "127.0.0.1"}})
-	art.Equal(200, w.Status())
-	art.Equal("127.0.0.1", w.buf.String())
+	w := mockRequest(r, GET, uri, &md{H: m{"X-Forwarded-For": "127.0.0.1"}})
+	art.Equal(200, w.Code)
+	art.Equal("127.0.0.1", w.Body.String())
 
 	uri = "/ClientIP1"
 	r.GET(uri, func(c *Context) {
 		c.WriteString(c.ClientIP())
 	})
-	w = requestWithData(r, GET, uri, &mockData{Heads: m{"X-Forwarded-For": "127.0.0.2,localhost"}})
-	art.Equal(200, w.Status())
-	art.Equal("127.0.0.2", w.buf.String())
+	w = mockRequest(r, GET, uri, &md{H: m{"X-Forwarded-For": "127.0.0.2,localhost"}})
+	art.Equal(200, w.Code)
+	art.Equal("127.0.0.2", w.Body.String())
 
 	uri = "/ClientIP2"
 	r.GET(uri, func(c *Context) {
 		c.WriteString(c.ClientIP())
 	})
-	w = requestWithData(r, GET, uri, &mockData{Heads: m{"X-Real-Ip": "127.0.0.3"}})
-	art.Equal(200, w.Status())
-	art.Equal("127.0.0.3", w.buf.String())
+	w = mockRequest(r, GET, uri, &md{H: m{"X-Real-Ip": "127.0.0.3"}})
+	art.Equal(200, w.Code)
+	art.Equal("127.0.0.3", w.Body.String())
 
 	uri = "/ClientIP3"
 	r.GET(uri, func(c *Context) {
 		c.WriteString(c.ClientIP())
 	})
-	w = requestWithData(r, GET, uri, &mockData{Heads: m{}})
-	art.Equal(200, w.Status())
-	art.Equal("", w.buf.String())
+	w = mockRequest(r, GET, uri, &md{H: m{}})
+	art.Equal(200, w.Code)
+	art.Equal("", w.Body.String())
 }
 
 func TestContext_Write(t *testing.T) {
@@ -273,55 +274,55 @@ func TestContext_Write(t *testing.T) {
 	r.GET(uri, func(c *Context) {
 		c.Write([]byte("hello"))
 	})
-	w := mockRequest(r, GET, uri, "data")
-	art.Equal(200, w.Status())
-	art.Equal("hello", w.buf.String())
+	w := mockRequest(r, GET, uri, nil)
+	art.Equal(200, w.Code)
+	art.Equal("hello", w.Body.String())
 
 	uri = "/WriteString"
 	r.GET(uri, func(c *Context) {
 		c.WriteString("hello")
 	})
-	w = mockRequest(r, GET, uri, "data")
-	art.Equal(200, w.Status())
-	art.Equal("hello", w.buf.String())
+	w = mockRequest(r, GET, uri, nil)
+	art.Equal(200, w.Code)
+	art.Equal("hello", w.Body.String())
 
 	uri = "/Text"
 	r.GET(uri, func(c *Context) {
 		c.Text(200, "hello")
 	})
-	w = mockRequest(r, GET, uri, "data")
-	art.Equal(200, w.Status())
-	art.Equal("hello", w.buf.String())
+	w = mockRequest(r, GET, uri, nil)
+	art.Equal(200, w.Code)
+	art.Equal("hello", w.Body.String())
 	art.Equal("text/plain; charset=UTF-8", w.Header().Get("content-type"))
 
 	uri = "/JSONBytes"
 	r.GET(uri, func(c *Context) {
 		c.JSONBytes(200, []byte(`{"name": "inhere"}`))
 	})
-	w = mockRequest(r, GET, uri, "data")
-	art.Equal(200, w.Status())
+	w = mockRequest(r, GET, uri, nil)
+	art.Equal(200, w.Code)
 	art.Equal("application/json; charset=UTF-8", w.Header().Get("content-type"))
-	art.Equal(`{"name": "inhere"}`, w.buf.String())
+	art.Equal(`{"name": "inhere"}`, w.Body.String())
 
 	uri = "/NoContent"
 	r.GET(uri, func(c *Context) {
 		c.NoContent()
 	})
-	w = mockRequest(r, GET, uri, "")
-	art.Equal(204, w.Status())
+	w = mockRequest(r, GET, uri, nil)
+	art.Equal(204, w.Code)
 
 	uri = "/SetHeader"
 	r.GET(uri, func(c *Context) {
 		c.SetHeader("new-key", "val")
 	})
-	w = mockRequest(r, GET, uri, "")
-	art.Equal(200, w.Status())
+	w = mockRequest(r, GET, uri, nil)
+	art.Equal(200, w.Code)
 	art.Equal("val", w.Header().Get("new-key"))
 
 	uri = "/SetStatus"
 	r.GET(uri, func(c *Context) {
 		c.SetStatus(504)
 	})
-	w = mockRequest(r, GET, uri, "")
-	art.Equal(504, w.Status())
+	w = mockRequest(r, GET, uri, nil)
+	art.Equal(504, w.Code)
 }

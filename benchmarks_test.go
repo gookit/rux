@@ -1,7 +1,6 @@
 package sux
 
 import (
-	"bytes"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -65,58 +64,25 @@ func Benchmark404Many(B *testing.B) {
  * helper methods(ref the gin framework)
  *************************************************************/
 
-type mockWriter struct {
-	buf     *bytes.Buffer
-	status  int
-	headers http.Header
-}
-
-func newMockWriter() *mockWriter {
-	return &mockWriter{
-		&bytes.Buffer{},
-		200,
-		http.Header{},
+type (
+	m  map[string]string
+	md struct {
+		// body
+		B string
+		// headers
+		H m
 	}
-}
+)
 
-func (m *mockWriter) Status() int {
-	return m.status
-}
-
-func (m *mockWriter) String() string {
-	return m.buf.String()
-}
-
-func (m *mockWriter) Header() (h http.Header) {
-	return m.headers
-}
-
-func (m *mockWriter) Write(p []byte) (n int, err error) {
-	return m.buf.Write(p)
-}
-
-func (m *mockWriter) WriteString(s string) (n int, err error) {
-	return m.buf.Write([]byte(s))
-}
-
-func (m *mockWriter) WriteHeader(code int) {
-	m.status = code
-}
-
-type m map[string]string
-type mockData struct {
-	Body  string
-	Heads map[string]string
-}
-
-func mockRequest(h http.Handler, method, path, bodyStr string) *mockWriter {
-	return requestWithData(h, method, path, &mockData{Body: bodyStr})
-}
-
-func requestWithData(h http.Handler, method, path string, data *mockData) *mockWriter {
+// usage:
+// 	handler := router.New()
+// 	res := mockRequest(handler, "GET", "/path", nil)
+// 	// with data
+// 	res := mockRequest(handler, "GET", "/path", &md{B: "data", H: m{"x-head": "val"}})
+func mockRequest(h http.Handler, method, path string, data *md) *httptest.ResponseRecorder {
 	var body io.Reader
-	if data.Body != "" {
-		body = strings.NewReader(data.Body)
+	if data != nil && len(data.B) > 0 {
+		body = strings.NewReader(data.B)
 	}
 
 	// create fake request
@@ -125,28 +91,19 @@ func requestWithData(h http.Handler, method, path string, data *mockData) *mockW
 		panic(err)
 	}
 	req.RequestURI = req.URL.String()
-
-	if len(data.Heads) > 0 {
+	if data != nil && len(data.H) > 0 {
 		// req.Header.Set("Content-Type", "text/plain")
-		for k, v := range data.Heads {
+		for k, v := range data.H {
 			req.Header.Set(k, v)
 		}
 	}
 
-	w := newMockWriter()
+	w := httptest.NewRecorder()
+	// s := httptest.NewServer()
 	h.ServeHTTP(w, req)
+
+	// return w.Result() will return http.Response
 	return w
-}
-
-func simpleRequest(h http.Handler, method, path string) *httptest.ResponseRecorder {
-	resp := httptest.NewRecorder()
-	req, err := http.NewRequest(method, path, nil)
-	if err != nil {
-		panic(err)
-	}
-
-	h.ServeHTTP(resp, req)
-	return resp
 }
 
 func runRequest(B *testing.B, r *Router, method, path string) {
@@ -156,7 +113,7 @@ func runRequest(B *testing.B, r *Router, method, path string) {
 		panic(err)
 	}
 
-	w := newMockWriter()
+	w := httptest.NewRecorder()
 	B.ReportAllocs()
 	B.ResetTimer()
 

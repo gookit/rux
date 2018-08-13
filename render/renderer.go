@@ -10,6 +10,7 @@ import (
 	"errors"
 	"html/template"
 	"io"
+	"io/ioutil"
 	"net/http"
 )
 

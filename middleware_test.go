@@ -19,8 +19,8 @@ func TestRouteMiddleware(t *testing.T) {
 		c.WriteString("b")
 	})
 
-	w := mockRequest(r, GET, "/middle", "")
-	art.Equal("a-O-b", w.String())
+	w := mockRequest(r, GET, "/middle", nil)
+	art.Equal("a-O-b", w.Body.String())
 
 	// add multi middleware
 	r.GET("/middle2", func(c *Context) { // main handler
@@ -35,8 +35,8 @@ func TestRouteMiddleware(t *testing.T) {
 		c.WriteString("B")
 	})
 	// Call sequence: middle 1 -> middle 2 -> main handler -> middle 2 -> middle 1
-	w = mockRequest(r, GET, "/middle2", "")
-	art.Equal("ab-O-BA", w.String())
+	w = mockRequest(r, GET, "/middle2", nil)
+	art.Equal("ab-O-BA", w.Body.String())
 
 	// add multi middleware(don't call next)
 	r.GET("/middle3", func(c *Context) { // main handler
@@ -51,8 +51,8 @@ func TestRouteMiddleware(t *testing.T) {
 		c.WriteString("B")
 	})
 	// Call sequence: middle 1 -> middle 2 -> main handler
-	w = mockRequest(r, GET, "/middle3", "")
-	art.Equal("aAbB-O-", w.String())
+	w = mockRequest(r, GET, "/middle3", nil)
+	art.Equal("aAbB-O-", w.Body.String())
 
 	// add middleware use method Use()
 	route := r.GET("/middle4", func(c *Context) { // main handler
@@ -68,8 +68,8 @@ func TestRouteMiddleware(t *testing.T) {
 		c.WriteString("B")
 	})
 	// Call sequence: middle 1 -> middle 2 -> main handler -> middle 2 -> middle 1
-	w = mockRequest(r, GET, "/middle4", "")
-	art.Equal("ab-O-BA", w.String())
+	w = mockRequest(r, GET, "/middle4", nil)
+	art.Equal("ab-O-BA", w.Body.String())
 }
 
 func TestContext_Abort(t *testing.T) {
@@ -91,17 +91,17 @@ func TestContext_Abort(t *testing.T) {
 		c.WriteString("B")
 	})
 	// Call sequence: middle 1
-	w := mockRequest(r, GET, "/abort", "")
-	art.Equal("aA", w.String())
+	w := mockRequest(r, GET, "/abort", nil)
+	art.Equal("aA", w.Body.String())
 
 	// use middleware, will termination execution early by AbortThen()
 	r.GET("/abort1", func(c *Context) { // Will not execute
 		c.WriteString("-O-")
 	}, func(c *Context) {
-		c.WriteString("a")
-		// c.Next()
 		// Will abort at the end of this middleware run
 		c.AbortThen().Redirect("/other", 302)
+		c.WriteString("a")
+		// c.Next()
 		c.WriteString("A")
 	}, func(c *Context) { // Will not execute
 		c.WriteString("b")
@@ -109,9 +109,9 @@ func TestContext_Abort(t *testing.T) {
 		c.WriteString("B")
 	})
 	// Call sequence: middle 1
-	w = mockRequest(r, GET, "/abort1", "")
-	art.NotEqual("aA", w.String())
-	art.Equal(302, w.Status())
+	w = mockRequest(r, GET, "/abort1", nil)
+	art.NotEqual("aA", w.Body.String())
+	art.Equal(302, w.Code)
 }
 
 func TestGlobalMiddleware(t *testing.T) {
@@ -129,8 +129,8 @@ func TestGlobalMiddleware(t *testing.T) {
 	r.GET("/middle", func(c *Context) { // main handler
 		c.WriteString("-O-")
 	})
-	w := mockRequest(r, GET, "/middle", "")
-	art.Equal("z-O-Z", w.String())
+	w := mockRequest(r, GET, "/middle", nil)
+	art.Equal("z-O-Z", w.Body.String())
 
 	// eg2: global + route middle
 	r.GET("/middle1", func(c *Context) { // main handler
@@ -140,8 +140,8 @@ func TestGlobalMiddleware(t *testing.T) {
 		c.Next()
 		c.WriteString("B")
 	})
-	w = mockRequest(r, GET, "/middle1", "")
-	art.Equal("zb-O-BZ", w.String())
+	w = mockRequest(r, GET, "/middle1", nil)
+	art.Equal("zb-O-BZ", w.Body.String())
 
 	r.Group("/grp", func() {
 		// eg3: global + group middles
@@ -162,10 +162,10 @@ func TestGlobalMiddleware(t *testing.T) {
 		c.Next()
 		c.WriteString("B")
 	})
-	w = mockRequest(r, GET, "/grp/middle", "")
-	art.Equal("zb-O-BZ", w.String())
-	w = mockRequest(r, GET, "/grp/middle1", "")
-	art.Equal("zbc-O-CBZ", w.String())
+	w = mockRequest(r, GET, "/grp/middle", nil)
+	art.Equal("zb-O-BZ", w.Body.String())
+	w = mockRequest(r, GET, "/grp/middle1", nil)
+	art.Equal("zbc-O-CBZ", w.Body.String())
 
 }
 
@@ -213,14 +213,14 @@ func TestGroupMiddleware(t *testing.T) {
 		c.Next()
 		c.WriteString("Y")
 	})
-	w := mockRequest(r, GET, "/grp/middle", "")
-	art.Equal("zy-O-YZ", w.String())
-	w = mockRequest(r, GET, "/grp/middle1", "")
-	art.Equal("zya-O-AYZ", w.String())
-	w = mockRequest(r, GET, "/grp/sub-grp/middle", "")
-	art.Equal("zyx-O-XYZ", w.String())
-	w = mockRequest(r, GET, "/grp/sub-grp/middle1", "")
-	art.Equal("zyxa-O-AXYZ", w.String())
+	w := mockRequest(r, GET, "/grp/middle", nil)
+	art.Equal("zy-O-YZ", w.Body.String())
+	w = mockRequest(r, GET, "/grp/middle1", nil)
+	art.Equal("zya-O-AYZ", w.Body.String())
+	w = mockRequest(r, GET, "/grp/sub-grp/middle", nil)
+	art.Equal("zyx-O-XYZ", w.Body.String())
+	w = mockRequest(r, GET, "/grp/sub-grp/middle1", nil)
+	art.Equal("zyxa-O-AXYZ", w.Body.String())
 }
 
 func TestWarpHttpHandler(t *testing.T) {
@@ -237,8 +237,8 @@ func TestWarpHttpHandler(t *testing.T) {
 		WarpHttpHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte("ll"))
 		})))
-	w := mockRequest(r, GET, "/path", "")
-	art.Equal("hello", w.String())
+	w := mockRequest(r, GET, "/path", nil)
+	art.Equal("hello", w.Body.String())
 
 	r.GET("/path1", func(c *Context) {
 		c.WriteString("o")
@@ -247,6 +247,6 @@ func TestWarpHttpHandler(t *testing.T) {
 		WarpHttpHandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte("ll"))
 		}))
-	w = mockRequest(r, GET, "/path1", "")
-	art.Equal("hello", w.String())
+	w = mockRequest(r, GET, "/path1", nil)
+	art.Equal("hello", w.Body.String())
 }

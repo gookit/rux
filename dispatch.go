@@ -59,11 +59,15 @@ func (r *Router) ListenUnix(file string) (err error) {
 // 	http.ListenAndServe(":8080", handler)
 func (r *Router) WrapHttpHandlers(preHandlers ...func(h http.Handler) http.Handler) http.Handler {
 	var wrapped http.Handler
-	for i, handler := range preHandlers {
+	max := len(preHandlers)
+	lst := make([]int, max)
+
+	for i := range lst {
+		current := max - i - 1
 		if i == 0 {
-			wrapped = handler(r)
+			wrapped = preHandlers[current](r)
 		} else {
-			wrapped = handler(wrapped)
+			wrapped = preHandlers[current](wrapped)
 		}
 	}
 

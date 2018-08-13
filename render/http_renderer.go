@@ -2,6 +2,10 @@ package render
 
 import (
 	"errors"
+	"fmt"
+	"html/template"
+	"io"
+	"io/ioutil"
 	"net/http"
 )
 
@@ -22,6 +26,14 @@ const (
 	ContentHTML = "text/html"
 	// ContentBinary represents content type application/octet-stream
 	ContentBinary = "application/octet-stream"
+
+	// ContentDisposition describes contentDisposition
+	ContentDisposition string = "Content-Disposition"
+
+	// describes content disposition type
+	dispositionInline string = "inline"
+	// describes content disposition type
+	dispositionAttachment string = "attachment"
 )
 
 type HttpOptions struct {
@@ -136,34 +148,34 @@ func (r *HTTPRenderer) JSONP(w http.ResponseWriter, status int, callback string,
 	return err
 }
 
-func (r *HTTPRenderer) HTML(w http.ResponseWriter, status int, template string, v interface{}) error {
-	w.Header().Set(ContentType, r.opts.ContentHTML)
-	w.WriteHeader(status)
-
-	return r.Renderer.HTML(w, template, v)
-}
-
-// HTMLContent
-func (r *HTTPRenderer) Template(w http.ResponseWriter, status int, html string) error {
-	w.Header().Set(ContentType, r.opts.ContentHTML)
-	w.WriteHeader(status)
-
-	_, err := w.Write([]byte(html))
-	return err
-}
-
-func (r *HTTPRenderer) HTMLString(w http.ResponseWriter, status int, html string) error {
-	w.Header().Set(ContentType, r.opts.ContentHTML)
-	w.WriteHeader(status)
-
-	_, err := w.Write([]byte(html))
-	return err
-}
-
 // XML serve data as XML response
 func (r *HTTPRenderer) XML(w http.ResponseWriter, status int, v interface{}) error {
 	w.Header().Set(ContentType, r.opts.ContentXML)
 	w.WriteHeader(status)
 
 	return r.Renderer.XML(w, v)
+}
+
+// Binary serve data as Binary response.
+// usage:
+// 		var reader io.Reader
+// 		reader, _ = os.Open("./README.md")
+// 		r.Binary(w, http.StatusOK, reader, "readme.md", true)
+func (r *HTTPRenderer) Binary(w http.ResponseWriter, status int, in io.Reader, outName string, inline bool) error {
+	bs, err := ioutil.ReadAll(in)
+	if err != nil {
+		return err
+	}
+
+	dispositionType := dispositionAttachment
+	if inline {
+		dispositionType = dispositionInline
+	}
+
+	w.Header().Set(ContentType, r.opts.ContentBinary)
+	w.Header().Set(ContentDisposition, fmt.Sprintf("%s; filename=%s", dispositionType, outName))
+	w.WriteHeader(status)
+
+	_, err = w.Write(bs)
+	return err
 }

@@ -310,10 +310,10 @@ func TestRouter_WithOptions(t *testing.T) {
 		c.Text(200, "val1")
 	})
 
-	w := mockRequest(r, "GET", "/users", "")
-	art.Equal("val0", w.String())
-	w = mockRequest(r, "GET", "/users/", "")
-	art.Equal("val1", w.String())
+	w := mockRequest(r, "GET", "/users", nil)
+	art.Equal("val0", w.Body.String())
+	w = mockRequest(r, "GET", "/users/", nil)
+	art.Equal("val1", w.Body.String())
 
 	// Option: UseEncodedPath
 	r = New()
@@ -325,10 +325,10 @@ func TestRouter_WithOptions(t *testing.T) {
 	r.GET("/users/with%20spaces", func(c *Context) {
 		c.Text(200, "val1")
 	})
-	w = mockRequest(r, "GET", "/users/with%20spaces", "")
-	art.Equal("val1", w.String())
-	w = mockRequest(r, "GET", "/users/with spaces", "")
-	art.Equal("val1", w.String())
+	w = mockRequest(r, "GET", "/users/with%20spaces", nil)
+	art.Equal("val1", w.Body.String())
+	w = mockRequest(r, "GET", "/users/with spaces", nil)
+	art.Equal("val1", w.Body.String())
 
 	// Option: InterceptAll
 	r = New(InterceptAll("/coming-soon"))
@@ -340,12 +340,12 @@ func TestRouter_WithOptions(t *testing.T) {
 		c.Text(200, "val0")
 	})
 
-	w = mockRequest(r, "GET", "/users", "")
-	art.Equal("coming-soon", w.String())
-	w = mockRequest(r, "GET", "/not-exist", "")
-	art.Equal("coming-soon", w.String())
-	w = mockRequest(r, "POST", "/not-exist", "")
-	art.Equal("coming-soon", w.String())
+	w = mockRequest(r, "GET", "/users", nil)
+	art.Equal("coming-soon", w.Body.String())
+	w = mockRequest(r, "GET", "/not-exist", nil)
+	art.Equal("coming-soon", w.Body.String())
+	w = mockRequest(r, "POST", "/not-exist", nil)
+	art.Equal("coming-soon", w.Body.String())
 
 	// Option: EnableCaching, MaxNumCaches
 	r = New(EnableCaching, MaxNumCaches(10))
@@ -353,15 +353,15 @@ func TestRouter_WithOptions(t *testing.T) {
 		c.Text(200, "id:"+c.Param("id"))
 	}
 	r.GET("/users/{id}", simpleHandler)
-	w = mockRequest(r, "GET", "/users/23", "")
-	art.Equal("id:23", w.String())
-	w = mockRequest(r, "GET", "/users/23", "")
-	art.Equal("id:23", w.String())
+	w = mockRequest(r, "GET", "/users/23", nil)
+	art.Equal("id:23", w.Body.String())
+	w = mockRequest(r, "GET", "/users/23", nil)
+	art.Equal("id:23", w.Body.String())
 	art.Len(r.cachedRoutes, 1)
 
 	for id := range []int{19: 0} {
 		idStr := fmt.Sprint(id)
-		w = mockRequest(r, "GET", "/users/"+idStr, "")
-		art.Equal("id:"+idStr, w.String())
+		w = mockRequest(r, "GET", "/users/"+idStr, nil)
+		art.Equal("id:"+idStr, w.Body.String())
 	}
 }

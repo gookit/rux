@@ -1,12 +1,12 @@
 package handlers
 
 import (
-	"bytes"
 	"github.com/gookit/sux"
 	"github.com/stretchr/testify/assert"
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
@@ -22,20 +22,20 @@ func TestSomeMiddleware(t *testing.T) {
 		art.Len(rid, 32)
 	}).Use(GenRequestID())
 
-	w := mockRequest(r, "GET", "/rid", "")
-	art.Equal(200, w.Status())
+	w := mockRequest(r, "GET", "/rid", nil)
+	art.Equal(200, w.Code)
 
 	// ignore /favicon.ico request
 	r.GET("/favicon.ico", func(c *sux.Context) {}, SkipFavIcon())
-	w = mockRequest(r, "GET", "/favicon.ico", "")
-	art.Equal(204, w.Status())
+	w = mockRequest(r, "GET", "/favicon.ico", nil)
+	art.Equal(204, w.Code)
 
 	// catch panic
 	r.GET("/panic", func(c *sux.Context) {
 		panic("error msg")
 	}, PanicsHandler())
-	w = mockRequest(r, "GET", "/panic", "")
-	art.Equal(500, w.Status())
+	w = mockRequest(r, "GET", "/panic", nil)
+	art.Equal(500, w.Code)
 
 }
 
@@ -49,9 +49,9 @@ func TestRequestLogger(t *testing.T) {
 		c.Text(200, "hello")
 	}, RequestLogger())
 
-	w := mockRequest(r, "GET", "/req-log", "")
-	art.Equal(200, w.Status())
-	art.Equal("hello", w.buf.String())
+	w := mockRequest(r, "GET", "/req-log", nil)
+	art.Equal(200, w.Code)
+	art.Equal("hello", w.Body.String())
 
 	out := restoreStdout()
 	art.Contains(out, "/req-log")
@@ -62,9 +62,9 @@ func TestRequestLogger(t *testing.T) {
 		c.WriteString("hello")
 	}, RequestLogger())
 
-	w = mockRequest(r, "GET", "/status", "")
-	art.Equal(200, w.Status())
-	art.Equal("hello", w.buf.String())
+	w = mockRequest(r, "GET", "/status", nil)
+	art.Equal(200, w.Code)
+	art.Equal("hello", w.Body.String())
 
 	out = restoreStdout()
 	art.Equal(out, "")
@@ -74,54 +74,21 @@ func TestRequestLogger(t *testing.T) {
  * helper methods(ref the gin framework)
  *************************************************************/
 
-type mockWriter struct {
-	buf     *bytes.Buffer
-	status  int
-	headers http.Header
-}
-
-func newMockWriter() *mockWriter {
-	return &mockWriter{
-		&bytes.Buffer{},
-		200,
-		http.Header{},
-	}
-}
-
-func (m *mockWriter) Status() int {
-	return m.status
-}
-
-func (m *mockWriter) Header() (h http.Header) {
-	return m.headers
-}
-
-func (m *mockWriter) Write(p []byte) (n int, err error) {
-	return m.buf.Write(p)
-}
-
-func (m *mockWriter) WriteString(s string) (n int, err error) {
-	return m.buf.Write([]byte(s))
-}
-
-func (m *mockWriter) WriteHeader(code int) {
-	m.status = code
-}
-
 type m map[string]string
-type mockData struct {
-	Body  string
-	Heads map[string]string
+type md struct {
+	B string
+	H m
 }
 
-func mockRequest(h http.Handler, method, path, bodyStr string) *mockWriter {
-	return requestWithData(h, method, path, &mockData{Body: bodyStr})
-}
-
-func requestWithData(h http.Handler, method, path string, data *mockData) *mockWriter {
+// usage:
+// 	handler := router.New()
+// 	res := mockRequest(handler, "GET", "/path", nil)
+// 	// with data
+// 	res := mockRequest(handler, "GET", "/path", &md{B: "data", H:{"x-head": "val"}})
+func mockRequest(h http.Handler, method, path string, data *md) *httptest.ResponseRecorder {
 	var body io.Reader
-	if data.Body != "" {
-		body = strings.NewReader(data.Body)
+	if data != nil && len(data.B) > 0 {
+		body = strings.NewReader(data.B)
 	}
 
 	// create fake request
@@ -130,16 +97,18 @@ func requestWithData(h http.Handler, method, path string, data *mockData) *mockW
 		panic(err)
 	}
 	req.RequestURI = req.URL.String()
-
-	if len(data.Heads) > 0 {
+	if data != nil && len(data.H) > 0 {
 		// req.Header.Set("Content-Type", "text/plain")
-		for k, v := range data.Heads {
+		for k, v := range data.H {
 			req.Header.Set(k, v)
 		}
 	}
 
-	w := newMockWriter()
+	w := httptest.NewRecorder()
+	// s := httptest.NewServer()
 	h.ServeHTTP(w, req)
+
+	// return w.Result()
 	return w
 }
 

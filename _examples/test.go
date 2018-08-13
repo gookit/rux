@@ -1,23 +1,48 @@
 package main
 
-import (
-	"fmt"
-)
+import "net/http"
 
-func main()  {
-	var s1 []int
+func main() {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("-O-"))
+	})
 
-	s2 := append(s1, 2,3)
-	s3 := append(s1, 4,5)
+	mdl1 := func(h http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Write([]byte("a"))
+			h.ServeHTTP(w, r)
+			w.Write([]byte("A"))
+		})
+	}
+	mdl2 := func(h http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Write([]byte("b"))
+			h.ServeHTTP(w, r)
+			w.Write([]byte("B"))
+		})
+	}
 
-	fmt.Printf("%v %+v\n", s2, s3)
-	// Output: [2 3] [4 5]
+	wrapped := WrapHttpHandlers(handler, mdl1, mdl2)
 
-	s11 := make([]int, 5)
+	http.ListenAndServe(":8080", wrapped)
+	// Output:
+	// ab-O-BA
+}
 
-	s12 := append(s11, 2,3)
-	s13 := append(s11, 4,5)
+// WrapHttpHandlers apply some pre http handlers for the main handler.
+func WrapHttpHandlers(mainHandler http.Handler, middleware ...func(h http.Handler) http.Handler) http.Handler {
+	var wrapped http.Handler
+	max := len(middleware)
+	lst := make([]int, max)
 
-	fmt.Printf("%v %+v\n", s12, s13)
-	// Output: [0 0 0 0 0 2 3] [0 0 0 0 0 4 5]
+	for i := range lst {
+		current := max - i - 1
+		if i == 0 {
+			wrapped = middleware[current](mainHandler)
+		} else {
+			wrapped = middleware[current](wrapped)
+		}
+	}
+
+	return wrapped
 }
