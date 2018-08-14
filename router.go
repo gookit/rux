@@ -79,9 +79,6 @@ type Router struct {
 	// mark init is completed
 	initialized bool
 
-	// static routes
-	staticRoutes map[string]interface{}
-
 	// stable/fixed routes
 	// {
 	// 	"GET /users": Route,
@@ -398,7 +395,8 @@ func (r *Router) StaticFunc(path string, handler func(c *Context)) {
 func (r *Router) StaticDir(prefixUrl string, fileDir string) {
 	fsHandler := http.StripPrefix(prefixUrl, http.FileServer(http.Dir(fileDir)))
 
-	r.GET(prefixUrl+"/"+allMatch, func(c *Context) {
+	r.GET(prefixUrl+`/{file:.+}`, func(c *Context) {
+		// c.Req.URL.Path = c.Param("file") // can also.
 		fsHandler.ServeHTTP(c.Resp, c.Req)
 	})
 }
@@ -406,13 +404,13 @@ func (r *Router) StaticDir(prefixUrl string, fileDir string) {
 // StaticFiles static files from the given file system root. and allow limit extensions.
 // usage:
 //     router.ServeFiles("/src", "/var/www", "css|js|html")
+// Notice: if the rootDir is relation path, it is relative the server runtime dir.
 func (r *Router) StaticFiles(prefixUrl string, rootDir string, exts string) {
 	fsHandler := http.FileServer(http.Dir(rootDir))
-	// ignore prefix when find real file.
-	fsHandler = http.StripPrefix(prefixUrl, fsHandler)
 
 	// eg "/assets/(?:.+\.(?:css|js|html))"
 	r.GET(fmt.Sprintf(`%s/{file:.+\.(?:%s)}`, prefixUrl, exts), func(c *Context) {
+		c.Req.URL.Path = c.Param("file")
 		fsHandler.ServeHTTP(c.Resp, c.Req)
 	})
 }

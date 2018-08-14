@@ -2,7 +2,6 @@ package main
 
 import (
 	"github.com/gookit/sux"
-	"github.com/gookit/sux/middleware"
 	"net/http"
 	"github.com/gookit/sux/handlers"
 )
@@ -14,11 +13,19 @@ func main() {
 
 	r := sux.New()
 
+	// one file
+	r.StaticFile("/site.js", "testdata/site.js")
+	// allow any files in the dir.
+	r.StaticDir("/static", "testdata")
+	// add file type limit
+	// r.StaticFiles("", "testdata", "css|js")
+	r.StaticFiles("/assets", "testdata", "css|js")
+
 	gh := http.HandlerFunc(func (w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("new-key", "val")
 	})
 
-	r.Use(middleware.RequestLogger(), sux.WarpHttpHandler(gh))
+	r.Use(handlers.RequestLogger(), sux.WarpHttpHandler(gh))
 
 	r.GET("/", func(c *sux.Context) {
 		c.Text(200, "hello " + c.URL().Path)

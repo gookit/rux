@@ -32,6 +32,17 @@ import (
 
 func main() {
 	r := sux.New()
+	
+	// Static Assets
+	// one file
+	r.StaticFile("/site.js", "testdata/site.js")
+	// allow any files in the dir.
+	r.StaticDir("/static", "testdata")
+	// file type limit
+	r.StaticFiles("/assets", "testdata", "css|js")
+
+	// Add Routes:
+	
 	r.GET("/", func(c *sux.Context) {
 		c.Text(200, "hello")
 	})
@@ -92,12 +103,12 @@ func main() {
 	route := r.GET("/middle", func(c *sux.Context) { // main handler
 		c.WriteString("-O-")
 	}, func(c *sux.Context) { // middle 1
-     		c.WriteString("a")
-     		c.Next() // Notice: call Next()
-     		c.WriteString("A")
-     		// if call Abort(), will abort at the end of this middleware run
-     		// c.Abort() 
-     	})
+        c.WriteString("a")
+        c.Next() // Notice: call Next()
+        c.WriteString("A")
+        // if call Abort(), will abort at the end of this middleware run
+        // c.Abort() 
+    })
 	// add by Use()
 	route.Use(func(c *sux.Context) { // middle 2
 		c.WriteString("b")

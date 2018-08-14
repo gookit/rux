@@ -221,6 +221,14 @@ func TestDynamicRoute(t *testing.T) {
 	art.Equal(NotFound, ret.Status)
 	ret = r.Match(GET, "/path2/err")
 	art.Equal(NotFound, ret.Status)
+
+	r.GET(`/assets/{file:.+\.(?:css|js)}`, emptyHandler)
+	ret = r.Match(GET, "/assets/site.css")
+	art.Equal(Found, ret.Status)
+	ret = r.Match(GET, "/assets/site.js")
+	art.Equal(Found, ret.Status)
+	ret = r.Match(GET, "/assets/site.tx")
+	art.Equal(NotFound, ret.Status)
 }
 
 func TestOptionalRoute(t *testing.T) {
@@ -364,4 +372,8 @@ func TestRouter_WithOptions(t *testing.T) {
 		w = mockRequest(r, "GET", "/users/"+idStr, nil)
 		art.Equal("id:"+idStr, w.Body.String())
 	}
+}
+
+func TestRouter_StaticAssets(t *testing.T) {
+
 }
