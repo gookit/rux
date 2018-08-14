@@ -30,11 +30,6 @@ type Handler interface {
 // M describes handy type that represents data to send as response
 type M map[string]interface{}
 
-// TplDelims for html template
-type TplDelims struct {
-	Left  string
-	Right string
-}
 
 // Options for the renderer
 type Options struct {
@@ -51,12 +46,6 @@ type Options struct {
 	TplDelims   TplDelims
 	TplSuffixes []string
 	TplFuncMap  template.FuncMap
-}
-
-// HtmlTemplate definition
-type HtmlTemplate struct {
-	engine   *template.Template
-	viewsDir string
 }
 
 // Renderer definition

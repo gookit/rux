@@ -18,8 +18,8 @@ Simple and fast request router for golang HTTP applications.
 
 ## Godoc
 
-- [godoc for gopkg](https://godoc.org/gopkg.in/gookit/ini.v1)
-- [godoc for github](https://godoc.org/github.com/gookit/ini)
+- [godoc for gopkg](https://godoc.org/gopkg.in/gookit/sux.v1)
+- [godoc for github](https://godoc.org/github.com/gookit/sux)
 
 ## Quick start
 

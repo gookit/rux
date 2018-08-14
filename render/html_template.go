@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"net/http"
 	"strings"
+	"io"
 )
 
 var globalTplFuncMap = template.FuncMap{
@@ -43,6 +44,49 @@ var layoutTplFuncMap = template.FuncMap{
 		return template.HTML(buf.String()), nil
 	},
 }
+
+// TplDelims for html template
+type TplDelims struct {
+	Left  string
+	Right string
+}
+
+// HtmlTemplate definition
+type HtmlTemplate struct {
+	engine   *template.Template
+	viewsDir string
+
+	// template render
+	Layout   string
+	Delims   TplDelims
+	// Suffixes eg {"tpl", "html"}
+	Suffixes []string
+	FuncMap  template.FuncMap
+}
+
+type Driver interface {
+	Render(io.Writer, interface{}) error
+}
+
+type HtmlRenderer struct {
+	template string
+}
+
+type HtmlOptions struct {
+	Layout string
+	Enable bool
+}
+
+func (r *HtmlRenderer) Render(w io.Writer, tplFile string, data interface{}, layout string) error {
+
+	return nil
+}
+
+func (r *HtmlRenderer) Partial(w io.Writer, data interface{}) error {
+
+	return nil
+}
+
 
 func (r *HTTPRenderer) HTMLString(w http.ResponseWriter, status int, html string) error {
 	w.Header().Set(ContentType, r.opts.ContentHTML)

@@ -54,6 +54,7 @@ type Context struct {
 	Resp http.ResponseWriter
 	// current route Params, if route has var Params
 	Params Params
+	Errors []*error
 
 	index int8
 	// current router instance
@@ -112,7 +113,7 @@ func (c *Context) Reset() {
 	c.Params = nil
 	c.values = nil
 	c.handlers = nil
-	// c.Errors = c.Errors[0:0]
+	c.Errors = c.Errors[0:0]
 	// c.Accepted = nil
 }
 
@@ -424,7 +425,7 @@ func (c *Context) HTTPError(msg string, status int) {
 // Text writes out a string as plain text.
 func (c *Context) Text(status int, str string) (err error) {
 	c.Resp.WriteHeader(status)
-	c.Resp.Header().Set("Content-Type", "text/plain; charset=UTF-8")
+	c.Resp.Header().Set(ContentType, "text/plain; charset=UTF-8")
 
 	_, err = c.Resp.Write([]byte(str))
 	return
@@ -433,7 +434,7 @@ func (c *Context) Text(status int, str string) (err error) {
 // JSONBytes writes out a string as json data.
 func (c *Context) JSONBytes(status int, bs []byte) (err error) {
 	c.Resp.WriteHeader(status)
-	c.Resp.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	c.Resp.Header().Set(ContentType, "application/json; charset=UTF-8")
 
 	_, err = c.Resp.Write(bs)
 	return
