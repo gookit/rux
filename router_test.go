@@ -372,6 +372,10 @@ func TestRouter_WithOptions(t *testing.T) {
 		w = mockRequest(r, "GET", "/users/"+idStr, nil)
 		art.Equal("id:"+idStr, w.Body.String())
 	}
+
+	// Option: MaxMultipartMemory 8M
+	// r = New(MaxMultipartMemory(8 << 20))
+	// art.Equal(8 << 20, r.maxMultipartMemory)
 }
 
 func TestRouter_StaticAssets(t *testing.T) {

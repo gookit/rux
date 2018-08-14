@@ -122,6 +122,8 @@ type Router struct {
 	useEncodedPath bool
 	// strict last slash char('/'). If is True, will strict compare last '/'. default is False
 	strictLastSlash bool
+	// the max memory limit for multipart forms
+	// maxMultipartMemory int64
 	// whether checks if another method is allowed for the current route. default is False
 	handleMethodNotAllowed bool
 }
@@ -187,6 +189,13 @@ func EnableCaching(r *Router) {
 func StrictLastSlash(r *Router) {
 	r.strictLastSlash = true
 }
+
+// MaxMultipartMemory set max memory limit for post forms
+// func MaxMultipartMemory(max int64) func(*Router) {
+// 	return func(r *Router) {
+// 		r.maxMultipartMemory = max
+// 	}
+// }
 
 // HandleMethodNotAllowed enable for the router
 func HandleMethodNotAllowed(r *Router) {

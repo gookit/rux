@@ -94,13 +94,16 @@ func TestRouter_ServeHTTP(t *testing.T) {
 
 	// receive input data
 	r.POST("/users", func(c *Context) {
-		bd, _ := c.RawData()
+		bd, _ := c.RawBody()
 		s.set("body:", string(bd))
 
 		p := c.Query("page")
 		if p != "" {
 			s.append(",page=" + p)
 		}
+
+		n := c.Query("no-key", "defVal")
+		art.Equal("defVal", n)
 	})
 	s.reset()
 	mockRequest(r, POST, "/users", &md{B: "data"})

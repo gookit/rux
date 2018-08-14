@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"mime/multipart"
 	"net"
 	"net/http"
 	"net/url"
@@ -19,6 +20,7 @@ import (
  *************************************************************/
 
 const (
+	defaultMaxMemory = 32 << 20 // 32 MB
 	// abortIndex int8 = math.MaxInt8 / 2
 	abortIndex int8 = 63
 )
@@ -145,20 +147,6 @@ func (c *Context) Router() *Router {
  * Context: request data
  *************************************************************/
 
-// URL get URL instance from request
-func (c *Context) URL() *url.URL {
-	return c.Req.URL
-}
-
-// Query return query value by key
-func (c *Context) Query(key string) string {
-	if vs, ok := c.Req.URL.Query()[key]; ok && len(vs) > 0 {
-		return vs[0]
-	}
-
-	return ""
-}
-
 // Param returns the value of the URL param.
 // 		router.GET("/user/{id}", func(c *sux.Context) {
 // 			// a GET request to /user/john
@@ -175,6 +163,133 @@ func (c *Context) Header(key string) string {
 	}
 
 	return ""
+}
+
+// URL get URL instance from request
+func (c *Context) URL() *url.URL {
+	return c.Req.URL
+}
+
+// Query return query value by key, and allow with default value
+func (c *Context) Query(key string, defVal ...string) string {
+	val, has := c.QueryParam(key)
+	if has {
+		return val
+	}
+
+	if len(defVal) > 0 {
+		return defVal[0]
+	}
+
+	return ""
+}
+
+// QueryParam return query value by key
+func (c *Context) QueryParam(key string) (string, bool) {
+	if vs, ok := c.QueryParams(key); ok {
+		return vs[0], true
+	}
+
+	return "", false
+}
+
+// QueryParams return query values by key
+func (c *Context) QueryParams(key string) ([]string, bool) {
+	if vs, ok := c.Req.URL.Query()[key]; ok && len(vs) > 0 {
+		return vs, ok
+	}
+
+	return []string{}, false
+}
+
+// AllQuery get URL query data
+func (c *Context) AllQuery() url.Values {
+	return c.Req.URL.Query()
+}
+
+// Post return body value by key, and allow with default value
+func (c *Context) Post(key string, defVal ...string) string {
+	val, has := c.QueryParam(key)
+	if has {
+		return val
+	}
+
+	if len(defVal) > 0 {
+		return defVal[0]
+	}
+
+	return ""
+}
+
+// PostParam return body value by key
+func (c *Context) PostParam(key string) (string, bool) {
+	if vs, ok := c.PostParams(key); ok {
+		return vs[0], true
+	}
+
+	return "", false
+}
+
+// BodyParams return body values by key
+func (c *Context) PostParams(key string) ([]string, bool) {
+	// parse body data
+	req := c.Req
+	req.ParseForm()
+	req.ParseMultipartForm(defaultMaxMemory)
+
+	if vs := req.PostForm[key]; len(vs) > 0 {
+		return vs, true
+	}
+
+	return []string{}, false
+}
+
+// ParseMultipartForm parse multipart forms
+// tips:
+// 		c.Req.PostForm = POST(PUT,PATCH) body data
+// 		c.Req.Form = c.Req.PostForm + GET queries data
+// 		c.Req.MultipartForm = uploaded files data + other body fields data(will append to Req.Form and Req.PostForm)
+func (c *Context) ParseMultipartForm(maxMemory ...int) error {
+	max := defaultMaxMemory
+	if len(maxMemory) > 0 {
+		max = maxMemory[0]
+	}
+
+	return c.Req.ParseMultipartForm(int64(max))
+}
+
+// FormFile returns the first file for the provided form key.
+func (c *Context) FormFile(name string) (*multipart.FileHeader, error) {
+	_, fh, err := c.Req.FormFile(name)
+	return fh, err
+}
+
+// UploadFile handle upload file and save as local file
+func (c *Context) UploadFile(name string, saveAs string) error {
+	_, fh, err := c.Req.FormFile(name)
+	if err != nil {
+		return err
+	}
+
+	return c.SaveFile(fh, saveAs)
+}
+
+// SaveFile uploads the form file to specific dst.
+func (c *Context) SaveFile(file *multipart.FileHeader, dst string) error {
+	src, err := file.Open()
+	if err != nil {
+		return err
+	}
+	defer src.Close()
+
+	out, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	io.Copy(out, src)
+	return nil
 }
 
 // ReqCtxValue get context value from http.Request.ctx
@@ -196,8 +311,8 @@ func (c *Context) WithReqCtxValue(key, val interface{}) {
 	c.Req = r.WithContext(context.WithValue(r.Context(), key, val))
 }
 
-// RawData return stream data
-func (c *Context) RawData() ([]byte, error) {
+// RawBody return stream data
+func (c *Context) RawBody() ([]byte, error) {
 	return ioutil.ReadAll(c.Req.Body)
 }
 
