@@ -31,16 +31,6 @@ const (
 	NotAllowed
 )
 
-type patternType int8
-
-const (
-	PatternStatic   patternType = iota // /home
-	PatternRegexp                      // /:id([0-9]+)
-	PatternPathExt                     // /*.*
-	PatternHolder                      // /:user
-	PatternMatchAll                    // /*
-)
-
 // IController a simple controller interface
 type IController interface {
 	// AddRoutes for support register routes in the controller.

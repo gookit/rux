@@ -4,6 +4,7 @@ import (
 	"github.com/gookit/sux"
 	"net/http"
 	"github.com/gookit/sux/handlers"
+	"fmt"
 )
 
 // go run ./_examples/serve.go
@@ -67,6 +68,8 @@ func main() {
 	})
 
 	r.Controller("/blog", &BlogController{})
+
+	fmt.Println(r)
 
 	// quick start
 	r.Listen(":18080")

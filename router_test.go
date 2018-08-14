@@ -375,5 +375,39 @@ func TestRouter_WithOptions(t *testing.T) {
 }
 
 func TestRouter_StaticAssets(t *testing.T) {
+	r := New()
+	art := assert.New(t)
 
+	// one file
+	r.StaticFile("/site.js", "testdata/site.js")
+	w := mockRequest(r, "GET", "/site.js", nil)
+	art.Equal(200, w.Code)
+	art.Equal("application/javascript", w.Header().Get("Content-Type"))
+	art.Contains(w.Body.String(), "console.log")
+	// try again
+	w = mockRequest(r, "GET", "/site.js?t=33455", nil)
+	art.Equal(200, w.Code)
+
+	// allow any files in the dir.
+	r.StaticDir("/static", "testdata")
+	w = mockRequest(r, "GET", "/static/site.css", nil)
+	art.Equal(200, w.Code)
+	art.Equal("text/css; charset=utf-8", w.Header().Get("Content-Type"))
+	art.Contains(w.Body.String(), "max-width")
+	w = mockRequest(r, "GET", "/static/site.js", nil)
+	art.Equal(200, w.Code)
+	art.Equal("application/javascript", w.Header().Get("Content-Type"))
+	art.Contains(w.Body.String(), "console.log")
+	w = mockRequest(r, "GET", "/static/site.md", nil)
+	art.Equal(200, w.Code)
+
+	// add file type limit
+	// r.StaticFiles("", "testdata", "css|js")
+	r.StaticFiles("/assets", "testdata", "css|js")
+	w = mockRequest(r, "GET", "/assets/site.js", nil)
+	art.Equal(200, w.Code)
+	art.Equal("application/javascript", w.Header().Get("Content-Type"))
+	art.Contains(w.Body.String(), "console.log")
+	w = mockRequest(r, "GET", "/assets/site.md", nil)
+	art.Equal(404, w.Code)
 }

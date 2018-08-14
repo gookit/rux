@@ -2,6 +2,8 @@ package sux
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -19,6 +21,20 @@ import (
 const (
 	// abortIndex int8 = math.MaxInt8 / 2
 	abortIndex int8 = 63
+)
+
+const (
+	// ContentType header key
+	ContentType = "Content-Type"
+	// ContentBinary represents content type application/octet-stream
+	ContentBinary = "application/octet-stream"
+
+	// ContentDisposition describes contentDisposition
+	ContentDisposition = "Content-Disposition"
+	// describes content disposition type
+	dispositionInline = "inline"
+	// describes content disposition type
+	dispositionAttachment = "attachment"
 )
 
 // M a short name for `map[string]interface{}`
@@ -185,6 +201,11 @@ func (c *Context) RawData() ([]byte, error) {
 	return ioutil.ReadAll(c.Req.Body)
 }
 
+// IsTLS request check
+func (c *Context) IsTLS() bool {
+	return c.Req.TLS != nil
+}
+
 // IsAjax check request is ajax request
 func (c *Context) IsAjax() bool {
 	return c.Header("X-Requested-With") == "XMLHttpRequest"
@@ -288,9 +309,20 @@ func (c *Context) NoContent() error {
 	return nil
 }
 
+// Redirect other URL with status code(3xx e.g 301, 302).
+func (c *Context) Redirect(path string, optionalCode ...int) {
+	// default is http.StatusMovedPermanently
+	code := 301
+	if len(optionalCode) > 0 {
+		code = optionalCode[0]
+	}
+
+	http.Redirect(c.Resp, c.Req, path, code)
+}
+
 // File writes the specified file into the body stream in a efficient way.
-func (c *Context) File(filepath string) {
-	http.ServeFile(c.Resp, c.Req, filepath)
+func (c *Context) File(filePath string) {
+	http.ServeFile(c.Resp, c.Req, filePath)
 }
 
 // FileContent serves given file as text content to response.
@@ -313,15 +345,40 @@ func (c *Context) FileContent(file string, names ...string) {
 	http.ServeContent(c.Resp, c.Req, name, time.Now(), f)
 }
 
-// Redirect other URL with status code(3xx e.g 301, 302).
-func (c *Context) Redirect(path string, optionalCode ...int) {
-	// default is http.StatusMovedPermanently
-	code := 301
-	if len(optionalCode) > 0 {
-		code = optionalCode[0]
+// Attachment a file
+func (c *Context) Attachment(srcFile, outName string) {
+	c.dispositionContent(http.StatusOK, outName, false)
+	c.FileContent(srcFile)
+}
+
+// Inline file content
+func (c *Context) Inline(srcFile, outName string) {
+	c.dispositionContent(http.StatusOK, outName, true)
+	c.FileContent(srcFile)
+}
+
+// Binary serve data as Binary response.
+// usage:
+// 		var reader io.Reader
+// 		in, _ = os.Open("./README.md")
+// 		r.Binary(http.StatusOK, in, "readme.md", true)
+func (c *Context) Binary(status int, in io.ReadSeeker, outName string, inline bool) error {
+	c.dispositionContent(http.StatusOK, outName, true)
+
+	// _, err := io.Copy(c.Resp, in)
+	http.ServeContent(c.Resp, c.Req, outName, time.Now(), in)
+	return nil
+}
+
+func (c *Context) dispositionContent(status int, outName string, inline bool) {
+	dispositionType := dispositionAttachment
+	if inline {
+		dispositionType = dispositionInline
 	}
 
-	http.Redirect(c.Resp, c.Req, path, code)
+	c.Resp.Header().Set(ContentType, ContentBinary)
+	c.Resp.Header().Set(ContentDisposition, fmt.Sprintf("%s; filename=%s", dispositionType, outName))
+	c.Resp.WriteHeader(status)
 }
 
 func (c *Context) setRawContentHeader() {

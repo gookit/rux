@@ -3,7 +3,6 @@ package render
 import (
 	"errors"
 	"fmt"
-	"html/template"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -28,12 +27,12 @@ const (
 	ContentBinary = "application/octet-stream"
 
 	// ContentDisposition describes contentDisposition
-	ContentDisposition string = "Content-Disposition"
+	ContentDisposition = "Content-Disposition"
 
 	// describes content disposition type
-	dispositionInline string = "inline"
+	dispositionInline = "inline"
 	// describes content disposition type
-	dispositionAttachment string = "attachment"
+	dispositionAttachment = "attachment"
 )
 
 type HttpOptions struct {
