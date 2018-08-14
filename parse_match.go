@@ -220,7 +220,6 @@ func (r *Router) cacheDynamicRoute(path string, ps Params, route *Route) {
 	}
 
 	key := route.method + " " + path
-
 	// copy new route instance. Notice: cache matched Params
 	r.cachedRoutes[key] = route.copyWithParams(ps)
 }

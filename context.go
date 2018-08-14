@@ -42,6 +42,12 @@ const (
 // M a short name for `map[string]interface{}`
 type M map[string]interface{}
 
+// type responseWriter struct {
+// 	http.ResponseWriter
+// 	size   int
+// 	status int
+// }
+
 // Context for http server
 type Context struct {
 	Req  *http.Request
@@ -61,11 +67,10 @@ type Context struct {
 }
 
 // Init a context
-func (c *Context) InitRequest(w http.ResponseWriter, req *http.Request, handlers HandlersChain) {
+func (c *Context) Init(res http.ResponseWriter, req *http.Request) {
 	c.Req = req
-	c.Resp = w
+	c.Resp = res
 	c.values = make(map[string]interface{})
-	c.handlers = handlers
 }
 
 // Abort will abort at the end of this middleware run
@@ -73,10 +78,21 @@ func (c *Context) Abort() {
 	c.index = abortIndex
 }
 
+// IsAborted returns true if the current context was aborted.
+func (c *Context) IsAborted() bool {
+	return c.index >= abortIndex
+}
+
 // AbortThen will abort at the end of this middleware run, and return context to continue.
 func (c *Context) AbortThen() *Context {
 	c.index = abortIndex
 	return c
+}
+
+// AbortWithStatus calls `Abort()` and writes the headers with the specified status code.
+func (c *Context) AbortWithStatus(code int) {
+	c.Resp.WriteHeader(code)
+	c.Abort()
 }
 
 // Next run next handler
@@ -136,6 +152,11 @@ func (c *Context) Handler() HandlerFunc {
 // HandlerName get the main handler name
 func (c *Context) HandlerName() string {
 	return nameOfFunction(c.handlers.Last())
+}
+
+// SetHandlers set handlers
+func (c *Context) SetHandlers(handlers HandlersChain) {
+	c.handlers = handlers
 }
 
 // Router get router instance
@@ -202,14 +223,14 @@ func (c *Context) QueryParams(key string) ([]string, bool) {
 	return []string{}, false
 }
 
-// AllQuery get URL query data
-func (c *Context) AllQuery() url.Values {
+// QueryValues get URL query data
+func (c *Context) QueryValues() url.Values {
 	return c.Req.URL.Query()
 }
 
 // Post return body value by key, and allow with default value
 func (c *Context) Post(key string, defVal ...string) string {
-	val, has := c.QueryParam(key)
+	val, has := c.PostParam(key)
 	if has {
 		return val
 	}
@@ -300,7 +321,7 @@ func (c *Context) SaveFile(file *multipart.FileHeader, dst string) error {
 // 		// ...
 // 		val := c.ReqCtxValue("key") // "value"
 func (c *Context) ReqCtxValue(key interface{}) interface{} {
-	return c.Req.Context().Value("originalMethod")
+	return c.Req.Context().Value(key)
 }
 
 // WithReqCtxValue with request ctx Value.

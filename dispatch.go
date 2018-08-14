@@ -113,9 +113,10 @@ func (r *Router) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	// match route
 	result := r.Match(req.Method, path)
 
-	// get context
+	// get new context
 	ctx := r.pool.Get().(*Context)
 	ctx.Reset()
+	ctx.Init(res, req)
 	ctx.Params = result.Params
 
 	// check match result
@@ -130,6 +131,9 @@ func (r *Router) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 			r.noAllowed = HandlersChain{internal405Handler}
 		}
 
+		// add allowed methods to context
+		ctx.Set(CTXAllowedMethods, result.AllowedMethods)
+
 		handlers = r.noAllowed
 	}
 
@@ -138,12 +142,7 @@ func (r *Router) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		handlers = append(r.handlers, handlers...)
 	}
 
-	// init context
-	ctx.InitRequest(res, req, handlers)
-	if result.Status == NotAllowed {
-		// add allowed methods to context
-		ctx.Set(CTXAllowedMethods, result.AllowedMethods)
-	}
+	ctx.SetHandlers(handlers)
 
 	// processing
 	ctx.Next()
