@@ -13,6 +13,7 @@ import (
 	"path"
 	"strings"
 	"time"
+	"encoding/json"
 )
 
 /*************************************************************
@@ -163,6 +164,11 @@ func (c *Context) SetHandlers(handlers HandlersChain) {
 // Router get router instance
 func (c *Context) Router() *Router {
 	return c.router
+}
+
+// Error add a error to context
+func (c *Context) Error(err error)  {
+	c.Errors = append(c.Errors, &err)
 }
 
 /*************************************************************
@@ -431,7 +437,17 @@ func (c *Context) Text(status int, str string) (err error) {
 	return
 }
 
-// JSONBytes writes out a string as json data.
+// JSON writes out a JSON response.
+func (c *Context) JSON(status int, v interface{}) (err error) {
+	bs, err := json.Marshal(v)
+	if err != nil {
+		return
+	}
+
+	return c.JSONBytes(status, bs)
+}
+
+// JSONBytes writes out a string as JSON response.
 func (c *Context) JSONBytes(status int, bs []byte) (err error) {
 	c.Resp.WriteHeader(status)
 	c.Resp.Header().Set(ContentType, "application/json; charset=UTF-8")
