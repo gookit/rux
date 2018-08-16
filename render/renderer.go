@@ -11,6 +11,7 @@ import (
 	"html/template"
 	"io"
 	"net/http"
+	"github.com/gookit/view"
 )
 
 const (
@@ -22,14 +23,8 @@ const (
 	defaultTemplateRightDelim = "}}"
 )
 
-// Handler interface for renderer handler
-type Handler interface {
-	Render(w http.ResponseWriter, status int, data interface{}) error
-}
-
 // M describes handy type that represents data to send as response
 type M map[string]interface{}
-
 
 // Options for the renderer
 type Options struct {
@@ -43,7 +38,7 @@ type Options struct {
 
 	// template render
 	TplLayout   string
-	TplDelims   TplDelims
+	TplDelims   view.TplDelims
 	TplSuffixes []string
 	TplFuncMap  template.FuncMap
 }
@@ -51,14 +46,13 @@ type Options struct {
 // Renderer definition
 type Renderer struct {
 	opts       Options
-	drivers    map[string]Driver
 	HTMLRender *template.Template
 }
 
 func New(config ...func(*Options)) *Renderer {
 	r := &Renderer{
 		opts: Options{
-			TplDelims:   TplDelims{"{{", "}}"},
+			TplDelims:   view.TplDelims{"{{", "}}"},
 			TplSuffixes: []string{"tpl"},
 		},
 	}
@@ -73,8 +67,8 @@ func New(config ...func(*Options)) *Renderer {
 
 // LoadTemplateGlob
 // usage:
-// 	LoadTemplateGlob("views/*")
-// 	LoadTemplateGlob("views/**/*")
+// 		LoadTemplateGlob("views/*")
+// 		LoadTemplateGlob("views/**/*")
 func (r *HTTPRenderer) LoadTemplateGlob(pattern string) {
 	r.HTMLRender = template.Must(template.New("").
 		Delims(r.opts.TplDelims.Left, r.opts.TplDelims.Right).
@@ -85,7 +79,7 @@ func (r *HTTPRenderer) LoadTemplateGlob(pattern string) {
 
 // LoadTemplateFiles
 // usage:
-// 	LoadTemplateFiles("path/file1.tpl", "path/file2.tpl")
+// 		LoadTemplateFiles("path/file1.tpl", "path/file2.tpl")
 func (r *HTTPRenderer) LoadTemplateFiles(files ...string) {
 	r.HTMLRender = template.Must(template.New("").
 		Delims(r.opts.TplDelims.Left, r.opts.TplDelims.Right).
@@ -94,15 +88,19 @@ func (r *HTTPRenderer) LoadTemplateFiles(files ...string) {
 	)
 }
 
-func (r *Renderer) Render(w io.Writer, d Driver, data interface{}) error {
-	err := d.Render(w, data)
+func (r *Renderer) Auto(w io.Writer, accepted string, data interface{}) error {
+	return nil
+}
+
+// func (r *Renderer) Render(w io.Writer, d Driver, data interface{}) error {
+// 	err := d.Render(w, data)
 
 	// if hw, ok := w.(http.ResponseWriter); err != nil && !r.opts.DisableHTTPErrorRendering && ok {
 	// 	http.Error(hw, err.Error(), http.StatusInternalServerError)
 	// }
-
-	return err
-}
+//
+// 	return err
+// }
 
 // Text write text to Writer
 func (r *Renderer) Text(w io.Writer, status int, v string) error {
@@ -130,8 +128,8 @@ func (r *Renderer) HTML(w io.Writer, template string, v interface{}) error {
 		return errors.New("renderer: template name not exist")
 	}
 
-	hr := &HtmlRenderer{}
-	return hr.Render(w, v)
+	vr := view.NewRenderer()
+	return vr.Render(w, template, v)
 }
 
 // XML serve data as XML response

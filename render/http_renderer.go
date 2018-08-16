@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"html/template"
 )
 
 const (
@@ -177,4 +178,41 @@ func (r *HTTPRenderer) Binary(w http.ResponseWriter, status int, in io.Reader, o
 
 	_, err = w.Write(bs)
 	return err
+}
+
+func (r *HTTPRenderer) HTMLString(w http.ResponseWriter, status int, html string) error {
+	w.Header().Set(ContentType, r.opts.ContentHTML)
+	w.WriteHeader(status)
+
+	_, err := w.Write([]byte(html))
+	return err
+}
+
+func (r *HTTPRenderer) HTML(w http.ResponseWriter, status int, template string, v interface{}) error {
+	w.Header().Set(ContentType, r.opts.ContentHTML)
+	w.WriteHeader(status)
+
+	return r.Renderer.HTML(w, template, v)
+}
+
+// Template
+func (r *HTTPRenderer) Template(w http.ResponseWriter, status int, html string) error {
+	w.Header().Set(ContentType, r.opts.ContentHTML)
+	w.WriteHeader(status)
+
+	_, err := w.Write([]byte(html))
+	return err
+}
+
+func (r *HTTPRenderer) TplString(w http.ResponseWriter, status int, tplContent string, v interface{}) error {
+	w.Header().Set(ContentType, r.opts.ContentHTML)
+	w.WriteHeader(status)
+
+	t := template.Must(template.New("").Parse(tplContent))
+	if err := t.Execute(w, v); err != nil {
+		panic(err)
+		return err
+	}
+
+	return nil
 }
