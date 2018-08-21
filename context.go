@@ -2,6 +2,7 @@ package sux
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -13,7 +14,6 @@ import (
 	"path"
 	"strings"
 	"time"
-	"encoding/json"
 )
 
 /*************************************************************
@@ -167,7 +167,7 @@ func (c *Context) Router() *Router {
 }
 
 // Error add a error to context
-func (c *Context) Error(err error)  {
+func (c *Context) Error(err error) {
 	c.Errors = append(c.Errors, &err)
 }
 
@@ -434,6 +434,18 @@ func (c *Context) Text(status int, str string) (err error) {
 	c.Resp.Header().Set(ContentType, "text/plain; charset=UTF-8")
 
 	_, err = c.Resp.Write([]byte(str))
+	return
+}
+
+// HTML writes out as html text. if data is empty, only write headers
+func (c *Context) HTML(status int, data []byte) (err error) {
+	c.Resp.WriteHeader(status)
+	c.Resp.Header().Set(ContentType, "text/html; charset=UTF-8")
+
+	if len(data) > 0 {
+		_, err = c.Resp.Write(data)
+	}
+
 	return
 }
 

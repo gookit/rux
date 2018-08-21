@@ -14,6 +14,14 @@ type HandlerFunc func(c *Context)
 // HandlersChain middleware handlers chain definition
 type HandlersChain []HandlerFunc
 
+// ServeHTTP implement the http.Handler
+func (f HandlerFunc) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	c := &Context{}
+	c.Reset()
+	c.Init(w, r)
+	f(c)
+}
+
 // Last returns the last handler in the chain. ie. the last handler is the main own.
 func (c HandlersChain) Last() HandlerFunc {
 	length := len(c)

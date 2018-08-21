@@ -2,10 +2,10 @@ package handlers
 
 import (
 	"fmt"
+	"github.com/gookit/color"
 	"github.com/gookit/sux"
 	"net/http"
 	"time"
-	"github.com/gookit/color"
 )
 
 type statusWriter struct {
