@@ -5,6 +5,10 @@ import (
 	"net/http"
 	"github.com/gookit/sux/handlers"
 	"fmt"
+	"net/url"
+	"net/http/httputil"
+	"time"
+	"log"
 )
 
 // go run ./_examples/serve.go
@@ -32,6 +36,8 @@ func main() {
 		c.Text(200, "hello " + c.URL().Path)
 	})
 	r.GET("/routes", handlers.DumpRoutesHandler())
+	r.GET("/about[.html]", defHandle)
+	r.GET("/hi-{name}", defHandle)
 	r.GET("/users/{id}", func(c *sux.Context) {
 		c.Text(200, "hello " + c.URL().Path)
 	})
@@ -48,6 +54,13 @@ func main() {
 		r.GET(`/{id:\d+}`, func(c *sux.Context) {
 			c.Text(200, "view detail, id: " + c.Param("id"))
 		})
+	})
+
+	// a simple proxy
+	// proxy := proxy("http://yzone.net/page/about-me")
+	pxy := newProxy("https://inhere.github.io/")
+	r.GET("/pxy", func(c *sux.Context) {
+		pxy.ServeHTTP(c.Resp, c.Req)
 	})
 
 	// use middleware for the route
@@ -76,6 +89,62 @@ func main() {
 
 	// apply pre-handlers
 	// http.ListenAndServe(":18080", handlers.HTTPMethodOverrideHandler(r))
+}
+
+func customServer() {
+	r := sux.New()
+
+	// add routes
+	r.GET("/", func(ctx *sux.Context) {
+		ctx.WriteString("hello")
+	})
+
+	s := &http.Server{
+		Addr:    ":8080",
+		Handler: r,
+
+		ReadTimeout:    10 * time.Second,
+		WriteTimeout:   10 * time.Second,
+		MaxHeaderBytes: 1 << 20,
+	}
+
+	log.Fatal(s.ListenAndServe())
+}
+
+func newProxy(targetUrl string) *httputil.ReverseProxy {
+	target, _ := url.Parse(targetUrl)
+	// target, _ := url.Parse(playgroundURL)
+
+	p := httputil.NewSingleHostReverseProxy(target)
+	// p.Transport = &urlfetch.Transport{Context: appengine.NewContext(r)}
+	// p.ServeHTTP(w, r)
+
+	return p
+}
+
+func defHandle(ctx *sux.Context) {
+	ctx.WriteString("hello, in " + ctx.URL().Path)
+}
+
+// SiteController define a controller
+type SiteController struct {
+}
+
+// AddRoutes for the controller
+func (c *SiteController) AddRoutes(r *sux.Router) {
+	r.GET("{id}", c.Get)
+	r.POST("", c.Post)
+}
+
+// Get action
+func (c *SiteController) Get(ctx *sux.Context) {
+	ctx.WriteString("hello, in " + ctx.URL().Path)
+	ctx.WriteString("\n ok")
+}
+
+// Post action
+func (c *SiteController) Post(ctx *sux.Context) {
+	ctx.WriteString("hello, in " + ctx.URL().Path)
 }
 
 // BlogController define a controller
