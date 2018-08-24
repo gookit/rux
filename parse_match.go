@@ -31,7 +31,7 @@ func (r *Router) parseParamRoute(path string, route *Route) (first string) {
 	var n, v string
 	var rawVar, varRegex []string
 	for _, str := range ss {
-		nvStr := strings.Trim(str, "{}: ")
+		nvStr := str[1:len(str)-1] // "{level:[1-9]{1,2}}" -> "level:[1-9]{1,2}"
 
 		// eg "{uid:\d+}" -> "uid", "\d+"
 		if strings.IndexByte(nvStr, ':') > 0 {

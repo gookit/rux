@@ -222,6 +222,14 @@ func TestDynamicRoute(t *testing.T) {
 	ret = r.Match(GET, "/path2/err")
 	art.Equal(NotFound, ret.Status)
 
+	r.GET(`/path3/{level:[1-9]{1,2}}`, emptyHandler)
+	ret = r.Match(GET, "/path3/2")
+	art.Equal(Found, ret.Status)
+	art.True(ret.Params.Has("level"))
+	art.Equal("2", ret.Params.String("level"))
+	ret = r.Match(GET, "/path3/123")
+	art.Equal(NotFound, ret.Status)
+
 	r.GET(`/assets/{file:.+\.(?:css|js)}`, emptyHandler)
 	ret = r.Match(GET, "/assets/site.css")
 	art.Equal(Found, ret.Status)
