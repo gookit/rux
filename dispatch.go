@@ -86,7 +86,7 @@ var internal404Handler HandlerFunc = func(c *Context) {
 }
 
 var internal405Handler HandlerFunc = func(c *Context) {
-	allowed := c.Get(CTXAllowedMethods).([]string)
+	allowed := c.MustGet(CTXAllowedMethods).([]string)
 	sort.Strings(allowed)
 	c.SetHeader("Allow", strings.Join(allowed, ", "))
 

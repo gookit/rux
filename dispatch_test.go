@@ -206,17 +206,17 @@ func TestContext(t *testing.T) {
 		c.Next()
 
 		// STEP 4 ->:
-		art.Equal("namedHandler1", c.Get("name").(string))
+		art.Equal("namedHandler1", c.MustGet("name").(string))
 	}, func(c *Context) { // middle 2
 		// -> STEP 2:
 		_, ok := c.Values()["newKey"]
 		art.True(ok)
-		art.Equal("val", c.Get("newKey").(string))
+		art.Equal("val", c.MustGet("newKey").(string))
 
 		c.Next()
 
 		// STEP 3 ->:
-		art.Equal("namedHandler", c.Get("name").(string))
+		art.Equal("namedHandler", c.MustGet("name").(string))
 		c.Set("name", "namedHandler1") // change value
 	})
 

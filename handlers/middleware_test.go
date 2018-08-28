@@ -18,8 +18,9 @@ func TestSomeMiddleware(t *testing.T) {
 
 	// add reqID to context
 	r.GET("/rid", func(c *sux.Context) {
-		rid := c.Get("reqID").(string)
-		art.Len(rid, 32)
+		rid, ok := c.Get("reqID")
+		art.True(ok)
+		art.Len(rid.(string), 32)
 	}).Use(GenRequestID())
 
 	w := mockRequest(r, "GET", "/rid", nil)
