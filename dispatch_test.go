@@ -206,7 +206,8 @@ func TestContext(t *testing.T) {
 		c.Next()
 
 		// STEP 4 ->:
-		art.Equal("namedHandler1", c.MustGet("name").(string))
+		name, _ := c.Get("name")
+		art.Equal("namedHandler1", name.(string))
 	}, func(c *Context) { // middle 2
 		// -> STEP 2:
 		_, ok := c.Values()["newKey"]
@@ -298,6 +299,24 @@ func TestContext_Write(t *testing.T) {
 	art.Equal("hello", w.Body.String())
 	art.Equal("text/plain; charset=UTF-8", w.Header().Get("content-type"))
 
+	uri = "/HTML"
+	r.GET(uri, func(c *Context) {
+		c.HTML(200, []byte("html"))
+	})
+	w = mockRequest(r, GET, uri, nil)
+	art.Equal(200, w.Code)
+	art.Equal("text/html; charset=UTF-8", w.Header().Get("content-type"))
+	art.Equal(`html`, w.Body.String())
+
+	uri = "/JSON"
+	r.GET(uri, func(c *Context) {
+		c.JSON(200, M{"name": "inhere"})
+	})
+	w = mockRequest(r, GET, uri, nil)
+	art.Equal(200, w.Code)
+	art.Equal("application/json; charset=UTF-8", w.Header().Get("content-type"))
+	art.Equal(`{"name":"inhere"}`, w.Body.String())
+
 	uri = "/JSONBytes"
 	r.GET(uri, func(c *Context) {
 		c.JSONBytes(200, []byte(`{"name": "inhere"}`))
@@ -313,6 +332,14 @@ func TestContext_Write(t *testing.T) {
 	})
 	w = mockRequest(r, GET, uri, nil)
 	art.Equal(204, w.Code)
+
+	uri = "/HTTPError"
+	r.GET(uri, func(c *Context) {
+		c.HTTPError("error", 503)
+	})
+	w = mockRequest(r, GET, uri, nil)
+	art.Equal(503, w.Code)
+	art.Equal("error\n", w.Body.String())
 
 	uri = "/SetHeader"
 	r.GET(uri, func(c *Context) {
