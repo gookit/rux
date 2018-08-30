@@ -11,8 +11,8 @@ import (
 
 var (
 	methods = strings.Split("GET,POST,PUT,PATCH,DELETE,OPTIONS,HEAD", ",")
-	times = *flag.Int("times", 1000, "the match times")
-	number = *flag.Int("number", 1000, "the generate routes numbers")
+	inTimes   = flag.Int("t", 1000, "the match times")
+	inNumber  = flag.Int("n", 1000, "the generate routes numbers")
 	percent = flag.Int("percent", 5, "the generate dynamic routes percentage. allow 1 - 10")
 )
 
@@ -21,6 +21,7 @@ var alphaNum = []byte(`0123456789abcdefghijklmnopqrstuvwxyz`)
 var routes []map[string]string
 var emptyHandler = func(c *sux.Context) {}
 var (
+	times, number int
 	firstRoute, randRoute, lastRoute map[string]string
 )
 
@@ -29,11 +30,14 @@ var (
 func main() {
 	flag.Parse()
 
+	number = *inNumber
+	times = *inTimes
+
 	if times < 1 {
 		times = 100
 	}
 
-	if number < 100 {
+	if number < 5 {
 		number = 100
 	}
 
@@ -49,36 +53,48 @@ func main() {
 
 	st := time.Now()
 	collectRoutes()
-	fmt.Printf(" - collect routes elapsed time: %.3f ms\n\n", time.Now().Sub(st).Seconds()*1000)
+	fmt.Printf(" - collect routes elapsed time: %.3f ms\n\n", time.Since(st).Seconds()*1000)
 	fmt.Print("Begin route match\n\n")
-	
+
 	fmt.Print("- First route match ...")
 	st = time.Now()
-	matchRoute(times, firstRoute)
-	total := time.Now().Sub(st).Seconds()*1000
-	avg := total*1000/float64(times)
-	fmt.Printf(" OK \n  总计耗时 %.3f ms, 匹配次数: %d . 平均耗时: %.3f us\n\n", total, times, avg)
+	ok, ret := matchRoute(times, firstRoute)
+	total := time.Now().Sub(st).Seconds() * 1000
+	avg := total * 1000 / float64(times)
+	fmt.Printf(
+		" OK \n  Total time consuming %.3f ms, Number of matches: (%d/%d). Average time consuming: %.3f us\n  Match result: %+v\n\n",
+		total, ok, times, avg, ret,
+	)
 
 	fmt.Print("- Random route match ...")
 	st = time.Now()
-	matchRoute(times, randRoute)
-	total = time.Now().Sub(st).Seconds()*1000
-	avg = total*1000/float64(times)
-	fmt.Printf(" OK \n  总计耗时 %.3f ms, 匹配次数: %d . 平均耗时: %.3f us\n\n", total, times, avg)
+	ok, ret = matchRoute(times, randRoute)
+	total = time.Now().Sub(st).Seconds() * 1000
+	avg = total * 1000 / float64(times)
+	fmt.Printf(
+		" OK \n  Total time consuming %.3f ms, Number of matches: (%d/%d). Average time consuming: %.3f us\n  Match result: %+v\n\n",
+		total, ok, times, avg, *ret,
+	)
 
 	fmt.Print("- Last route match ...")
 	st = time.Now()
-	matchRoute(times, lastRoute)
-	total = time.Now().Sub(st).Seconds()*1000
-	avg = total*1000/float64(times)
-	fmt.Printf(" OK \n  总计耗时 %.3f ms, 匹配次数: %d . 平均耗时: %.3f us\n\n", total, times, avg)
+	ok, ret = matchRoute(times, lastRoute)
+	total = time.Now().Sub(st).Seconds() * 1000
+	avg = total * 1000 / float64(times)
+	fmt.Printf(
+		" OK \n  Total time consuming %.3f ms, Number of matches: (%d/%d). Average time consuming: %.3f us\n  Match result: %+v\n\n",
+		total, ok, times, avg, *ret,
+	)
 
 	fmt.Print("- Unknown route match ...")
 	st = time.Now()
-	matchRoute(times, map[string]string{"m": "GET", "p": "/not-exist"})
-	total = time.Now().Sub(st).Seconds()*1000
-	avg = total*1000/float64(times)
-	fmt.Printf(" OK \n  总计耗时 %.3f ms, 匹配次数: %d . 平均耗时: %.3f us\n", total, times, avg)
+	_, ret = matchRoute(times, map[string]string{"m": "GET", "p": "/not-exist"})
+	total = time.Now().Sub(st).Seconds() * 1000
+	avg = total * 1000 / float64(times)
+	fmt.Printf(
+		" OK \n  Total time consuming %.3f ms, Number of matches: %d. Average time consuming: %.3f us\n  Match result: %+v\n",
+		total, times, avg, *ret,
+	)
 }
 
 // generate routes
@@ -92,9 +108,14 @@ func generateRoutes() {
 	}
 
 	firstRoute = routes[0]
+	firstRoute["p1"] = strings.NewReplacer("{", "f", "}", "f").Replace(firstRoute["p"])
+
 	lastRoute = routes[number-1]
-	randIndex := rand.Intn(number-1)
+	lastRoute["p1"] = strings.NewReplacer("{", "l", "}", "l").Replace(lastRoute["p"])
+
+	randIndex := rand.Intn(number - 1)
 	randRoute = routes[randIndex]
+	randRoute["p1"] = strings.NewReplacer("{", "r", "}", "r").Replace(randRoute["p"])
 }
 
 // collect routes
@@ -119,10 +140,18 @@ func collectRoutes() {
 	}
 }
 
-func matchRoute(times int, item map[string]string) {
+func matchRoute(times int, item map[string]string) (ok int, ret *sux.MatchResult) {
+	ok = 0
+	path := item["p1"]
+
 	for i := 0; i < times; i++ {
-		r.Match(item["m"], item["p"])
+		ret = r.Match(item["m"], path)
+		if ret.IsOK() {
+			ok++
+		}
 	}
+
+	return
 }
 
 func randomMethod() string {

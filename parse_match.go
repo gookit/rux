@@ -68,7 +68,7 @@ func (r *Router) parseParamRoute(path string, route *Route) (first string) {
 	if len(start) > 1 {
 		route.start = start
 
-		if pos := strings.IndexByte(start[1:], '/'); pos > 1 {
+		if pos := strings.IndexByte(start[1:], '/'); pos > 0 {
 			first = start[1 : pos+1]
 			// start string only one node. "/users/"
 			if len(start)-len(first) == 2 {
@@ -170,7 +170,7 @@ func (r *Router) match(method, path string) (ret *MatchResult) {
 	}
 
 	// find in regular routes
-	if pos := strings.IndexByte(path[1:], '/'); pos > 1 {
+	if pos := strings.IndexByte(path[1:], '/'); pos > 0 {
 		first := path[1 : pos+1]
 		key = method + " " + first
 

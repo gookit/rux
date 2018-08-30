@@ -246,6 +246,15 @@ func TestDynamicRoute(t *testing.T) {
 	art.Equal(NotFound, ret.Status)
 }
 
+func TestFixFirstNodeOnlyOneChar(t *testing.T) {
+	art := assert.New(t)
+
+	r := New()
+	r.PATCH(`/r/{name}/hq2hah9/dxt/g/hoovln`, emptyHandler)
+	ret := r.Match(PATCH, "/r/lnamel/hq2hah9/dxt/g/hoovln")
+	art.Equal(Found, ret.Status)
+}
+
 func TestOptionalRoute(t *testing.T) {
 	art := assert.New(t)
 
