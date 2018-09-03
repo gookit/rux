@@ -387,6 +387,15 @@ func (r *Router) StaticFunc(path string, handler func(c *Context)) {
 	r.GET(path, handler)
 }
 
+// StaticFS add a file system handle
+func (r *Router) StaticFS(prefixUrl string, fs http.FileSystem) {
+	fsHandler := http.StripPrefix(prefixUrl, http.FileServer(fs))
+
+	r.GET(prefixUrl+`/{file:.+}`, func(c *Context) {
+		fsHandler.ServeHTTP(c.Resp, c.Req)
+	})
+}
+
 // StaticHandle add a static asset file handle
 // usage:
 // 		r.StaticDir("/assets", "/static")
