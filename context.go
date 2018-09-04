@@ -61,7 +61,7 @@ type Context struct {
 	// current router instance
 	router *Router
 	// context data, you can save some custom data.
-	values map[string]interface{}
+	data map[string]interface{}
 	// all handlers for current request.
 	// call priority: global -> group -> route -> main handler
 	// Notice: last always is main handler of the matched route.
@@ -72,7 +72,7 @@ type Context struct {
 func (c *Context) Init(res http.ResponseWriter, req *http.Request) {
 	c.Req = req
 	c.Resp = res
-	c.values = make(map[string]interface{})
+	c.data = make(map[string]interface{})
 }
 
 // Abort will abort at the end of this middleware run
@@ -111,8 +111,8 @@ func (c *Context) Next() {
 func (c *Context) Reset() {
 	// c.Writer = &c.writermem
 	c.index = -1
+	c.data = nil
 	c.Params = nil
-	c.values = nil
 	c.handlers = nil
 	c.Errors = c.Errors[0:0]
 	// c.Accepted = nil
@@ -133,23 +133,23 @@ func (c *Context) Copy() *Context {
 // 		// ...
 // 		val := c.Get("key") // "value"
 func (c *Context) Set(key string, val interface{}) {
-	c.values[key] = val
+	c.data[key] = val
 }
 
 // Get a value from context
 func (c *Context) Get(key string) (v interface{}, ok bool) {
-	v, ok = c.values[key]
+	v, ok = c.data[key]
 	return
 }
 
 // Get a value from context
 func (c *Context) MustGet(key string) interface{} {
-	return c.values[key]
+	return c.data[key]
 }
 
-// Values get all values
-func (c *Context) Values() map[string]interface{} {
-	return c.values
+// Data get all context data
+func (c *Context) Data() map[string]interface{} {
+	return c.data
 }
 
 // Handler returns the main handler.

@@ -14,7 +14,7 @@ const (
 )
 
 // "/users/{id}" "/users/{id:\d+}" `/users/{uid:\d+}/blog/{id}`
-var varRegex = regexp.MustCompile(`{([^/]+)}`)
+var varRegex = regexp.MustCompile(`{[^/]+}`)
 
 // Parsing routes with parameters
 func (r *Router) parseParamRoute(path string, route *Route) (first string) {
@@ -108,8 +108,8 @@ type MatchResult struct {
 
 var notFoundResult = &MatchResult{Status: NotFound}
 
-func newMatchResult(status uint8, h HandlerFunc, hs HandlersChain, ps Params) *MatchResult {
-	return &MatchResult{Status: status, Handler: h, Handlers: hs, Params: ps}
+func newFoundResult(h HandlerFunc, hs HandlersChain, ps Params) *MatchResult {
+	return &MatchResult{Status: Found, Handler: h, Handlers: hs, Params: ps}
 }
 
 // IsOK check status == Found ?
@@ -142,7 +142,7 @@ func (r *Router) Match(method, path string) (result *MatchResult) {
 	// if has fallback route. router->Any("/*", handler)
 	key := method + " /*"
 	if route, ok := r.stableRoutes[key]; ok {
-		return newMatchResult(Found, route.handler, route.handlers, nil)
+		return newFoundResult(route.handler, route.handlers, nil)
 	}
 
 	// handle method not allowed. will find allowed methods
@@ -161,23 +161,22 @@ func (r *Router) match(method, path string) (ret *MatchResult) {
 	// find in stable routes
 	key := method + " " + path
 	if route, ok := r.stableRoutes[key]; ok {
-		return newMatchResult(Found, route.handler, route.handlers, nil)
+		return newFoundResult(route.handler, route.handlers, nil)
 	}
 
 	// find in cached routes
 	if route, ok := r.cachedRoutes[key]; ok {
-		return newMatchResult(Found, route.handler, route.handlers, route.params)
+		return newFoundResult(route.handler, route.handlers, route.params)
 	}
 
 	// find in regular routes
 	if pos := strings.IndexByte(path[1:], '/'); pos > 0 {
-		first := path[1 : pos+1]
-		key = method + " " + first
+		key = method + " " + path[1:pos+1]
 
 		if rs, ok := r.regularRoutes[key]; ok {
 			for _, route := range rs {
 				if ps, ok := route.match(path); ok {
-					ret = newMatchResult(Found, route.handler, route.handlers, ps)
+					ret = newFoundResult(route.handler, route.handlers, ps)
 					r.cacheDynamicRoute(path, ps, route)
 					return
 				}
@@ -189,7 +188,7 @@ func (r *Router) match(method, path string) (ret *MatchResult) {
 	if rs, ok := r.irregularRoutes[method]; ok {
 		for _, route := range rs {
 			if ps, ok := route.match(path); ok {
-				ret = newMatchResult(Found, route.handler, route.handlers, ps)
+				ret = newFoundResult(route.handler, route.handlers, ps)
 				r.cacheDynamicRoute(path, ps, route)
 				return
 			}
@@ -233,49 +232,13 @@ func (r *Router) findAllowedMethods(method, path string) (allowed []string) {
 	// use map for prevent duplication
 	mMap := map[string]int{}
 
-	// in stable routes
 	for _, m := range anyMethods {
-		if m == method {
+		if m == method { // expected current method
 			continue
 		}
 
-		key := m + " " + path
-		if _, ok := r.stableRoutes[key]; ok {
+		if r.match(m, path).IsOK() {
 			mMap[m] = 1
-		}
-	}
-
-	// in regular routes
-	if pos := strings.IndexByte(path[1:], '/'); pos > 1 {
-		first := path[1 : pos+1]
-		for _, m := range anyMethods {
-			if m == method {
-				continue
-			}
-
-			key := m + " " + first
-			if rs, ok := r.regularRoutes[key]; ok {
-				for _, route := range rs {
-					if _, ok := route.match(path); ok {
-						mMap[m] = 1
-					}
-				}
-			}
-		}
-	}
-
-	// in irregular routes
-	for _, m := range anyMethods {
-		if m == method {
-			continue
-		}
-
-		if rs, ok := r.irregularRoutes[m]; ok {
-			for _, route := range rs {
-				if _, ok := route.match(path); ok {
-					mMap[m] = 1
-				}
-			}
 		}
 	}
 
