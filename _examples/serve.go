@@ -1,14 +1,14 @@
 package main
 
 import (
-	"github.com/gookit/sux"
-	"net/http"
-	"github.com/gookit/sux/handlers"
 	"fmt"
-	"net/url"
-	"net/http/httputil"
-	"time"
+	"github.com/gookit/sux"
+	"github.com/gookit/sux/handlers"
 	"log"
+	"net/http"
+	"net/http/httputil"
+	"net/url"
+	"time"
 )
 
 // go run ./_examples/serve.go
