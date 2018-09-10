@@ -27,7 +27,7 @@ func TestSomeMiddleware(t *testing.T) {
 	art.Equal(200, w.Code)
 
 	// ignore /favicon.ico request
-	r.GET("/favicon.ico", func(c *sux.Context) {}, SkipFavIcon())
+	r.GET("/favicon.ico", func(c *sux.Context) {}, IgnoreFavIcon())
 	w = mockRequest(r, "GET", "/favicon.ico", nil)
 	art.Equal(204, w.Code)
 
@@ -37,7 +37,34 @@ func TestSomeMiddleware(t *testing.T) {
 	}, PanicsHandler())
 	w = mockRequest(r, "GET", "/panic", nil)
 	art.Equal(500, w.Code)
+}
 
+func TestHTTPBasicAuth(t *testing.T) {
+	r := sux.New()
+	is := assert.New(t)
+
+	// basic auth
+	r.GET("/auth", func(c *sux.Context) {
+		c.WriteString("hello")
+	}, HTTPBasicAuth(map[string]string{"test": "123"}))
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/auth", nil)
+	r.ServeHTTP(w, req)
+	is.Equal(401, w.Code)
+
+	req, _ = http.NewRequest("GET", "/auth", nil)
+	req.SetBasicAuth("test", "123err")
+	w = httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	is.Equal(403, w.Code)
+
+	req, _ = http.NewRequest("GET", "/auth", nil)
+	req.SetBasicAuth("test", "123")
+	w = httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	is.Equal(200, w.Code)
+	is.Equal("hello", w.Body.String())
 }
 
 func TestRequestLogger(t *testing.T) {

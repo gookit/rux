@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-// go run ./_examples/serve.go
+// go run ./_examples/serve/serve.go
 func main() {
 	// open debug
 	sux.Debug(true)
@@ -34,7 +34,9 @@ func main() {
 
 	r.GET("/", func(c *sux.Context) {
 		c.Text(200, "hello " + c.URL().Path)
-	})
+	}).Use(handlers.HTTPBasicAuth(map[string]string{
+		// "test": "123",
+	}))
 	r.GET("/routes", handlers.DumpRoutesHandler())
 	r.GET("/about[.html]", defHandle)
 	r.GET("/hi-{name}", defHandle)

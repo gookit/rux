@@ -92,8 +92,13 @@ func (c *Context) AbortThen() *Context {
 }
 
 // AbortWithStatus calls `Abort()` and writes the headers with the specified status code.
-func (c *Context) AbortWithStatus(code int) {
-	c.Resp.WriteHeader(code)
+func (c *Context) AbortWithStatus(code int, msg ...string) {
+	if len(msg) == 0 {
+		c.Resp.WriteHeader(code)
+	} else {
+		http.Error(c.Resp, msg[0], code)
+	}
+
 	c.Abort()
 }
 
