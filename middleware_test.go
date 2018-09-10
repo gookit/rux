@@ -74,7 +74,6 @@ func TestRouteMiddleware(t *testing.T) {
 
 func TestContext_Abort(t *testing.T) {
 	art := assert.New(t)
-
 	r := New()
 
 	// use middleware, will termination execution early by Abort()
@@ -110,8 +109,28 @@ func TestContext_Abort(t *testing.T) {
 	})
 	// Call sequence: middle 1
 	w = mockRequest(r, GET, "/abort1", nil)
+	// body: <a href="/other">Found</a>.\n\naA
 	art.NotEqual("aA", w.Body.String())
 	art.Equal(302, w.Code)
+
+	// use middleware, will termination execution early by AbortWithStatus()
+	r.GET("/abort2", func(c *Context) { // Will not execute
+		c.WriteString("-O-")
+	}, func(c *Context) {
+		// Will abort at the end of this middleware run
+		c.AbortWithStatus(404)
+		c.WriteString("a")
+		// c.Next()
+		c.WriteString("A")
+	}, func(c *Context) { // Will not execute
+		c.WriteString("b")
+		c.Next()
+		c.WriteString("B")
+	})
+	// Call sequence: middle 1
+	w = mockRequest(r, GET, "/abort2", nil)
+	art.Equal("aA", w.Body.String())
+	art.Equal(404, w.Code)
 }
 
 func TestGlobalMiddleware(t *testing.T) {

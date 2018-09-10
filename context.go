@@ -102,7 +102,7 @@ func (c *Context) AbortWithStatus(code int, msg ...string) {
 	c.Abort()
 }
 
-// Next run next handler
+// Next processing, run all handlers
 func (c *Context) Next() {
 	c.index++
 	s := int8(len(c.handlers))
@@ -283,11 +283,11 @@ func (c *Context) PostParams(key string) ([]string, bool) {
 	return []string{}, false
 }
 
-// ParseMultipartForm parse multipart forms
-// tips:
-// 		c.Req.PostForm = POST(PUT,PATCH) body data
-// 		c.Req.Form = c.Req.PostForm + GET queries data
-// 		c.Req.MultipartForm = uploaded files data + other body fields data(will append to Req.Form and Req.PostForm)
+// ParseMultipartForm parse multipart forms.
+// Tips:
+// 	c.Req.PostForm = POST(PUT,PATCH) body data
+// 	c.Req.Form = c.Req.PostForm + GET queries data
+// 	c.Req.MultipartForm = uploaded files data + other body fields data(will append to Req.Form and Req.PostForm)
 func (c *Context) ParseMultipartForm(maxMemory ...int) error {
 	max := defaultMaxMemory
 	if len(maxMemory) > 0 {
@@ -517,27 +517,30 @@ func (c *Context) FileContent(file string, names ...string) {
 	}
 	defer f.Close()
 
-	c.setRawContentHeader()
+	c.setRawContentHeader(false)
 	http.ServeContent(c.Resp, c.Req, name, time.Now(), f)
 }
 
-// Attachment a file
+// Attachment a file to response.
+// Usage:
+// 	c.Attachment("path/to/some.zip", "new-name.zip")
 func (c *Context) Attachment(srcFile, outName string) {
 	c.dispositionContent(http.StatusOK, outName, false)
 	c.FileContent(srcFile)
 }
 
-// Inline file content
+// Inline file content.
+// Usage:
+// 	c.Inline("testdata/site.md", "new-name.md")
 func (c *Context) Inline(srcFile, outName string) {
 	c.dispositionContent(http.StatusOK, outName, true)
 	c.FileContent(srcFile)
 }
 
 // Binary serve data as Binary response.
-// usage:
-// 		var reader io.Reader
-// 		in, _ = os.Open("./README.md")
-// 		r.Binary(http.StatusOK, in, "readme.md", true)
+// Usage:
+// 	in, _ := os.Open("./README.md")
+// 	r.Binary(http.StatusOK, in, "readme.md", true)
 func (c *Context) Binary(status int, in io.ReadSeeker, outName string, inline bool) error {
 	c.dispositionContent(http.StatusOK, outName, true)
 
@@ -557,9 +560,13 @@ func (c *Context) dispositionContent(status int, outName string, inline bool) {
 	c.Resp.WriteHeader(status)
 }
 
-func (c *Context) setRawContentHeader() {
+func (c *Context) setRawContentHeader(addType bool) {
 	c.Resp.Header().Set("Content-Description", "Raw content")
-	c.Resp.Header().Set("Content-Type", "text/plain")
+
+	if addType {
+		c.Resp.Header().Set("Content-Type", "text/plain")
+	}
+
 	c.Resp.Header().Set("Expires", "0")
 	c.Resp.Header().Set("Cache-Control", "must-revalidate")
 	c.Resp.Header().Set("Pragma", "public")

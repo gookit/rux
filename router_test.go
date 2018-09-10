@@ -116,7 +116,7 @@ func TestAddRoute(t *testing.T) {
 	r.DELETE("/delete", emptyHandler)
 	r.CONNECT("/connect", emptyHandler)
 
-	for _, m := range anyMethods {
+	for _, m := range AnyMethods() {
 		ret = r.Match(m, "/"+strings.ToLower(m))
 		art.Equal(Found, ret.Status)
 	}

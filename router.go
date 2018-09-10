@@ -50,6 +50,11 @@ func IsDebug() bool {
 	return debug
 }
 
+// AnyMethods get
+func AnyMethods() []string {
+	return anyMethods
+}
+
 /*************************************************************
  * Router definition
  *************************************************************/

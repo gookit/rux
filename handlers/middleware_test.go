@@ -73,13 +73,15 @@ func TestRequestLogger(t *testing.T) {
 
 	// log req
 	rewriteStdout()
-	r.GET("/req-log", func(c *sux.Context) {
+	r.Any("/req-log", func(c *sux.Context) {
 		c.Text(200, "hello")
 	}, RequestLogger())
 
-	w := mockRequest(r, "GET", "/req-log", nil)
-	art.Equal(200, w.Code)
-	art.Equal("hello", w.Body.String())
+	for _, m := range sux.AnyMethods() {
+		w := mockRequest(r, m, "/req-log", nil)
+		art.Equal(200, w.Code)
+		art.Equal("hello", w.Body.String())
+	}
 
 	out := restoreStdout()
 	art.Contains(out, "/req-log")
@@ -90,7 +92,7 @@ func TestRequestLogger(t *testing.T) {
 		c.WriteString("hello")
 	}, RequestLogger())
 
-	w = mockRequest(r, "GET", "/status", nil)
+	w := mockRequest(r, "GET", "/status", nil)
 	art.Equal(200, w.Code)
 	art.Equal("hello", w.Body.String())
 

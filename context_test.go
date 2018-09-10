@@ -2,12 +2,12 @@ package sux
 
 import (
 	"bytes"
-	"fmt"
 	"github.com/stretchr/testify/assert"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 )
 
@@ -56,7 +56,7 @@ func TestContext_Query(t *testing.T) {
 	art.Len(ss, 2)
 	vs := c.QueryValues()
 	art.Len(vs, 3)
-	fmt.Println(vs)
+	// fmt.Println(vs)
 
 	art.Equal("", c.Post("page"))
 	art.Equal("1", c.Post("page", "1"))
@@ -104,6 +104,7 @@ func TestContext_FormFile(t *testing.T) {
 
 	assert.NoError(t, c.SaveFile(f, "testdata/test.txt"))
 	assert.NoError(t, c.UploadFile("file", "testdata/test.txt"))
+	assert.Error(t, c.UploadFile("no-exist", "testdata/test.txt"))
 }
 
 func TestContext_SaveFile(t *testing.T) {
@@ -119,4 +120,77 @@ func TestContext_SaveFile(t *testing.T) {
 		Filename: "file",
 	}
 	assert.Error(t, c.SaveFile(f, "testdata/test.txt"))
+}
+
+func TestContext_FileContent(t *testing.T) {
+	is := assert.New(t)
+
+	c := mockContext("GET", "/site.md", nil, nil)
+	c.FileContent("testdata/site.md", "new-name.md")
+
+	w := c.Resp.(*httptest.ResponseRecorder)
+	is.Equal(200, w.Code)
+	ss, ok := w.Header()["Content-Type"]
+	is.True(ok)
+	is.Contains(ss[0], "text/plain")
+	is.Equal("# readme", w.Body.String())
+
+	c = mockContext("GET", "/site.md", nil, nil)
+	c.FileContent("testdata/not-exist.md")
+	w = c.Resp.(*httptest.ResponseRecorder)
+	is.Equal(500, w.Code)
+	is.Equal("Internal Server Error\n", w.Body.String())
+}
+
+func TestContext_Attachment(t *testing.T) {
+	is := assert.New(t)
+
+	c := mockContext("GET", "/site.md", nil, nil)
+	c.Attachment("testdata/site.md", "new-name.md")
+
+	w := c.Resp.(*httptest.ResponseRecorder)
+	is.Equal(200, w.Code)
+	ss, ok := w.Header()["Content-Type"]
+	is.True(ok)
+	is.Equal(ss[0], "application/octet-stream")
+	ss, ok = w.Header()["Content-Disposition"]
+	is.True(ok)
+	is.Equal(ss[0], "attachment; filename=new-name.md")
+	is.Equal("# readme", w.Body.String())
+}
+
+func TestContext_Inline(t *testing.T) {
+	is := assert.New(t)
+
+	// Inline
+	c := mockContext("GET", "/site.md", nil, nil)
+	c.Inline("testdata/site.md", "new-name.md")
+
+	w := c.Resp.(*httptest.ResponseRecorder)
+	is.Equal(200, w.Code)
+	ss, ok := w.Header()["Content-Type"]
+	is.True(ok)
+	is.Equal(ss[0], "application/octet-stream")
+	ss, ok = w.Header()["Content-Disposition"]
+	is.True(ok)
+	is.Equal(ss[0], "inline; filename=new-name.md")
+	is.Equal("# readme", w.Body.String())
+}
+
+func TestContext_Binary(t *testing.T) {
+	is := assert.New(t)
+	c := mockContext("GET", "/site.md", nil, nil)
+
+	in, _ := os.Open("testdata/site.md")
+	c.Binary(200, in, "new-name.md", true)
+
+	w := c.Resp.(*httptest.ResponseRecorder)
+	is.Equal(200, w.Code)
+	ss, ok := w.Header()["Content-Type"]
+	is.True(ok)
+	is.Equal(ss[0], "application/octet-stream")
+	ss, ok = w.Header()["Content-Disposition"]
+	is.True(ok)
+	is.Equal(ss[0], "inline; filename=new-name.md")
+	is.Equal("# readme", w.Body.String())
 }
