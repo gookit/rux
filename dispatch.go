@@ -53,9 +53,9 @@ func (r *Router) ListenUnix(file string) (err error) {
 // WrapHttpHandlers apply some pre http handlers for the router.
 // usage:
 // 	import "github.com/gookit/sux/handlers"
-//	r := sux.New()
+// 	r := sux.New()
 //  // ... add routes
-//	handler := r.WrapHttpHandlers(handlers.HTTPMethodOverrideHandler)
+// 	handler := r.WrapHttpHandlers(handlers.HTTPMethodOverrideHandler)
 // 	http.ListenAndServe(":8080", handler)
 func (r *Router) WrapHttpHandlers(preHandlers ...func(h http.Handler) http.Handler) http.Handler {
 	var wrapped http.Handler
@@ -115,7 +115,6 @@ func (r *Router) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 	// get new context
 	ctx := r.pool.Get().(*Context)
-	ctx.Reset()
 	ctx.Init(res, req)
 	ctx.Params = result.Params
 
@@ -133,7 +132,6 @@ func (r *Router) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 		// add allowed methods to context
 		ctx.Set(CTXAllowedMethods, result.AllowedMethods)
-
 		handlers = r.noAllowed
 	}
 
@@ -142,13 +140,14 @@ func (r *Router) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		handlers = append(r.handlers, handlers...)
 	}
 
+	// add handlers
 	ctx.SetHandlers(handlers)
 
-	// processing
-	ctx.Next()
+	ctx.Next()  // handle processing
+	ctx.Reset() // reset data
 	// ctx.Resp.WriteHeaderNow()
 
-	// release
+	// release data
 	r.pool.Put(ctx)
 	result = nil
 }
