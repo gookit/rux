@@ -50,7 +50,6 @@ func getGlobalVar(name, def string) string {
 // String all routes to string
 func (r *Router) String() string {
 	buf := new(bytes.Buffer)
-
 	fmt.Fprintf(buf, "Routes Count: %d\n", r.counter)
 
 	fmt.Fprint(buf, "Stable(fixed):\n")

@@ -41,11 +41,11 @@ func (a *aStr) append(s string) {
 }
 
 func TestRouterListen(t *testing.T) {
-	art := assert.New(t)
+	is := assert.New(t)
 	r := New()
 
 	// multi params
-	art.Panics(func() {
+	is.Panics(func() {
 		r.Listen(":8080", "9090")
 	})
 
@@ -53,19 +53,21 @@ func TestRouterListen(t *testing.T) {
 		return
 	}
 
+	// httptest.NewServer()
+
 	discardStdout()
-	art.Error(r.Listen("invalid]"))
-	art.Error(r.Listen(":invalid]"))
-	art.Error(r.Listen("127.0.0.1:invalid]"))
-	art.Error(r.ListenTLS("invalid]", "", ""))
-	art.Error(r.ListenUnix(""))
+	is.Error(r.Listen("invalid]"))
+	is.Error(r.Listen(":invalid]"))
+	is.Error(r.Listen("127.0.0.1:invalid]"))
+	is.Error(r.ListenTLS("invalid]", "", ""))
+	is.Error(r.ListenUnix(""))
 	os.Setenv("PORT", "invalid]")
-	art.Error(r.Listen())
+	is.Error(r.Listen())
 	restoreStdout()
 }
 
 func TestRouter_ServeHTTP(t *testing.T) {
-	art := assert.New(t)
+	is := assert.New(t)
 
 	r := New()
 	s := &aStr{}
@@ -73,24 +75,24 @@ func TestRouter_ServeHTTP(t *testing.T) {
 	// simple
 	r.GET("/", func(c *Context) {
 		c.WriteString("ok")
-		art.Equal(c.URL().Path, "/")
+		is.Equal(c.URL().Path, "/")
 	})
 	w := mockRequest(r, GET, "/", nil)
-	art.Equal("ok", w.Body.String())
+	is.Equal("ok", w.Body.String())
 
 	// use Params
 	r.GET("/users/{id}", func(c *Context) {
 		s.set("id:" + c.Param("id"))
 	})
 	mockRequest(r, GET, "/users/23", nil)
-	art.Equal("id:23", s.str)
+	is.Equal("id:23", s.str)
 	mockRequest(r, GET, "/users/tom", nil)
-	art.Equal("id:tom", s.str)
+	is.Equal("id:tom", s.str)
 
 	// not exist
 	s.reset()
 	mockRequest(r, GET, "/users", nil)
-	art.Equal("", s.str)
+	is.Equal("", s.str)
 
 	// receive input data
 	r.POST("/users", func(c *Context) {
@@ -103,29 +105,29 @@ func TestRouter_ServeHTTP(t *testing.T) {
 		}
 
 		n := c.Query("no-key", "defVal")
-		art.Equal("defVal", n)
+		is.Equal("defVal", n)
 	})
 	s.reset()
 	mockRequest(r, POST, "/users", &md{B: "data"})
-	art.Equal("body:data", s.str)
+	is.Equal("body:data", s.str)
 	s.reset()
 	w = mockRequest(r, POST, "/users?page=2", &md{B: "data"})
-	art.Equal("body:data,page=2", s.str)
-	art.Equal(200, w.Code)
+	is.Equal("body:data,page=2", s.str)
+	is.Equal(200, w.Code)
 
 	// no handler for NotFound
 	s.reset()
 	w = mockRequest(r, GET, "/not-exist", nil)
-	art.Equal("", s.str)
-	art.Equal(404, w.Code)
+	is.Equal("", s.str)
+	is.Equal(404, w.Code)
 
 	// add not found handler
 	r.NotFound(func(c *Context) {
 		s.set("not-found")
 	})
 	w = mockRequest(r, GET, "/not-exist", nil)
-	art.Equal("not-found", s.str)
-	art.Equal(200, w.Code)
+	is.Equal("not-found", s.str)
+	is.Equal(200, w.Code)
 
 	// enable handle method not allowed
 	r = New(HandleMethodNotAllowed)
@@ -134,13 +136,13 @@ func TestRouter_ServeHTTP(t *testing.T) {
 	// no handler for NotAllowed
 	s.reset()
 	w = mockRequest(r, POST, "/users/21", nil)
-	art.Equal("", s.str)
-	art.Equal(405, w.Code)
-	art.Contains(w.Header().Get("allow"), "GET")
+	is.Equal("", s.str)
+	is.Equal(405, w.Code)
+	is.Contains(w.Header().Get("allow"), "GET")
 
 	// but allow OPTIONS request
 	w = mockRequest(r, OPTIONS, "/users/21", nil)
-	art.Equal(200, w.Code)
+	is.Equal(200, w.Code)
 
 	// add handler
 	r.NotAllowed(func(c *Context) {
@@ -148,16 +150,16 @@ func TestRouter_ServeHTTP(t *testing.T) {
 	})
 	s.reset()
 	mockRequest(r, POST, "/users/23", nil)
-	art.Equal("not-allowed", s.str)
+	is.Equal("not-allowed", s.str)
 
 	s.reset()
 	mockRequest(r, OPTIONS, "/users/23", nil)
-	art.Equal("not-allowed", s.str)
+	is.Equal("not-allowed", s.str)
 }
 
 func TestRouter_WrapHttpHandlers(t *testing.T) {
 	r := New()
-	art := assert.New(t)
+	is := assert.New(t)
 
 	r.GET("/", func(c *Context) {
 		c.WriteString("-O-")
@@ -182,24 +184,24 @@ func TestRouter_WrapHttpHandlers(t *testing.T) {
 
 	h := r.WrapHTTPHandlers(gh, gh1)
 	w := mockRequest(h, "GET", "/", nil)
-	art.Equal(503, w.Code)
-	art.Equal("ab-O-cd", w.Body.String())
+	is.Equal(503, w.Code)
+	is.Equal("ab-O-cd", w.Body.String())
 }
 
 func TestContext(t *testing.T) {
-	art := assert.New(t)
+	is := assert.New(t)
 	r := New()
 
 	route := r.GET("/ctx", namedHandler) // main handler
 	route.Use(func(c *Context) {         // middle 1
 		// -> STEP 1:
-		art.NotEmpty(c.Handler())
-		art.NotEmpty(c.Router())
-		art.NotEmpty(c.Copy())
-		art.False(c.IsWebSocket())
-		art.False(c.IsAjax())
-		art.True(c.IsMethod("GET"))
-		art.Equal("github.com/gookit/sux.namedHandler", c.HandlerName())
+		is.NotEmpty(c.Handler())
+		is.NotEmpty(c.Router())
+		is.NotEmpty(c.Copy())
+		is.False(c.IsWebSocket())
+		is.False(c.IsAjax())
+		is.True(c.IsMethod("GET"))
+		is.Equal("github.com/gookit/sux.namedHandler", c.HandlerName())
 		// set a new context data
 		c.Set("newKey", "val")
 
@@ -207,19 +209,19 @@ func TestContext(t *testing.T) {
 
 		// STEP 4 ->:
 		name, _ := c.Get("name")
-		art.Equal("namedHandler1", name.(string))
+		is.Equal("namedHandler1", name.(string))
 	}, func(c *Context) { // middle 2
 		// -> STEP 2:
 		_, ok := c.Data()["newKey"]
-		art.True(ok)
-		art.Nil(c.Err())
-		art.Equal("val", c.MustGet("newKey").(string))
-		art.Equal("val", c.Value("newKey").(string))
+		is.True(ok)
+		is.Nil(c.Err())
+		is.Equal("val", c.MustGet("newKey").(string))
+		is.Equal("val", c.Value("newKey").(string))
 
 		c.Next()
 
 		// STEP 3 ->:
-		art.Equal("namedHandler", c.MustGet("name").(string))
+		is.Equal("namedHandler", c.MustGet("name").(string))
 		c.Set("name", "namedHandler1") // change value
 	})
 
@@ -227,7 +229,7 @@ func TestContext(t *testing.T) {
 	mockRequest(r, GET, "/ctx", nil)
 
 	r.GET("/ws", func(c *Context) {
-		art.True(c.IsWebSocket())
+		is.True(c.IsWebSocket())
 	})
 	mockRequest(r, GET, "/ws", &md{H: m{
 		"Connection": "upgrade",
@@ -236,7 +238,7 @@ func TestContext(t *testing.T) {
 }
 
 func TestContext_ClientIP(t *testing.T) {
-	art := assert.New(t)
+	is := assert.New(t)
 	r := New()
 
 	uri := "/ClientIP"
@@ -244,36 +246,36 @@ func TestContext_ClientIP(t *testing.T) {
 		c.WriteString(c.ClientIP())
 	})
 	w := mockRequest(r, GET, uri, &md{H: m{"X-Forwarded-For": "127.0.0.1"}})
-	art.Equal(200, w.Code)
-	art.Equal("127.0.0.1", w.Body.String())
+	is.Equal(200, w.Code)
+	is.Equal("127.0.0.1", w.Body.String())
 
 	uri = "/ClientIP1"
 	r.GET(uri, func(c *Context) {
 		c.WriteString(c.ClientIP())
 	})
 	w = mockRequest(r, GET, uri, &md{H: m{"X-Forwarded-For": "127.0.0.2,localhost"}})
-	art.Equal(200, w.Code)
-	art.Equal("127.0.0.2", w.Body.String())
+	is.Equal(200, w.Code)
+	is.Equal("127.0.0.2", w.Body.String())
 
 	uri = "/ClientIP2"
 	r.GET(uri, func(c *Context) {
 		c.WriteString(c.ClientIP())
 	})
 	w = mockRequest(r, GET, uri, &md{H: m{"X-Real-Ip": "127.0.0.3"}})
-	art.Equal(200, w.Code)
-	art.Equal("127.0.0.3", w.Body.String())
+	is.Equal(200, w.Code)
+	is.Equal("127.0.0.3", w.Body.String())
 
 	uri = "/ClientIP3"
 	r.GET(uri, func(c *Context) {
 		c.WriteString(c.ClientIP())
 	})
 	w = mockRequest(r, GET, uri, &md{H: m{}})
-	art.Equal(200, w.Code)
-	art.Equal("", w.Body.String())
+	is.Equal(200, w.Code)
+	is.Equal("", w.Body.String())
 }
 
 func TestContext_Write(t *testing.T) {
-	art := assert.New(t)
+	is := assert.New(t)
 	r := New()
 
 	uri := "/Write"
@@ -281,80 +283,80 @@ func TestContext_Write(t *testing.T) {
 		c.Write([]byte("hello"))
 	})
 	w := mockRequest(r, GET, uri, nil)
-	art.Equal(200, w.Code)
-	art.Equal("hello", w.Body.String())
+	is.Equal(200, w.Code)
+	is.Equal("hello", w.Body.String())
 
 	uri = "/WriteString"
 	r.GET(uri, func(c *Context) {
 		c.WriteString("hello")
 	})
 	w = mockRequest(r, GET, uri, nil)
-	art.Equal(200, w.Code)
-	art.Equal("hello", w.Body.String())
+	is.Equal(200, w.Code)
+	is.Equal("hello", w.Body.String())
 
 	uri = "/Text"
 	r.GET(uri, func(c *Context) {
 		c.Text(200, "hello")
 	})
 	w = mockRequest(r, GET, uri, nil)
-	art.Equal(200, w.Code)
-	art.Equal("hello", w.Body.String())
-	art.Equal("text/plain; charset=UTF-8", w.Header().Get("content-type"))
+	is.Equal(200, w.Code)
+	is.Equal("hello", w.Body.String())
+	is.Equal("text/plain; charset=UTF-8", w.Header().Get("content-type"))
 
 	uri = "/HTML"
 	r.GET(uri, func(c *Context) {
 		c.HTML(200, []byte("html"))
 	})
 	w = mockRequest(r, GET, uri, nil)
-	art.Equal(200, w.Code)
-	art.Equal("text/html; charset=UTF-8", w.Header().Get("content-type"))
-	art.Equal(`html`, w.Body.String())
+	is.Equal(200, w.Code)
+	is.Equal("text/html; charset=UTF-8", w.Header().Get("content-type"))
+	is.Equal(`html`, w.Body.String())
 
 	uri = "/JSON"
 	r.GET(uri, func(c *Context) {
 		c.JSON(200, M{"name": "inhere"})
 	})
 	w = mockRequest(r, GET, uri, nil)
-	art.Equal(200, w.Code)
-	art.Equal("application/json; charset=UTF-8", w.Header().Get("content-type"))
-	art.Equal(`{"name":"inhere"}`, w.Body.String())
+	is.Equal(200, w.Code)
+	is.Equal("application/json; charset=UTF-8", w.Header().Get("content-type"))
+	is.Equal(`{"name":"inhere"}`, w.Body.String())
 
 	uri = "/JSONBytes"
 	r.GET(uri, func(c *Context) {
 		c.JSONBytes(200, []byte(`{"name": "inhere"}`))
 	})
 	w = mockRequest(r, GET, uri, nil)
-	art.Equal(200, w.Code)
-	art.Equal("application/json; charset=UTF-8", w.Header().Get("content-type"))
-	art.Equal(`{"name": "inhere"}`, w.Body.String())
+	is.Equal(200, w.Code)
+	is.Equal("application/json; charset=UTF-8", w.Header().Get("content-type"))
+	is.Equal(`{"name": "inhere"}`, w.Body.String())
 
 	uri = "/NoContent"
 	r.GET(uri, func(c *Context) {
 		c.NoContent()
 	})
 	w = mockRequest(r, GET, uri, nil)
-	art.Equal(204, w.Code)
+	is.Equal(204, w.Code)
 
 	uri = "/HTTPError"
 	r.GET(uri, func(c *Context) {
 		c.HTTPError("error", 503)
 	})
 	w = mockRequest(r, GET, uri, nil)
-	art.Equal(503, w.Code)
-	art.Equal("error\n", w.Body.String())
+	is.Equal(503, w.Code)
+	is.Equal("error\n", w.Body.String())
 
 	uri = "/SetHeader"
 	r.GET(uri, func(c *Context) {
 		c.SetHeader("new-key", "val")
 	})
 	w = mockRequest(r, GET, uri, nil)
-	art.Equal(200, w.Code)
-	art.Equal("val", w.Header().Get("new-key"))
+	is.Equal(200, w.Code)
+	is.Equal("val", w.Header().Get("new-key"))
 
 	uri = "/SetStatus"
 	r.GET(uri, func(c *Context) {
 		c.SetStatus(504)
 	})
 	w = mockRequest(r, GET, uri, nil)
-	art.Equal(504, w.Code)
+	is.Equal(504, w.Code)
 }
