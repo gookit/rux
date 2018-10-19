@@ -3,7 +3,7 @@
 // Source code and other details for the project are available at GitHub:
 // 		https://github.com/gookit/sux
 //
-// usage please ref examples and README
+// Usage please ref examples and README
 package sux
 
 import (

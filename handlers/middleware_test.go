@@ -110,7 +110,7 @@ type md struct {
 	H m
 }
 
-// usage:
+// Usage:
 // 	handler := router.New()
 // 	res := mockRequest(handler, "GET", "/path", nil)
 // 	// with data
@@ -144,7 +144,7 @@ func mockRequest(h http.Handler, method, path string, data *md) *httptest.Respon
 
 var oldStdout, newReader *os.File
 
-// usage:
+// Usage:
 // rewriteStdout()
 // fmt.Println("Hello, playground")
 // msg := restoreStdout()

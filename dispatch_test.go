@@ -180,7 +180,7 @@ func TestRouter_WrapHttpHandlers(t *testing.T) {
 		})
 	}
 
-	h := r.WrapHttpHandlers(gh, gh1)
+	h := r.WrapHTTPHandlers(gh, gh1)
 	w := mockRequest(h, "GET", "/", nil)
 	art.Equal(503, w.Code)
 	art.Equal("ab-O-cd", w.Body.String())

@@ -74,7 +74,7 @@ type (
 	}
 )
 
-// usage:
+// Usage:
 // 	handler := router.New()
 // 	res := mockRequest(handler, "GET", "/path", nil)
 // 	// with data
@@ -124,7 +124,7 @@ func runRequest(B *testing.B, r *Router, method, path string) {
 
 var oldStdout *os.File
 
-// usage:
+// Usage:
 // discardStdout()
 // fmt.Println("Hello, playground")
 // restoreStdout()

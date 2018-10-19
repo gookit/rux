@@ -14,7 +14,7 @@ func ExampleHTTPMethodOverrideHandler() {
 	http.ListenAndServe(":8080", h)
 
 	// can also:
-	h1 := r.WrapHttpHandlers(HTTPMethodOverrideHandler)
+	h1 := r.WrapHTTPHandlers(HTTPMethodOverrideHandler)
 	http.ListenAndServe(":8080", h1)
 }
 

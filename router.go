@@ -387,42 +387,43 @@ func (r *Router) StaticFile(path, filePath string) {
 	})
 }
 
-// StaticHandle add a static asset file handle
+// StaticFunc add a static asset file handle
 func (r *Router) StaticFunc(path string, handler func(c *Context)) {
 	r.GET(path, handler)
 }
 
 // StaticFS add a file system handle
-func (r *Router) StaticFS(prefixUrl string, fs http.FileSystem) {
-	fsHandler := http.StripPrefix(prefixUrl, http.FileServer(fs))
+func (r *Router) StaticFS(prefixURL string, fs http.FileSystem) {
+	fsHandler := http.StripPrefix(prefixURL, http.FileServer(fs))
 
-	r.GET(prefixUrl+`/{file:.+}`, func(c *Context) {
+	r.GET(prefixURL+`/{file:.+}`, func(c *Context) {
 		fsHandler.ServeHTTP(c.Resp, c.Req)
 	})
 }
 
-// StaticHandle add a static asset file handle
-// usage:
-// 		r.StaticDir("/assets", "/static")
-// access GET /assets/css/site.css -> will find /static/css/site.css
-func (r *Router) StaticDir(prefixUrl string, fileDir string) {
-	fsHandler := http.StripPrefix(prefixUrl, http.FileServer(http.Dir(fileDir)))
+// StaticDir add a static asset file handle
+// Usage:
+// 	r.StaticDir("/assets", "/static")
+// 	// access GET /assets/css/site.css -> will find /static/css/site.css
+func (r *Router) StaticDir(prefixURL string, fileDir string) {
+	fsHandler := http.StripPrefix(prefixURL, http.FileServer(http.Dir(fileDir)))
 
-	r.GET(prefixUrl+`/{file:.+}`, func(c *Context) {
+	r.GET(prefixURL+`/{file:.+}`, func(c *Context) {
 		// c.Req.URL.Path = c.Param("file") // can also.
 		fsHandler.ServeHTTP(c.Resp, c.Req)
 	})
 }
 
 // StaticFiles static files from the given file system root. and allow limit extensions.
-// usage:
-//     router.ServeFiles("/src", "/var/www", "css|js|html")
+// Usage:
+// 	router.ServeFiles("/src", "/var/www", "css|js|html")
+//
 // Notice: if the rootDir is relation path, it is relative the server runtime dir.
-func (r *Router) StaticFiles(prefixUrl string, rootDir string, exts string) {
+func (r *Router) StaticFiles(prefixURL string, rootDir string, exts string) {
 	fsHandler := http.FileServer(http.Dir(rootDir))
 
 	// eg "/assets/(?:.+\.(?:css|js|html))"
-	r.GET(fmt.Sprintf(`%s/{file:.+\.(?:%s)}`, prefixUrl, exts), func(c *Context) {
+	r.GET(fmt.Sprintf(`%s/{file:.+\.(?:%s)}`, prefixURL, exts), func(c *Context) {
 		c.Req.URL.Path = c.Param("file")
 		fsHandler.ServeHTTP(c.Resp, c.Req)
 	})

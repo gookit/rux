@@ -22,15 +22,14 @@ func main() {
 		})
 	}
 
-	wrapped := WrapHttpHandlers(handler, mdl1, mdl2)
-
+	wrapped := WrapHTTPHandlers(handler, mdl1, mdl2)
 	http.ListenAndServe(":8080", wrapped)
 	// Output:
 	// ab-O-BA
 }
 
-// WrapHttpHandlers apply some pre http handlers for the main handler.
-func WrapHttpHandlers(mainHandler http.Handler, middleware ...func(h http.Handler) http.Handler) http.Handler {
+// WrapHTTPHandlers apply some pre http handlers for the main handler.
+func WrapHTTPHandlers(mainHandler http.Handler, middleware ...func(h http.Handler) http.Handler) http.Handler {
 	var wrapped http.Handler
 	max := len(middleware)
 	lst := make([]int, max)

@@ -50,14 +50,14 @@ func (r *Router) ListenUnix(file string) (err error) {
 	return
 }
 
-// WrapHttpHandlers apply some pre http handlers for the router.
-// usage:
+// WrapHTTPHandlers apply some pre http handlers for the router.
+// Usage:
 // 	import "github.com/gookit/sux/handlers"
 // 	r := sux.New()
 //  // ... add routes
-// 	handler := r.WrapHttpHandlers(handlers.HTTPMethodOverrideHandler)
+// 	handler := r.WrapHTTPHandlers(handlers.HTTPMethodOverrideHandler)
 // 	http.ListenAndServe(":8080", handler)
-func (r *Router) WrapHttpHandlers(preHandlers ...func(h http.Handler) http.Handler) http.Handler {
+func (r *Router) WrapHTTPHandlers(preHandlers ...func(h http.Handler) http.Handler) http.Handler {
 	var wrapped http.Handler
 	max := len(preHandlers)
 	lst := make([]int, max)

@@ -242,7 +242,7 @@ func TestGroupMiddleware(t *testing.T) {
 	art.Equal("zyxa-O-AXYZ", w.Body.String())
 }
 
-func TestWarpHttpHandler(t *testing.T) {
+func TestWrapHTTPHandler(t *testing.T) {
 	r := New()
 	art := assert.New(t)
 	gh := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -252,8 +252,8 @@ func TestWarpHttpHandler(t *testing.T) {
 	r.GET("/path", func(c *Context) {
 		c.WriteString("o")
 	}).Use(
-		WarpHttpHandler(gh),
-		WarpHttpHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		WrapHTTPHandler(gh),
+		WrapHTTPHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte("ll"))
 		})))
 	w := mockRequest(r, GET, "/path", nil)
@@ -262,8 +262,8 @@ func TestWarpHttpHandler(t *testing.T) {
 	r.GET("/path1", func(c *Context) {
 		c.WriteString("o")
 	}).Use(
-		WarpHttpHandlerFunc(gh),
-		WarpHttpHandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		WrapHTTPHandlerFunc(gh),
+		WrapHTTPHandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte("ll"))
 		}))
 	w = mockRequest(r, GET, "/path1", nil)

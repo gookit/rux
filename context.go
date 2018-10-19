@@ -133,7 +133,7 @@ func (c *Context) Copy() *Context {
 }
 
 // Set a value to context by key.
-// usage:
+// Usage:
 // 		c.Set("key", "value")
 // 		// ...
 // 		val := c.Get("key") // "value"
@@ -141,13 +141,13 @@ func (c *Context) Set(key string, val interface{}) {
 	c.data[key] = val
 }
 
-// Get a value from context
+// Get a value from context data
 func (c *Context) Get(key string) (v interface{}, ok bool) {
 	v, ok = c.data[key]
 	return
 }
 
-// Get a value from context
+// MustGet a value from context data
 func (c *Context) MustGet(key string) interface{} {
 	return c.data[key]
 }
@@ -269,7 +269,7 @@ func (c *Context) PostParam(key string) (string, bool) {
 	return "", false
 }
 
-// BodyParams return body values by key
+// PostParams return body values by key
 func (c *Context) PostParams(key string) ([]string, bool) {
 	// parse body data
 	req := c.Req
@@ -343,7 +343,7 @@ func (c *Context) ReqCtxValue(key interface{}) interface{} {
 }
 
 // WithReqCtxValue with request ctx Value.
-// usage:
+// Usage:
 // ctx.WithReqCtxValue()
 func (c *Context) WithReqCtxValue(key, val interface{}) {
 	r := c.Req

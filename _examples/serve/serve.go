@@ -30,7 +30,7 @@ func main() {
 		w.Header().Set("new-key", "val")
 	})
 
-	r.Use(handlers.RequestLogger(), sux.WarpHttpHandler(gh))
+	r.Use(handlers.RequestLogger(), sux.WrapHTTPHandler(gh))
 
 	r.GET("/", func(c *sux.Context) {
 		c.Text(200, "hello " + c.URL().Path)

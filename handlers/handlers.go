@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-// DumpRoutesHandler
+// DumpRoutesHandler dump all registered routes info
 func DumpRoutesHandler() sux.HandlerFunc {
 	return func(c *sux.Context) {
 		c.Text(200, c.Router().String())

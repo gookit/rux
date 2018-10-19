@@ -99,7 +99,7 @@ func main() {
 	    // do something ...
 	})
 	
-	// use middleware for the route
+	// add middleware for the route
 	route := r.GET("/middle", func(c *sux.Context) { // main handler
 		c.WriteString("-O-")
 	}, func(c *sux.Context) { // middle 1
@@ -109,7 +109,8 @@ func main() {
         // if call Abort(), will abort at the end of this middleware run
         // c.Abort() 
     })
-	// add by Use()
+	
+	// add more by Use()
 	route.Use(func(c *sux.Context) { // middle 2
 		c.WriteString("b")
 		c.Next()
@@ -125,16 +126,15 @@ func main() {
 - **Flow chart**:
 
 ```text
-        +----------------------------+
-        | middle 1                   |
-        |  +---------------------+   |
-        |  | middle 2            |   |
- start  |  |  +---------------+  |   | end
-------->|  |  |     main      |  |   |--->----
-        |  |  |    handler    |  |   |
-        |  |  |_______________|  |   |    
-        |  |_____________________|   |  
-        |____________________________|
+        +-----------------------------+
+        | middle 1                    |
+        |  +----------------------+   |
+        |  | middle 2             |   |
+ start  |  |  +----------------+  |   | end
+------->|  |  |  main handler  |  |   |--->----
+        |  |  |________________|  |   |    
+        |  |______________________|   |  
+        |_____________________________|
 ```
 
 > more please see [middleware_test.go](middleware_test.go) middleware tests
@@ -143,13 +143,14 @@ func main() {
 
 sux is support generic `http.Handler` interface middleware
 
-> You can use `sux.WarpHttpHandler()` convert `http.Handler` as `sux.HandlerFunc`
+> You can use `sux.WrapHTTPHandler()` convert `http.Handler` as `sux.HandlerFunc`
 
 ```go
 package main
 
 import (
 	"net/http"
+	
 	"github.com/gookit/sux"
 	// here we use gorilla/handlers, it provides some generic handlers.
 	"github.com/gorilla/handlers"
@@ -163,7 +164,7 @@ func main() {
 		w.Header().Set("new-key", "val")
 	})
 	
-	r.Use(sux.WarpHttpHandler(h0), sux.WarpHttpHandler(handlers.ProxyHeaders()))
+	r.Use(sux.WrapHTTPHandler(h0), sux.WrapHTTPHandler(handlers.ProxyHeaders()))
 	
 	r.GET("/", func(c *sux.Context) {
 		c.Text(200, "hello")
@@ -175,7 +176,7 @@ func main() {
 }
 ```
 
-## Multi domains
+## Multi Domains
 
 > code is ref from `julienschmidt/httprouter`
 
@@ -183,9 +184,9 @@ func main() {
 package main
 
 import (
+	"github.com/gookit/sux"
 	"log"
 	"net/http"
-	"github.com/gookit/sux"
 )
 
 type HostSwitch map[string]http.Handler
@@ -218,28 +219,7 @@ func main() {
 }
 ```
 
-## Other
-
-- run tests
-
-```bash
-go test -cover
-go test -bench .
-```
-
-- code format
-
-```bash
-go fmt ./...
-```
-
-- GoLint
-
-```bash
-golint
-```
-
-## Ref
+## Refer
 
 - https://github.com/gin-gonic/gin
 - https://github.com/gorilla/mux
@@ -248,4 +228,4 @@ golint
 
 ## License
 
-**MIT**
+**[MIT](LICENSE)**
