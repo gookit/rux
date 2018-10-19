@@ -402,7 +402,7 @@ func TestRouter_WithOptions(t *testing.T) {
 	// is.Equal(8 << 20, r.maxMultipisMemory)
 }
 
-func TestRouter_StaticAssets(t *testing.T) {
+func TestRouterStaticAssets(t *testing.T) {
 	r := New()
 	is := assert.New(t)
 
@@ -438,4 +438,13 @@ func TestRouter_StaticAssets(t *testing.T) {
 	is.Contains(w.Body.String(), "console.log")
 	w = mockRequest(r, "GET", "/assets/site.md", nil)
 	is.Equal(404, w.Code)
+
+	// StaticFunc
+	r.StaticFunc("/some/test.txt", func(c *Context) {
+		c.Text(200, "content")
+	})
+	w = mockRequest(r, "GET", "/some/test.txt", nil)
+	is.Equal(200, w.Code)
+	is.Equal("text/plain; charset=UTF-8", w.Header().Get("Content-Type"))
+	is.Contains(w.Body.String(), "content")
 }

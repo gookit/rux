@@ -65,7 +65,7 @@ type Route struct {
 	// middleware handlers list for the route
 	handlers HandlersChain
 
-	// some options data for the route
+	// Opts some options data for the route
 	Opts map[string]interface{}
 
 	// defaults
@@ -75,7 +75,7 @@ func newRoute(method, path string, handler HandlerFunc, handlers HandlersChain) 
 	return &Route{
 		path:   path,
 		method: method,
-
+		// handler
 		handler:  handler,
 		handlers: handlers,
 	}
@@ -134,10 +134,8 @@ func (r *Route) copyWithParams(ps Params) *Route {
 
 // String route info to string
 func (r *Route) String() string {
-	nuHandlers := len(r.handlers)
-
 	return fmt.Sprintf(
 		"%-7s %-25s --> %s (%d middleware)",
-		r.method, r.path, r.HandlerName(), nuHandlers,
+		r.method, r.path, r.HandlerName(), len(r.handlers),
 	)
 }

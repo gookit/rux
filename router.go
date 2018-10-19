@@ -392,7 +392,7 @@ func (r *Router) StaticFunc(path string, handler func(c *Context)) {
 	r.GET(path, handler)
 }
 
-// StaticFS add a file system handle
+// StaticFS add a file system handle.
 func (r *Router) StaticFS(prefixURL string, fs http.FileSystem) {
 	fsHandler := http.StripPrefix(prefixURL, http.FileServer(fs))
 
