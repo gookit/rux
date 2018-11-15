@@ -1,4 +1,4 @@
-package sux
+package rux
 
 import (
 	"fmt"
@@ -45,7 +45,7 @@ func Debug(val bool) {
 	debug = val
 }
 
-// IsDebug return sux is debug mode.
+// IsDebug return rux is debug mode.
 func IsDebug() bool {
 	return debug
 }
@@ -66,7 +66,7 @@ type methodRoutes map[string]routes
 
 // Router definition
 type Router struct {
-	// sux rux
+	// rux rux
 	name string
 	pool sync.Pool
 

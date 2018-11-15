@@ -1,4 +1,4 @@
-package sux
+package rux
 
 import (
 	"fmt"
@@ -97,7 +97,7 @@ func TestAddRoute(t *testing.T) {
 	is.NotEmpty(route.Handler())
 	is.Equal("/get", route.path)
 	// is.Equal(fmt.Sprint(*namedHandler), route.Handler())
-	is.Equal("github.com/gookit/sux.namedHandler", route.HandlerName())
+	is.Equal("github.com/gookit/rux.namedHandler", route.HandlerName())
 
 	ret := r.Match("GET", "/get")
 	is.Equal(Found, ret.Status)

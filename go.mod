@@ -1,4 +1,4 @@
-module github.com/gookit/sux
+module github.com/gookit/rux
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect

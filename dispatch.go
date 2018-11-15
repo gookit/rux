@@ -1,4 +1,4 @@
-package sux
+package rux
 
 import (
 	"fmt"
@@ -52,8 +52,8 @@ func (r *Router) ListenUnix(file string) (err error) {
 
 // WrapHTTPHandlers apply some pre http handlers for the router.
 // Usage:
-// 	import "github.com/gookit/sux/handlers"
-// 	r := sux.New()
+// 	import "github.com/gookit/rux/handlers"
+// 	r := rux.New()
 //  // ... add routes
 // 	handler := r.WrapHTTPHandlers(handlers.HTTPMethodOverrideHandler)
 // 	http.ListenAndServe(":8080", handler)

@@ -9,20 +9,20 @@ package main
 
 import (
         "encoding/json"
-        "github.com/gookit/sux"
+        "github.com/gookit/rux"
         "github.com/thoas/stats"
         "net/http"
 )
 
 func main() {
-	r := sux.New()
+	r := rux.New()
 	s := stats.New()
 
-	r.GET("/", func(c *sux.Context) {
+	r.GET("/", func(c *rux.Context) {
 		c.Text(200, "hello")
 	})
 	// add routes ...
-	r.GET("/stats", func(c *sux.Context) {
+	r.GET("/stats", func(c *rux.Context) {
 		bs, err := json.Marshal(s.Data())
         if err != nil {
         	c.HTTPError(err.Error(), http.StatusInternalServerError)

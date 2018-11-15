@@ -1,4 +1,4 @@
-package sux
+package rux
 
 import (
 	"regexp"

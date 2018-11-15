@@ -1,9 +1,9 @@
-# sux router
+# rux router
 
-[![GoDoc](https://godoc.org/github.com/gookit/sux?status.svg)](https://godoc.org/github.com/gookit/sux)
-[![Build Status](https://travis-ci.org/gookit/sux.svg?branch=master)](https://travis-ci.org/gookit/sux)
-[![Coverage Status](https://coveralls.io/repos/github/gookit/sux/badge.svg?branch=master)](https://coveralls.io/github/gookit/sux?branch=master)
-[![Go Report Card](https://goreportcard.com/badge/github.com/gookit/sux)](https://goreportcard.com/report/github.com/gookit/sux)
+[![GoDoc](https://godoc.org/github.com/gookit/rux?status.svg)](https://godoc.org/github.com/gookit/rux)
+[![Build Status](https://travis-ci.org/gookit/rux.svg?branch=master)](https://travis-ci.org/gookit/rux)
+[![Coverage Status](https://coveralls.io/repos/github/gookit/rux/badge.svg?branch=master)](https://coveralls.io/github/gookit/rux?branch=master)
+[![Go Report Card](https://goreportcard.com/badge/github.com/gookit/rux)](https://goreportcard.com/report/github.com/gookit/rux)
 
 Simple and fast request router for golang HTTP applications.
 
@@ -18,8 +18,8 @@ Simple and fast request router for golang HTTP applications.
 
 ## Godoc
 
-- [godoc for gopkg](https://godoc.org/gopkg.in/gookit/sux.v1)
-- [godoc for github](https://godoc.org/github.com/gookit/sux)
+- [godoc for gopkg](https://godoc.org/gopkg.in/gookit/rux.v1)
+- [godoc for github](https://godoc.org/github.com/gookit/rux)
 
 ## Quick start
 
@@ -27,11 +27,11 @@ Simple and fast request router for golang HTTP applications.
 package main
 
 import (
-	"github.com/gookit/sux"
+	"github.com/gookit/rux"
 )
 
 func main() {
-	r := sux.New()
+	r := rux.New()
 	
 	// Static Assets
 	// one file
@@ -43,23 +43,23 @@ func main() {
 
 	// Add Routes:
 	
-	r.GET("/", func(c *sux.Context) {
+	r.GET("/", func(c *rux.Context) {
 		c.Text(200, "hello")
 	})
-	r.GET("/hello/{name}", func(c *sux.Context) {
+	r.GET("/hello/{name}", func(c *rux.Context) {
 		c.Text(200, "hello " + c.Param("name"))
 	})
-	r.POST("/post", func(c *sux.Context) {
+	r.POST("/post", func(c *rux.Context) {
 		c.Text(200, "hello")
 	})
 	r.Group("/articles", func() {
-		r.GET("", func(c *sux.Context) {
+		r.GET("", func(c *rux.Context) {
 			c.Text(200, "view list")
 		})
-		r.POST("", func(c *sux.Context) {
+		r.POST("", func(c *rux.Context) {
 			c.Text(200, "create ok")
 		})
-		r.GET(`/{id:\d+}`, func(c *sux.Context) {
+		r.GET(`/{id:\d+}`, func(c *rux.Context) {
 			c.Text(200, "view detail, id: " + c.Param("id"))
 		})
 	})
@@ -73,7 +73,7 @@ func main() {
 
 ## Use Middleware
 
-sux support use middleware, allow:
+rux support use middleware, allow:
 
 - global middleware
 - group middleware
@@ -88,21 +88,21 @@ package main
 
 import (
 	"fmt"
-	"github.com/gookit/sux"
+	"github.com/gookit/rux"
 )
 
 func main() {
-	r := sux.New()
+	r := rux.New()
 	
 	// add global middleware
-	r.Use(func(c *sux.Context) {
+	r.Use(func(c *rux.Context) {
 	    // do something ...
 	})
 	
 	// add middleware for the route
-	route := r.GET("/middle", func(c *sux.Context) { // main handler
+	route := r.GET("/middle", func(c *rux.Context) { // main handler
 		c.WriteString("-O-")
-	}, func(c *sux.Context) { // middle 1
+	}, func(c *rux.Context) { // middle 1
         c.WriteString("a")
         c.Next() // Notice: call Next()
         c.WriteString("A")
@@ -111,7 +111,7 @@ func main() {
     })
 	
 	// add more by Use()
-	route.Use(func(c *sux.Context) { // middle 2
+	route.Use(func(c *rux.Context) { // middle 2
 		c.WriteString("b")
 		c.Next()
 		c.WriteString("B")
@@ -141,9 +141,9 @@ func main() {
 
 ## Use http.Handler
 
-sux is support generic `http.Handler` interface middleware
+rux is support generic `http.Handler` interface middleware
 
-> You can use `sux.WrapHTTPHandler()` convert `http.Handler` as `sux.HandlerFunc`
+> You can use `rux.WrapHTTPHandler()` convert `http.Handler` as `rux.HandlerFunc`
 
 ```go
 package main
@@ -151,22 +151,22 @@ package main
 import (
 	"net/http"
 	
-	"github.com/gookit/sux"
+	"github.com/gookit/rux"
 	// here we use gorilla/handlers, it provides some generic handlers.
 	"github.com/gorilla/handlers"
 )
 
 func main() {
-	r := sux.New()
+	r := rux.New()
 	
 	// create a simple generic http.Handler
 	h0 := http.HandlerFunc(func (w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("new-key", "val")
 	})
 	
-	r.Use(sux.WrapHTTPHandler(h0), sux.WrapHTTPHandler(handlers.ProxyHeaders()))
+	r.Use(rux.WrapHTTPHandler(h0), rux.WrapHTTPHandler(handlers.ProxyHeaders()))
 	
-	r.GET("/", func(c *sux.Context) {
+	r.GET("/", func(c *rux.Context) {
 		c.Text(200, "hello")
 	})
 	// add routes ...
@@ -184,7 +184,7 @@ func main() {
 package main
 
 import (
-	"github.com/gookit/sux"
+	"github.com/gookit/rux"
 	"log"
 	"net/http"
 )
@@ -205,9 +205,9 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	// Initialize a router as usual
-	router := sux.New()
+	router := rux.New()
 	router.GET("/", Index)
-	router.GET("/hello/{name}", func(c *sux.Context) {})
+	router.GET("/hello/{name}", func(c *rux.Context) {})
 
 	// Make a new HostSwitch and insert the router (our http handler)
 	// for example.com and port 12345

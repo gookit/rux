@@ -1,4 +1,4 @@
-package sux
+package rux
 
 import (
 	"context"
@@ -187,7 +187,7 @@ func (c *Context) Error(err error) {
  *************************************************************/
 
 // Param returns the value of the URL param.
-// 		router.GET("/user/{id}", func(c *sux.Context) {
+// 		router.GET("/user/{id}", func(c *rux.Context) {
 // 			// a GET request to /user/john
 // 			id := c.Param("id") // id == "john"
 // 		})

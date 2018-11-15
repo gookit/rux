@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"github.com/gookit/sux"
+	"github.com/gookit/rux"
 	"github.com/stretchr/testify/assert"
 	"io"
 	"io/ioutil"
@@ -13,11 +13,11 @@ import (
 )
 
 func TestSomeMiddleware(t *testing.T) {
-	r := sux.New()
+	r := rux.New()
 	art := assert.New(t)
 
 	// add reqID to context
-	r.GET("/rid", func(c *sux.Context) {
+	r.GET("/rid", func(c *rux.Context) {
 		rid, ok := c.Get("reqID")
 		art.True(ok)
 		art.Len(rid.(string), 32)
@@ -27,12 +27,12 @@ func TestSomeMiddleware(t *testing.T) {
 	art.Equal(200, w.Code)
 
 	// ignore /favicon.ico request
-	r.GET("/favicon.ico", func(c *sux.Context) {}, IgnoreFavIcon())
+	r.GET("/favicon.ico", func(c *rux.Context) {}, IgnoreFavIcon())
 	w = mockRequest(r, "GET", "/favicon.ico", nil)
 	art.Equal(204, w.Code)
 
 	// catch panic
-	r.GET("/panic", func(c *sux.Context) {
+	r.GET("/panic", func(c *rux.Context) {
 		panic("error msg")
 	}, PanicsHandler())
 	w = mockRequest(r, "GET", "/panic", nil)
@@ -40,11 +40,11 @@ func TestSomeMiddleware(t *testing.T) {
 }
 
 func TestHTTPBasicAuth(t *testing.T) {
-	r := sux.New()
+	r := rux.New()
 	is := assert.New(t)
 
 	// basic auth
-	r.GET("/auth", func(c *sux.Context) {
+	r.GET("/auth", func(c *rux.Context) {
 		c.WriteString("hello")
 	}, HTTPBasicAuth(map[string]string{"test": "123"}))
 
@@ -68,16 +68,16 @@ func TestHTTPBasicAuth(t *testing.T) {
 }
 
 func TestRequestLogger(t *testing.T) {
-	r := sux.New()
+	r := rux.New()
 	art := assert.New(t)
 
 	// log req
 	rewriteStdout()
-	r.Any("/req-log", func(c *sux.Context) {
+	r.Any("/req-log", func(c *rux.Context) {
 		c.Text(200, "hello")
 	}, RequestLogger())
 
-	for _, m := range sux.AnyMethods() {
+	for _, m := range rux.AnyMethods() {
 		w := mockRequest(r, m, "/req-log", nil)
 		art.Equal(200, w.Code)
 		art.Equal("hello", w.Body.String())
@@ -88,7 +88,7 @@ func TestRequestLogger(t *testing.T) {
 
 	// skip log
 	rewriteStdout()
-	r.GET("/status", func(c *sux.Context) {
+	r.GET("/status", func(c *rux.Context) {
 		c.WriteString("hello")
 	}, RequestLogger())
 

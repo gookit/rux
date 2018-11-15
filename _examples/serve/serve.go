@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/gookit/sux"
-	"github.com/gookit/sux/handlers"
+	"github.com/gookit/rux"
+	"github.com/gookit/rux/handlers"
 	"log"
 	"net/http"
 	"net/http/httputil"
@@ -14,9 +14,9 @@ import (
 // go run ./_examples/serve/serve.go
 func main() {
 	// open debug
-	sux.Debug(true)
+	rux.Debug(true)
 
-	r := sux.New()
+	r := rux.New()
 
 	// one file
 	r.StaticFile("/site.js", "testdata/site.js")
@@ -30,9 +30,9 @@ func main() {
 		w.Header().Set("new-key", "val")
 	})
 
-	r.Use(handlers.RequestLogger(), sux.WrapHTTPHandler(gh))
+	r.Use(handlers.RequestLogger(), rux.WrapHTTPHandler(gh))
 
-	r.GET("/", func(c *sux.Context) {
+	r.GET("/", func(c *rux.Context) {
 		c.Text(200, "hello " + c.URL().Path)
 	}).Use(handlers.HTTPBasicAuth(map[string]string{
 		// "test": "123",
@@ -40,20 +40,20 @@ func main() {
 	r.GET("/routes", handlers.DumpRoutesHandler())
 	r.GET("/about[.html]", defHandle)
 	r.GET("/hi-{name}", defHandle)
-	r.GET("/users/{id}", func(c *sux.Context) {
+	r.GET("/users/{id}", func(c *rux.Context) {
 		c.Text(200, "hello " + c.URL().Path)
 	})
-	r.POST("/post", func(c *sux.Context) {
+	r.POST("/post", func(c *rux.Context) {
 		c.Text(200, "hello " + c.URL().Path)
 	})
 	r.Group("/articles", func() {
-		r.GET("", func(c *sux.Context) {
+		r.GET("", func(c *rux.Context) {
 			c.Text(200, "view list")
 		})
-		r.POST("", func(c *sux.Context) {
+		r.POST("", func(c *rux.Context) {
 			c.Text(200, "create ok")
 		})
-		r.GET(`/{id:\d+}`, func(c *sux.Context) {
+		r.GET(`/{id:\d+}`, func(c *rux.Context) {
 			c.Text(200, "view detail, id: " + c.Param("id"))
 		})
 	})
@@ -61,14 +61,14 @@ func main() {
 	// a simple proxy
 	// proxy := proxy("http://yzone.net/page/about-me")
 	pxy := newProxy("https://inhere.github.io/")
-	r.GET("/pxy", func(c *sux.Context) {
+	r.GET("/pxy", func(c *rux.Context) {
 		pxy.ServeHTTP(c.Resp, c.Req)
 	})
 
 	// use middleware for the route
-	route := r.GET("/middle", func(c *sux.Context) { // main handler
+	route := r.GET("/middle", func(c *rux.Context) { // main handler
 		c.WriteString("-O-")
-	}, func(c *sux.Context) { // middle 1
+	}, func(c *rux.Context) { // middle 1
 		c.WriteString("a")
 		c.Next() // Notice: call Next()
 		c.WriteString("A")
@@ -76,7 +76,7 @@ func main() {
 		// c.Abort()
 	})
 	// add by Use()
-	route.Use(func(c *sux.Context) { // middle 2
+	route.Use(func(c *rux.Context) { // middle 2
 		c.WriteString("b")
 		c.Next()
 		c.WriteString("B")
@@ -94,10 +94,10 @@ func main() {
 }
 
 func customServer() {
-	r := sux.New()
+	r := rux.New()
 
 	// add routes
-	r.GET("/", func(ctx *sux.Context) {
+	r.GET("/", func(ctx *rux.Context) {
 		ctx.WriteString("hello")
 	})
 
@@ -124,7 +124,7 @@ func newProxy(targetUrl string) *httputil.ReverseProxy {
 	return p
 }
 
-func defHandle(ctx *sux.Context) {
+func defHandle(ctx *rux.Context) {
 	ctx.WriteString("hello, in " + ctx.URL().Path)
 }
 
@@ -133,19 +133,19 @@ type SiteController struct {
 }
 
 // AddRoutes for the controller
-func (c *SiteController) AddRoutes(r *sux.Router) {
+func (c *SiteController) AddRoutes(r *rux.Router) {
 	r.GET("{id}", c.Get)
 	r.POST("", c.Post)
 }
 
 // Get action
-func (c *SiteController) Get(ctx *sux.Context) {
+func (c *SiteController) Get(ctx *rux.Context) {
 	ctx.WriteString("hello, in " + ctx.URL().Path)
 	ctx.WriteString("\n ok")
 }
 
 // Post action
-func (c *SiteController) Post(ctx *sux.Context) {
+func (c *SiteController) Post(ctx *rux.Context) {
 	ctx.WriteString("hello, in " + ctx.URL().Path)
 }
 
@@ -154,18 +154,18 @@ type BlogController struct {
 }
 
 // AddRoutes for the controller
-func (c *BlogController) AddRoutes(r *sux.Router) {
+func (c *BlogController) AddRoutes(r *rux.Router) {
 	r.GET("{id}", c.Get)
 	r.POST("", c.Post)
 }
 
 // Get action
-func (c *BlogController) Get(ctx *sux.Context) {
+func (c *BlogController) Get(ctx *rux.Context) {
 	ctx.WriteString("hello, in " + ctx.URL().Path)
 	ctx.WriteString("\nok")
 }
 
 // Post action
-func (c *BlogController) Post(ctx *sux.Context) {
+func (c *BlogController) Post(ctx *rux.Context) {
 	ctx.Text(200, "hello, in " + ctx.URL().Path)
 }

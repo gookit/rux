@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/gookit/sux"
+	"github.com/gookit/rux"
 	"math/rand"
 	"strings"
 	"time"
@@ -16,10 +16,10 @@ var (
 	percent = flag.Int("percent", 5, "the generate dynamic routes percentage. allow 1 - 10")
 )
 
-var r = sux.New()
+var r = rux.New()
 var alphaNum = []byte(`0123456789abcdefghijklmnopqrstuvwxyz`)
 var routes []map[string]string
-var emptyHandler = func(c *sux.Context) {}
+var emptyHandler = func(c *rux.Context) {}
 var (
 	times, number int
 	firstRoute, randRoute, lastRoute map[string]string
@@ -140,7 +140,7 @@ func collectRoutes() {
 	}
 }
 
-func matchRoute(times int, item map[string]string) (ok int, ret *sux.MatchResult) {
+func matchRoute(times int, item map[string]string) (ok int, ret *rux.MatchResult) {
 	ok = 0
 	path := item["p1"]
 

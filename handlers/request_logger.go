@@ -3,7 +3,7 @@ package handlers
 import (
 	"fmt"
 	"github.com/gookit/color"
-	"github.com/gookit/sux"
+	"github.com/gookit/rux"
 	"net/http"
 	"time"
 )
@@ -36,14 +36,14 @@ func (w *statusWriter) Write(b []byte) (int, error) {
 }
 
 // RequestLogger middleware
-func RequestLogger() sux.HandlerFunc {
+func RequestLogger() rux.HandlerFunc {
 	skip := map[string]int{
 		// "/": 1,
 		"/health": 1,
 		"/status": 1,
 	}
 
-	return func(c *sux.Context) {
+	return func(c *rux.Context) {
 		// start time
 		start := time.Now()
 
@@ -72,7 +72,7 @@ func RequestLogger() sux.HandlerFunc {
 		codeColor := colorForStatus(sw.Status())
 
 		fmt.Printf(
-			// 2006-01-02 15:04:05 [sux] GET /articles 200 10.0.0.1 "use-agent" 0.034ms
+			// 2006-01-02 15:04:05 [rux] GET /articles 200 10.0.0.1 "use-agent" 0.034ms
 			// `%s %s %s %d %s "%s" %sms` + "\n",
 			"%s %s %s [%s] %s %sms\n",
 			start.Format("2006/01/02 15:04:05"),

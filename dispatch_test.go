@@ -1,4 +1,4 @@
-package sux
+package rux
 
 import (
 	"fmt"
@@ -201,7 +201,7 @@ func TestContext(t *testing.T) {
 		is.False(c.IsWebSocket())
 		is.False(c.IsAjax())
 		is.True(c.IsMethod("GET"))
-		is.Equal("github.com/gookit/sux.namedHandler", c.HandlerName())
+		is.Equal("github.com/gookit/rux.namedHandler", c.HandlerName())
 		// set a new context data
 		c.Set("newKey", "val")
 

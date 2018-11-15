@@ -2,14 +2,14 @@ package handlers
 
 import (
 	"context"
-	"github.com/gookit/sux"
+	"github.com/gookit/rux"
 	"net/http"
 	"strings"
 )
 
 // DumpRoutesHandler dump all registered routes info
-func DumpRoutesHandler() sux.HandlerFunc {
-	return func(c *sux.Context) {
+func DumpRoutesHandler() rux.HandlerFunc {
+	return func(c *rux.Context) {
 		c.Text(200, c.Router().String())
 	}
 }

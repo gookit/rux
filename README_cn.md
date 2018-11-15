@@ -1,9 +1,9 @@
-# sux 路由器
+# rux 路由器
 
-[![GoDoc](https://godoc.org/github.com/gookit/sux?status.svg)](https://godoc.org/github.com/gookit/sux)
-[![Build Status](https://travis-ci.org/gookit/sux.svg?branch=master)](https://travis-ci.org/gookit/sux)
-[![Coverage Status](https://coveralls.io/repos/github/gookit/sux/badge.svg?branch=master)](https://coveralls.io/github/gookit/sux?branch=master)
-[![Go Report Card](https://goreportcard.com/badge/github.com/gookit/sux)](https://goreportcard.com/report/github.com/gookit/sux)
+[![GoDoc](https://godoc.org/github.com/gookit/rux?status.svg)](https://godoc.org/github.com/gookit/rux)
+[![Build Status](https://travis-ci.org/gookit/rux.svg?branch=master)](https://travis-ci.org/gookit/rux)
+[![Coverage Status](https://coveralls.io/repos/github/gookit/rux/badge.svg?branch=master)](https://coveralls.io/github/gookit/rux?branch=master)
+[![Go Report Card](https://goreportcard.com/badge/github.com/gookit/rux)](https://goreportcard.com/report/github.com/gookit/rux)
 
 简单且快速的 Go HTTP 请求路由器，支持中间件，兼容 http.Handler 接口。
 
@@ -18,8 +18,8 @@
 
 ## GoDoc
 
-- [godoc for gopkg](https://godoc.org/gopkg.in/gookit/sux.v1)
-- [godoc for github](https://godoc.org/github.com/gookit/sux)
+- [godoc for gopkg](https://godoc.org/gopkg.in/gookit/rux.v1)
+- [godoc for github](https://godoc.org/github.com/gookit/rux)
 
 ## 快速开始
 
@@ -27,11 +27,11 @@
 package main
 
 import (
-	"github.com/gookit/sux"
+	"github.com/gookit/rux"
 )
 
 func main() {
-	r := sux.New()
+	r := rux.New()
 	
 	// ===== 静态资源
 	// 单个文件
@@ -43,23 +43,23 @@ func main() {
 
 	// ===== 添加路由
 	
-	r.GET("/", func(c *sux.Context) {
+	r.GET("/", func(c *rux.Context) {
 		c.Text(200, "hello")
 	})
-	r.GET("/hello/{name}", func(c *sux.Context) {
+	r.GET("/hello/{name}", func(c *rux.Context) {
 		c.Text(200, "hello " + c.Param("name"))
 	})
-	r.POST("/post", func(c *sux.Context) {
+	r.POST("/post", func(c *rux.Context) {
 		c.Text(200, "hello")
 	})
 	r.Group("/articles", func() {
-		r.GET("", func(c *sux.Context) {
+		r.GET("", func(c *rux.Context) {
 			c.Text(200, "view list")
 		})
-		r.POST("", func(c *sux.Context) {
+		r.POST("", func(c *rux.Context) {
 			c.Text(200, "create ok")
 		})
-		r.GET(`/{id:\d+}`, func(c *sux.Context) {
+		r.GET(`/{id:\d+}`, func(c *rux.Context) {
 			c.Text(200, "view detail, id: " + c.Param("id"))
 		})
 	})
@@ -88,21 +88,21 @@ package main
 
 import (
 	"fmt"
-	"github.com/gookit/sux"
+	"github.com/gookit/rux"
 )
 
 func main() {
-	r := sux.New()
+	r := rux.New()
 	
 	// 添加一个全局中间件
-	r.Use(func(c *sux.Context) {
+	r.Use(func(c *rux.Context) {
 	    // do something ...
 	})
 	
 	// 使用中间件作为路由
-	route := r.GET("/middle", func(c *sux.Context) { // main handler
+	route := r.GET("/middle", func(c *rux.Context) { // main handler
 		c.WriteString("-O-")
-	}, func(c *sux.Context) { // middle 1
+	}, func(c *rux.Context) { // middle 1
         c.WriteString("a")
         c.Next() // Notice: call Next()
         c.WriteString("A")
@@ -110,7 +110,7 @@ func main() {
         // c.Abort() 
     })
 	// add by Use()
-	route.Use(func(c *sux.Context) { // middle 2
+	route.Use(func(c *rux.Context) { // middle 2
 		c.WriteString("b")
 		c.Next()
 		c.WriteString("B")
@@ -139,9 +139,9 @@ func main() {
 
 ## 使用`http.Handler`
 
-sux 支持通用的 `http.Handler` 接口中间件
+rux 支持通用的 `http.Handler` 接口中间件
 
-> 你可以使用 `sux.WrapHTTPHandler()` 转换 `http.Handler` 为 `sux.HandlerFunc`
+> 你可以使用 `rux.WrapHTTPHandler()` 转换 `http.Handler` 为 `rux.HandlerFunc`
 
 ```go
 package main
@@ -149,22 +149,22 @@ package main
 import (
 	"net/http"
 	
-	"github.com/gookit/sux"
+	"github.com/gookit/rux"
 	// 这里我们使用 gorilla/handlers，它提供了一些通用的中间件
 	"github.com/gorilla/handlers"
 )
 
 func main() {
-	r := sux.New()
+	r := rux.New()
 	
 	// create a simple generic http.Handler
 	h0 := http.HandlerFunc(func (w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("new-key", "val")
 	})
 	
-	r.Use(sux.WrapHTTPHandler(h0), sux.WrapHTTPHandler(handlers.ProxyHeaders()))
+	r.Use(rux.WrapHTTPHandler(h0), rux.WrapHTTPHandler(handlers.ProxyHeaders()))
 	
-	r.GET("/", func(c *sux.Context) {
+	r.GET("/", func(c *rux.Context) {
 		c.Text(200, "hello")
 	})
 	// add routes ...
@@ -182,7 +182,7 @@ func main() {
 package main
 
 import (
-	"github.com/gookit/sux"
+	"github.com/gookit/rux"
 	"log"
 	"net/http"
 )
@@ -203,9 +203,9 @@ func (hs HostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	// Initialize a router as usual
-	router := sux.New()
+	router := rux.New()
 	router.GET("/", Index)
-	router.GET("/hello/{name}", func(c *sux.Context) {})
+	router.GET("/hello/{name}", func(c *rux.Context) {})
 
 	// Make a new HostSwitch and insert the router (our http handler)
 	// for example.com and port 12345

@@ -1,14 +1,14 @@
 package handlers
 
 import (
-	"github.com/gookit/sux"
+	"github.com/gookit/rux"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"testing"
 )
 
 func ExampleHTTPMethodOverrideHandler() {
-	r := sux.New()
+	r := rux.New()
 
 	h := HTTPMethodOverrideHandler(r)
 	http.ListenAndServe(":8080", h)
@@ -20,7 +20,7 @@ func ExampleHTTPMethodOverrideHandler() {
 
 func TestDumpRoutesHandler(t *testing.T) {
 	art := assert.New(t)
-	r := sux.New()
+	r := rux.New()
 
 	r.GET("/routes", DumpRoutesHandler())
 
@@ -31,10 +31,10 @@ func TestDumpRoutesHandler(t *testing.T) {
 func TestHTTPMethodOverrideHandler(t *testing.T) {
 	art := assert.New(t)
 
-	r := sux.New()
+	r := rux.New()
 	h := HTTPMethodOverrideHandler(r)
 
-	r.PUT("/put", func(c *sux.Context) {
+	r.PUT("/put", func(c *rux.Context) {
 		// real method save on the request.Context
 		art.Equal("POST", c.ReqCtxValue("originalMethod"))
 		c.Text(200, "put")

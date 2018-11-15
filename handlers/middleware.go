@@ -4,7 +4,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
-	"github.com/gookit/sux"
+	"github.com/gookit/rux"
 	"time"
 )
 
@@ -12,8 +12,8 @@ import (
 const FavIcon = "/favicon.ico"
 
 // IgnoreFavIcon middleware
-func IgnoreFavIcon() sux.HandlerFunc {
-	return func(c *sux.Context) {
+func IgnoreFavIcon() rux.HandlerFunc {
+	return func(c *rux.Context) {
 		if c.URL().Path == FavIcon {
 			c.AbortThen().NoContent()
 			return
@@ -22,17 +22,17 @@ func IgnoreFavIcon() sux.HandlerFunc {
 }
 
 // GenRequestID for the request
-func GenRequestID() sux.HandlerFunc {
-	return func(c *sux.Context) {
-		reqId := genMd5(fmt.Sprintf("sux-%d", time.Now().Nanosecond()))
+func GenRequestID() rux.HandlerFunc {
+	return func(c *rux.Context) {
+		reqId := genMd5(fmt.Sprintf("rux-%d", time.Now().Nanosecond()))
 		// add reqID to context
 		c.Set("reqID", reqId)
 	}
 }
 
 // HTTPBasicAuth for the request
-func HTTPBasicAuth(users map[string]string) sux.HandlerFunc {
-	return func(c *sux.Context) {
+func HTTPBasicAuth(users map[string]string) rux.HandlerFunc {
+	return func(c *rux.Context) {
 		user, pwd, ok := c.Req.BasicAuth()
 		if !ok {
 			c.SetHeader("WWW-Authenticate", `Basic realm="THE REALM"`)
@@ -53,12 +53,12 @@ func HTTPBasicAuth(users map[string]string) sux.HandlerFunc {
 }
 
 // PanicsHandler middleware
-func PanicsHandler() sux.HandlerFunc {
+func PanicsHandler() rux.HandlerFunc {
 	// if debug {
 	// 	debug.PrintStack()
 	// }
 
-	return func(c *sux.Context) {
+	return func(c *rux.Context) {
 		defer func() {
 			if err := recover(); err != nil {
 				c.Resp.WriteHeader(500)
