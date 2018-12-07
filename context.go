@@ -179,7 +179,9 @@ func (c *Context) Router() *Router {
 
 // Error add a error to context
 func (c *Context) Error(err error) {
-	c.Errors = append(c.Errors, &err)
+	if err != nil {
+		c.Errors = append(c.Errors, &err)
+	}
 }
 
 /*************************************************************
