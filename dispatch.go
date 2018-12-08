@@ -39,7 +39,10 @@ func (r *Router) ListenUnix(file string) (err error) {
 	defer func() { debugPrintError(err) }()
 	fmt.Printf("Serve listen on unix:/%s\n", file)
 
-	os.Remove(file)
+	if err = os.Remove(file); err != nil {
+		return
+	}
+
 	listener, err := net.Listen("unix", file)
 	if err != nil {
 		return
