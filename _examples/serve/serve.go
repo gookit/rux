@@ -39,7 +39,7 @@ func main() {
 	}))
 	r.GET("/routes", handlers.DumpRoutesHandler())
 	r.GET("/about[.html]", defHandle)
-	r.GET("/hi-{name}", defHandle)
+	r.GET("/hi-{name}", defHandle).NamedTo("my-route", r)
 	r.GET("/users/{id}", func(c *rux.Context) {
 		c.Text(200, "hello " + c.URL().Path)
 	})

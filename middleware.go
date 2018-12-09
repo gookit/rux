@@ -17,7 +17,6 @@ type HandlersChain []HandlerFunc
 // ServeHTTP implement the http.Handler
 func (f HandlerFunc) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	c := &Context{}
-	c.Reset()
 	c.Init(w, r)
 	f(c)
 }

@@ -96,7 +96,7 @@ func TestRouter_ServeHTTP(t *testing.T) {
 
 	// receive input data
 	r.POST("/users", func(c *Context) {
-		bd, _ := c.RawBody()
+		bd, _ := c.RawBodyData()
 		s.set("body:", string(bd))
 
 		p := c.Query("page")
@@ -280,7 +280,7 @@ func TestContext_Write(t *testing.T) {
 
 	uri := "/Write"
 	r.GET(uri, func(c *Context) {
-		c.Write([]byte("hello"))
+		c.WriteBytes([]byte("hello"))
 	})
 	w := mockRequest(r, GET, uri, nil)
 	is.Equal(200, w.Code)

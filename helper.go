@@ -7,7 +7,6 @@
 package rux
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"reflect"
@@ -44,62 +43,13 @@ func getGlobalVar(name, def string) string {
 }
 
 /*************************************************************
- * help methods
- *************************************************************/
-
-// String all routes to string
-func (r *Router) String() string {
-	buf := new(bytes.Buffer)
-	fmt.Fprintf(buf, "Routes Count: %d\n", r.counter)
-
-	fmt.Fprint(buf, "Stable(fixed):\n")
-	for _, route := range r.stableRoutes {
-		fmt.Fprintf(buf, " %s\n", route)
-	}
-
-	fmt.Fprint(buf, "Regular(dynamic):\n")
-	for pfx, routes := range r.regularRoutes {
-		fmt.Fprintf(buf, " %s:\n", pfx)
-		for _, route := range routes {
-			fmt.Fprintf(buf, "   %s\n", route.String())
-		}
-	}
-
-	fmt.Fprint(buf, "Irregular(dynamic):\n")
-	for m, routes := range r.irregularRoutes {
-		fmt.Fprintf(buf, " %s:\n", m)
-		for _, route := range routes {
-			fmt.Fprintf(buf, "   %s\n", route.String())
-		}
-	}
-
-	return buf.String()
-}
-
-func (r *Router) formatPath(path string) string {
-	path = strings.TrimSpace(path)
-	if path == "" || path == "/" {
-		return "/"
-	}
-
-	if path[0] != '/' {
-		path = "/" + path
-	}
-
-	if !r.strictLastSlash {
-		path = strings.TrimRight(path, "/")
-	}
-
-	return path
-}
-
-func (r *Router) isFixedPath(s string) bool {
-	return strings.IndexByte(s, '{') < 0 && strings.IndexByte(s, '[') < 0
-}
-
-/*************************************************************
  * help functions
  *************************************************************/
+
+// no route params
+func isFixedPath(s string) bool {
+	return strings.IndexByte(s, '{') < 0 && strings.IndexByte(s, '[') < 0
+}
 
 func resolveAddress(addr []string) (fullAddr string) {
 	ip := "0.0.0.0"
@@ -161,6 +111,10 @@ func debugPrintRoute(route *Route) {
 	debugPrint(route.String())
 }
 
+func panicf(f string, v ...interface{}) {
+	panic(fmt.Sprintf(f, v...))
+}
+
 func debugPrintError(err error) {
 	if err != nil {
 		debugPrint("[ERROR] %v\n", err)
@@ -170,7 +124,24 @@ func debugPrintError(err error) {
 func debugPrint(f string, v ...interface{}) {
 	if debug {
 		msg := fmt.Sprintf(f, v...)
-		// fmt.Printf("[SUX-DEBUG] %s %s\n", time.Now().Format("2006-01-02 15:04:05"), msg)
-		fmt.Printf("[SUX-DEBUG] %s\n", msg)
+		// fmt.Printf("[RUX-DEBUG] %s %s\n", time.Now().Format("2006-01-02 15:04:05"), msg)
+		fmt.Printf("[RUX-DEBUG] %s\n", msg)
 	}
+}
+
+// from gin framework
+func parseAccept(acceptHeader string) []string {
+	parts := strings.Split(acceptHeader, ",")
+
+	if len(parts) == 0 {
+		return []string{}
+	}
+
+	out := make([]string, 0, len(parts))
+	for _, part := range parts {
+		if part = strings.TrimSpace(strings.Split(part, ";")[0]); part != "" {
+			out = append(out, part)
+		}
+	}
+	return out
 }

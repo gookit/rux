@@ -17,7 +17,8 @@ const (
 var varRegex = regexp.MustCompile(`{[^/]+}`)
 
 // Parsing routes with parameters
-func (r *Router) parseParamRoute(path string, route *Route) (first string) {
+func (r *Router) parseParamRoute(route *Route) (first string) {
+	path := route.path
 	// collect route Params
 	ss := varRegex.FindAllString(path, -1)
 

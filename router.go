@@ -1,6 +1,7 @@
 package rux
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
 	"strings"
@@ -20,15 +21,19 @@ const (
 	OPTIONS = "OPTIONS"
 )
 
-// AllMethods all supported methods string, use for method check
+// StringMethods all supported methods string, use for method check
 // more: ,COPY,PURGE,LINK,UNLINK,LOCK,UNLOCK,VIEW,SEARCH,CONNECT,TRACE
-const AllMethods = "GET,POST,PUT,PATCH,DELETE,OPTIONS,HEAD,CONNECT,TRACE"
+const StringMethods = "GET,POST,PUT,PATCH,DELETE,OPTIONS,HEAD,CONNECT,TRACE"
 
 // match status: 1 found 2 not found 3 method not allowed
 const (
 	Found uint8 = iota + 1
 	NotFound
 	NotAllowed
+	// route type
+	StaticType = iota + 1
+	RegularType
+	IrregularType
 )
 
 // IController a simple controller interface
@@ -69,12 +74,12 @@ type Router struct {
 	// rux rux
 	name string
 	pool sync.Pool
-
+	// count routes
 	counter int
 	// mark init is completed
 	initialized bool
 
-	// stable/fixed routes
+	// static/stable/fixed routes, no path params.
 	// {
 	// 	"GET /users": Route,
 	// 	"POST /users/register": Route,
@@ -91,9 +96,9 @@ type Router struct {
 	// key is "METHOD first-node":
 	// first node string in the route path. "/users/{id}" -> "user"
 	// {
-	// 	"GET blog": [ Route{path:"/blog/:id"}, ...],
-	// 	"POST blog": [ Route{path:"/blog/:user/add"}, ...],
-	// 	"GET users": [ Route{path:"/users/:id"}, ...],
+	// 	"GET blog": [ Route{path:"/blog/{id}"}, ...],
+	// 	"POST blog": [ Route{path:"/blog/{user}/add"}, ...],
+	// 	"GET users": [ Route{path:"/users/{id}"}, ...],
 	// 	...
 	// }
 	regularRoutes methodRoutes
@@ -104,6 +109,9 @@ type Router struct {
 	// 	"POST": [Route, Route, ...],
 	// }
 	irregularRoutes methodRoutes
+
+	// storage named routes. {"name": Route}
+	namedRoutes map[string]*Route
 
 	// some data for group
 	currentGroupPrefix   string
@@ -275,14 +283,22 @@ func (r *Router) Any(path string, handler HandlerFunc, middleware ...HandlerFunc
 }
 
 // Add a route to router
-func (r *Router) Add(method, path string, handler HandlerFunc, middleware ...HandlerFunc) (route *Route) {
-	if handler == nil {
-		panic("router: must set handler for the route " + path)
-	}
+func (r *Router) Add(method, path string, handler HandlerFunc, middleware ...HandlerFunc) *Route {
+	// create new route instance
+	route := NewRoute(method, path, handler, middleware)
+	return r.AddRoute(route)
+}
+
+// AddRoute add a route by Route instance.
+func (r *Router) AddRoute(route *Route) *Route {
+	// route check
+	route.goodInfo()
 
 	if !r.initialized {
 		r.initialized = true
 	}
+
+	path := route.path
 
 	if r.currentGroupPrefix != "" {
 		path = r.currentGroupPrefix + r.formatPath(path)
@@ -290,30 +306,29 @@ func (r *Router) Add(method, path string, handler HandlerFunc, middleware ...Han
 
 	if len(r.currentGroupHandlers) > 0 {
 		// middleware = append(r.currentGroupHandlers, middleware...)
-		middleware = combineHandlers(r.currentGroupHandlers, middleware)
+		route.handlers = combineHandlers(r.currentGroupHandlers, route.handlers)
 	}
 
-	path = r.formatPath(path)
-	method = strings.ToUpper(method)
-	if strings.Index(","+AllMethods, ","+method) == -1 {
-		panic("router: invalid method name, must in: " + AllMethods)
+	r.counter++
+	debugPrintRoute(route)
+
+	// has name.
+	if route.name != "" {
+		r.namedRoutes[route.name] = route
 	}
 
-	// create new route instance
-	route = newRoute(method, path, handler, middleware)
+	method := route.method
+	route.path = r.formatPath(path) // re-storage
 
 	// path is fixed(no param vars). eg. "/users"
-	if r.isFixedPath(path) {
-		key := method + " " + path
-		r.counter++
+	if isFixedPath(route.path) {
+		key := method + " " + route.path
 		r.stableRoutes[key] = route
-		debugPrintRoute(route)
-		return
+		return route
 	}
 
 	// parsing route path with parameters
-	first := r.parseParamRoute(path, route)
-	if first != "" {
+	if first := r.parseParamRoute(route); first != "" {
 		key := method + " " + first
 		rs, has := r.regularRoutes[key]
 		if !has {
@@ -330,9 +345,7 @@ func (r *Router) Add(method, path string, handler HandlerFunc, middleware ...Han
 		r.irregularRoutes[method] = append(rs, route)
 	}
 
-	r.counter++
-	debugPrintRoute(route)
-	return
+	return route
 }
 
 // Group add an group routes
@@ -427,4 +440,82 @@ func (r *Router) StaticFiles(prefixURL string, rootDir string, exts string) {
 		c.Req.URL.Path = c.Param("file")
 		fsHandler.ServeHTTP(c.Resp, c.Req)
 	})
+}
+
+/*************************************************************
+ * help methods
+ *************************************************************/
+
+// Routes get all route basic info
+func (r *Router) Routes() (rs []RouteInfo) {
+	r.IterateRoutes(func(route *Route) {
+		rs = append(rs, route.Info())
+	})
+
+	return
+}
+
+// IterateRoutes iterate all routes
+func (r *Router) IterateRoutes(fn func(route *Route)) {
+	for _, route := range r.stableRoutes {
+		fn(route)
+	}
+
+	for _, routes := range r.regularRoutes {
+		for _, route := range routes {
+			fn(route)
+		}
+	}
+
+	for _, routes := range r.irregularRoutes {
+		for _, route := range routes {
+			fn(route)
+		}
+	}
+}
+
+// String convert all routes to string
+func (r *Router) String() string {
+	buf := new(bytes.Buffer)
+	_, _ = fmt.Fprintf(buf, "Routes Count: %d\n", r.counter)
+
+	_, _ = fmt.Fprint(buf, "Stable(fixed):\n")
+	for _, route := range r.stableRoutes {
+		_, _ = fmt.Fprintf(buf, " %s\n", route)
+	}
+
+	_, _ = fmt.Fprint(buf, "Regular(dynamic):\n")
+	for pfx, routes := range r.regularRoutes {
+		_, _ = fmt.Fprintf(buf, " %s:\n", pfx)
+		for _, route := range routes {
+			_, _ = fmt.Fprintf(buf, "   %s\n", route.String())
+		}
+	}
+
+	_, _ = fmt.Fprint(buf, "Irregular(dynamic):\n")
+	for m, routes := range r.irregularRoutes {
+		_, _ = fmt.Fprintf(buf, " %s:\n", m)
+		for _, route := range routes {
+			_, _ = fmt.Fprintf(buf, "   %s\n", route.String())
+		}
+	}
+
+	return buf.String()
+}
+
+func (r *Router) formatPath(path string) string {
+	path = strings.TrimSpace(path)
+	if path == "" || path == "/" {
+		return "/"
+	}
+
+	if path[0] != '/' {
+		path = "/" + path
+	}
+
+	if !r.strictLastSlash {
+		path = strings.TrimRight(path, "/")
+	}
+
+	return path
 }

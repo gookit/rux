@@ -45,14 +45,15 @@ func (p Params) Int(key string) (val int) {
 
 // Route in the router
 type Route struct {
-	// name   string
+	// route name.
+	name string
 	// path for the route. eg "/users" "/users/{id}"
 	path   string
 	method string
 
 	// start string in the route path. "/users/{id}" -> "/user/"
 	start string
-	hosts []string
+	// hosts []string
 	// regexp for the route path
 	regex *regexp.Regexp
 	// dynamic route param values, only use for route cache
@@ -71,10 +72,16 @@ type Route struct {
 	// defaults
 }
 
-func newRoute(method, path string, handler HandlerFunc, handlers HandlersChain) *Route {
+// RouteInfo struct
+type RouteInfo struct {
+	Path, Method, HandlerName string
+}
+
+// NewRoute create a new route
+func NewRoute(method, path string, handler HandlerFunc, handlers HandlersChain) *Route {
 	return &Route{
-		path:   path,
-		method: method,
+		path:   strings.TrimSpace(path),
+		method: strings.ToUpper(method),
 		// handler
 		handler:  handler,
 		handlers: handlers,
@@ -87,14 +94,75 @@ func (r *Route) Use(middleware ...HandlerFunc) *Route {
 	return r
 }
 
-// HandlerName get the main handler name
-func (r *Route) HandlerName() string {
-	return nameOfFunction(r.handler)
+// AttachTo register the route to router.
+func (r *Route) AttachTo(router *Router) {
+	router.AddRoute(r)
+}
+
+// NamedTo register the route to router.
+func (r *Route) NamedTo(name string, router *Router) *Route {
+	r.SetName(name)
+
+	if r.name != "" {
+		router.namedRoutes[r.name] = r
+	}
+
+	return r
+}
+
+// SetName set a name for the route
+func (r *Route) SetName(name string) *Route {
+	r.name = strings.TrimSpace(name)
+	return r
+}
+
+// Name get
+func (r *Route) Name() string {
+	return r.name
+}
+
+// Path get route path string.
+func (r *Route) Path() string {
+	return r.path
+}
+
+// Method get route request method string.
+func (r *Route) Method() string {
+	return r.method
 }
 
 // Handler returns the main handler.
 func (r *Route) Handler() HandlerFunc {
 	return r.handler
+}
+
+// HandlerName get the main handler name
+func (r *Route) HandlerName() string {
+	return nameOfFunction(r.handler)
+}
+
+// String route info to string
+func (r *Route) String() string {
+	return fmt.Sprintf(
+		"%-7s %-25s --> %s (%d middleware)",
+		r.method, r.path, r.HandlerName(), len(r.handlers),
+	)
+}
+
+// Info get basic info of the route
+func (r *Route) Info() RouteInfo {
+	return RouteInfo{r.path, r.method, r.HandlerName()}
+}
+
+// check route info
+func (r *Route) goodInfo() {
+	if r.handler == nil {
+		panicf("the route handler cannot be empty.(path: '%s')", r.path)
+	}
+
+	if strings.Index(","+StringMethods, ","+r.method) == -1 {
+		panicf("invalid method name '%s', must in: %s", r.method, StringMethods)
+	}
 }
 
 // match a regex route
@@ -130,12 +198,4 @@ func (r *Route) copyWithParams(ps Params) *Route {
 	nr.params = ps
 
 	return &nr
-}
-
-// String route info to string
-func (r *Route) String() string {
-	return fmt.Sprintf(
-		"%-7s %-25s --> %s (%d middleware)",
-		r.method, r.path, r.HandlerName(), len(r.handlers),
-	)
 }

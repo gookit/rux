@@ -25,9 +25,7 @@ func mockContext(method, uri string, body io.Reader, header m) *Context {
 	}
 
 	c := &Context{}
-	c.Reset()
 	c.Init(w, r)
-
 	return c
 }
 
@@ -74,7 +72,7 @@ func TestContext_Post(t *testing.T) {
 		ContentType: "application/x-www-form-urlencoded",
 	})
 
-	c.ParseMultipartForm(8 << 20)
+	_ = c.ParseMultipartForm(8 << 20)
 
 	val, has := c.PostParam("page")
 	art.True(has)
@@ -89,9 +87,9 @@ func TestContext_FormFile(t *testing.T) {
 
 	w, err := mw.CreateFormFile("file", "test.txt")
 	if assert.NoError(t, err) {
-		w.Write([]byte("test"))
+		_, _ = w.Write([]byte("test"))
 	}
-	mw.Close()
+	_ = mw.Close()
 
 	c := mockContext("POST", "/", buf, m{
 		"Content-Type": mw.FormDataContentType(),
@@ -110,7 +108,7 @@ func TestContext_FormFile(t *testing.T) {
 func TestContext_SaveFile(t *testing.T) {
 	buf := new(bytes.Buffer)
 	mw := multipart.NewWriter(buf)
-	mw.Close()
+	_ = mw.Close()
 
 	c := mockContext("POST", "/", buf, m{
 		"Content-Type": mw.FormDataContentType(),
@@ -128,16 +126,19 @@ func TestContext_FileContent(t *testing.T) {
 	c := mockContext("GET", "/site.md", nil, nil)
 	c.FileContent("testdata/site.md", "new-name.md")
 
-	w := c.Resp.(*httptest.ResponseRecorder)
+	w := c.RawWriter().(*httptest.ResponseRecorder)
+	is.Equal(200, c.StatusCode())
 	is.Equal(200, w.Code)
 	ss, ok := w.Header()["Content-Type"]
 	is.True(ok)
 	is.Contains(ss[0], "text/plain")
 	is.Equal("# readme", w.Body.String())
+	is.Equal(8, c.writer.Length())
 
 	c = mockContext("GET", "/site.md", nil, nil)
 	c.FileContent("testdata/not-exist.md")
-	w = c.Resp.(*httptest.ResponseRecorder)
+	w = c.RawWriter().(*httptest.ResponseRecorder)
+	is.Equal(500, c.StatusCode())
 	is.Equal(500, w.Code)
 	is.Equal("Internal Server Error\n", w.Body.String())
 }
@@ -148,7 +149,7 @@ func TestContext_Attachment(t *testing.T) {
 	c := mockContext("GET", "/site.md", nil, nil)
 	c.Attachment("testdata/site.md", "new-name.md")
 
-	w := c.Resp.(*httptest.ResponseRecorder)
+	w := c.RawWriter().(*httptest.ResponseRecorder)
 	is.Equal(200, w.Code)
 	ss, ok := w.Header()["Content-Type"]
 	is.True(ok)
@@ -166,7 +167,7 @@ func TestContext_Inline(t *testing.T) {
 	c := mockContext("GET", "/site.md", nil, nil)
 	c.Inline("testdata/site.md", "new-name.md")
 
-	w := c.Resp.(*httptest.ResponseRecorder)
+	w := c.RawWriter().(*httptest.ResponseRecorder)
 	is.Equal(200, w.Code)
 	ss, ok := w.Header()["Content-Type"]
 	is.True(ok)
@@ -184,7 +185,7 @@ func TestContext_Binary(t *testing.T) {
 	in, _ := os.Open("testdata/site.md")
 	c.Binary(200, in, "new-name.md", true)
 
-	w := c.Resp.(*httptest.ResponseRecorder)
+	w := c.RawWriter().(*httptest.ResponseRecorder)
 	is.Equal(200, w.Code)
 	ss, ok := w.Header()["Content-Type"]
 	is.True(ok)

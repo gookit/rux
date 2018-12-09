@@ -4,38 +4,10 @@ import (
 	"fmt"
 	"github.com/gookit/color"
 	"github.com/gookit/rux"
-	"net/http"
 	"time"
 )
 
-type statusWriter struct {
-	http.ResponseWriter
-	status int
-	length int
-}
-
-// Status get status code
-func (w *statusWriter) Status() int {
-	return w.status
-}
-
-// WriteHeader write status code
-func (w *statusWriter) WriteHeader(status int) {
-	w.status = status
-	w.ResponseWriter.WriteHeader(status)
-}
-
-// Write data to resp
-func (w *statusWriter) Write(b []byte) (int, error) {
-	if w.status == 0 {
-		w.status = 200
-	}
-	n, err := w.ResponseWriter.Write(b)
-	w.length += n
-	return n, err
-}
-
-// RequestLogger middleware
+// RequestLogger middleware.
 func RequestLogger() rux.HandlerFunc {
 	skip := map[string]int{
 		// "/": 1,
@@ -48,8 +20,8 @@ func RequestLogger() rux.HandlerFunc {
 		start := time.Now()
 
 		// rewrite the resp
-		sw := &statusWriter{ResponseWriter: c.Resp}
-		c.Resp = sw
+		// sw := &statusWriter{ResponseWriter: c.Resp}
+		// c.Resp = sw
 
 		// Process request
 		c.Next()
@@ -69,7 +41,7 @@ func RequestLogger() rux.HandlerFunc {
 		// }
 
 		mColor := colorForMethod(c.Req.Method)
-		codeColor := colorForStatus(sw.Status())
+		codeColor := colorForStatus(c.StatusCode())
 
 		fmt.Printf(
 			// 2006-01-02 15:04:05 [rux] GET /articles 200 10.0.0.1 "use-agent" 0.034ms
@@ -78,7 +50,7 @@ func RequestLogger() rux.HandlerFunc {
 			start.Format("2006/01/02 15:04:05"),
 			c.ClientIP(),
 			mColor.Render(c.Req.Method),
-			codeColor.Render(sw.Status()),
+			codeColor.Render(c.StatusCode()),
 			c.Req.RequestURI,
 			// c.Header("User-Agent"),
 			calcElapsedTime(start),

@@ -154,3 +154,13 @@ func (r *Router) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	r.pool.Put(ctx)
 	result = nil
 }
+
+func (r *Router) HandleContext(c *Context) {
+	c.Reset()
+	r.handleHTTPRequest(c)
+	r.pool.Put(c)
+}
+
+func (r *Router) handleHTTPRequest(c *Context) {
+
+}
