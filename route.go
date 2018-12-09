@@ -78,13 +78,13 @@ type RouteInfo struct {
 }
 
 // NewRoute create a new route
-func NewRoute(method, path string, handler HandlerFunc, handlers HandlersChain) *Route {
+func NewRoute(method, path string, handler HandlerFunc, middleware ...HandlerFunc) *Route {
 	return &Route{
 		path:   strings.TrimSpace(path),
 		method: strings.ToUpper(method),
 		// handler
 		handler:  handler,
-		handlers: handlers,
+		handlers: middleware,
 	}
 }
 
@@ -99,15 +99,13 @@ func (r *Route) AttachTo(router *Router) {
 	router.AddRoute(r)
 }
 
-// NamedTo register the route to router.
-func (r *Route) NamedTo(name string, router *Router) *Route {
+// NamedTo add name and register the route to router.
+func (r *Route) NamedTo(name string, router *Router) {
 	r.SetName(name)
 
 	if r.name != "" {
 		router.namedRoutes[r.name] = r
 	}
-
-	return r
 }
 
 // SetName set a name for the route

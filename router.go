@@ -42,8 +42,10 @@ type IController interface {
 	AddRoutes(g *Router)
 }
 
-var debug bool
-var anyMethods = []string{GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD, CONNECT, TRACE}
+var (
+	debug      bool
+	anyMethods = []string{GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD, CONNECT, TRACE}
+)
 
 // Debug switch debug mode
 func Debug(val bool) {
@@ -71,7 +73,7 @@ type methodRoutes map[string]routes
 
 // Router definition
 type Router struct {
-	// rux rux
+	// router name
 	name string
 	pool sync.Pool
 	// count routes
@@ -156,6 +158,7 @@ func New(options ...func(*Router)) *Router {
 
 		maxNumCaches: 1000,
 		stableRoutes: make(map[string]*Route),
+		namedRoutes:  make(map[string]*Route),
 
 		regularRoutes:   make(methodRoutes),
 		irregularRoutes: make(methodRoutes),
@@ -285,7 +288,7 @@ func (r *Router) Any(path string, handler HandlerFunc, middleware ...HandlerFunc
 // Add a route to router
 func (r *Router) Add(method, path string, handler HandlerFunc, middleware ...HandlerFunc) *Route {
 	// create new route instance
-	route := NewRoute(method, path, handler, middleware)
+	route := NewRoute(method, path, handler, middleware...)
 	return r.AddRoute(route)
 }
 
@@ -445,6 +448,11 @@ func (r *Router) StaticFiles(prefixURL string, rootDir string, exts string) {
 /*************************************************************
  * help methods
  *************************************************************/
+
+// GetRoute get a named route.
+func (r *Router) GetRoute(name string) *Route {
+	return r.namedRoutes[name]
+}
 
 // Routes get all route basic info
 func (r *Router) Routes() (rs []RouteInfo) {

@@ -148,6 +148,40 @@ func TestAddRoute(t *testing.T) {
 	}
 }
 
+func TestNameRoute(t *testing.T) {
+	is := assert.New(t)
+	r := New()
+
+	// named route
+	r.GET("/path1", emptyHandler).NamedTo("route1", r)
+
+	r2 := NewRoute("post", "/path2", emptyHandler)
+	r2.SetName("route2").AttachTo(r)
+
+	r3 := NewRoute("get", "/path3", emptyHandler).SetName("route3")
+	r.AddRoute(r3)
+
+	route := r.GetRoute("not-exist")
+	is.Nil(route)
+
+	route = r.GetRoute("route1")
+	is.NotEmpty(route)
+	is.Equal("/path1", route.Path())
+	is.Equal("GET", route.Method())
+
+	info := route.Info()
+	is.Equal("/path1", info.Path)
+	is.Equal("GET", info.Method)
+
+	route = r.GetRoute("route2")
+	is.NotEmpty(route)
+	is.Equal(route, r2)
+
+	route = r.GetRoute("route3")
+	is.NotEmpty(route)
+	is.Equal(route, r3)
+}
+
 func TestRouter_Group(t *testing.T) {
 	is := assert.New(t)
 

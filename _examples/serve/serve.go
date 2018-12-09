@@ -136,6 +136,10 @@ type SiteController struct {
 func (c *SiteController) AddRoutes(r *rux.Router) {
 	r.GET("{id}", c.Get)
 	r.POST("", c.Post)
+
+	// mp := map[string]rux.HandlerFunc{
+	// 	"get,{id}": c.Get,
+	// }
 }
 
 // Get action

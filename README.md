@@ -7,14 +7,14 @@
 
 Simple and fast request router for golang HTTP applications.
 
+> **[中文说明](README_cn.md)**
+
 - support route group
 - support route path params
 - support cache recently accessed dynamic routes
 - support route middleware, group middleware, global middleware
 - support generic `http.Handler` interface middleware
 - support add handlers for handle `NotFound` and `NotAllowed`
-
-> **[中文说明](README_cn.md)**
 
 ## Godoc
 
