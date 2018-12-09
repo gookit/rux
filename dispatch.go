@@ -47,9 +47,10 @@ func (r *Router) ListenUnix(file string) (err error) {
 	if err != nil {
 		return
 	}
-	defer listener.Close()
+	// defer listener.Close()
 
 	err = http.Serve(listener, r)
+	_ = listener.Close()
 	return
 }
 

@@ -13,6 +13,8 @@ type responseWriter struct {
 	Writer http.ResponseWriter
 	status int
 	length int
+	// mark header is wrote
+	wroteHeader bool
 }
 
 // reset the writer

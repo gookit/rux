@@ -74,7 +74,8 @@ type methodRoutes map[string]routes
 // Router definition
 type Router struct {
 	// router name
-	name string
+	Name string
+	// context pool
 	pool sync.Pool
 	// count routes
 	counter int
@@ -145,16 +146,16 @@ type Router struct {
 
 // New router instance, can with some options.
 // quick start:
-// 		r := New()
-// 		r.GET("/path", MyAction)
+// 	r := New()
+// 	r.GET("/path", MyAction)
 //
 // with options:
-// 		r := New(EnableCaching, MaxNumCaches(1000))
-// 		r.GET("/path", MyAction)
+// 	r := New(EnableCaching, MaxNumCaches(1000))
+// 	r.GET("/path", MyAction)
 //
 func New(options ...func(*Router)) *Router {
 	router := &Router{
-		name: "default",
+		Name: "default",
 
 		maxNumCaches: 1000,
 		stableRoutes: make(map[string]*Route),

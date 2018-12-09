@@ -66,7 +66,6 @@ func TestContext_Query(t *testing.T) {
 
 func TestContext_Post(t *testing.T) {
 	ris := assert.New(t)
-
 	body := bytes.NewBufferString("foo=bar&page=11&both=v0&foo=second")
 	c := mockContext("POST", "/?both=v1", body, m{
 		"Accept":    "application/json",
@@ -83,6 +82,20 @@ func TestContext_Post(t *testing.T) {
 
 	ris.Equal([]string{"application/json"}, c.AcceptedTypes())
 	ris.Equal("application/x-www-form-urlencoded", c.ContentType())
+}
+
+func TestContext_SetCookie(t *testing.T) {
+	ris := assert.New(t)
+	c := mockContext("GET", "/?both=v1", nil, m{
+		"Accept":    "application/json",
+		ContentType: "application/x-www-form-urlencoded",
+	})
+
+	c.SetCookie("ck-name", "val", 30, "/", "abc.com", true, true)
+
+	s := c.Resp.Header().Get("Set-Cookie")
+	ris.NotEmpty(s)
+	ris.Contains(s, "ck-name=val")
 }
 
 func TestContext_FormFile(t *testing.T) {

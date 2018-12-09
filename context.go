@@ -461,6 +461,14 @@ func (c *Context) SetCookie(name, value string, maxAge int, path, domain string,
 	})
 }
 
+// FastSetCookie Quick Set Cookie
+func (c *Context) FastSetCookie(name, value string, maxAge int) {
+	req := c.Req
+	httpOnly := req.URL.Scheme == "http"
+
+	c.SetCookie(name, value, maxAge, "/", req.URL.Host, true, httpOnly)
+}
+
 // Cookie returns the named cookie provided in the request or
 // ErrNoCookie if not found. And return the named cookie is unescaped.
 // If multiple cookies match the given name, only one cookie will

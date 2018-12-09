@@ -74,12 +74,13 @@ type (
 	}
 )
 
+// mock an HTTP Request
 // Usage:
 // 	handler := router.New()
 // 	res := mockRequest(handler, "GET", "/path", nil)
 // 	// with data
 // 	res := mockRequest(handler, "GET", "/path", &md{B: "data", H: m{"x-head": "val"}})
-func mockRequest(h http.Handler, method, path string, data *md) *httptest.ResponseRecorder {
+func mockRequest(h http.Handler, method, path string, data *md, beforeSend ...func(req *http.Request)) *httptest.ResponseRecorder {
 	var body io.Reader
 	if data != nil && len(data.B) > 0 {
 		body = strings.NewReader(data.B)
@@ -96,6 +97,10 @@ func mockRequest(h http.Handler, method, path string, data *md) *httptest.Respon
 		for k, v := range data.H {
 			req.Header.Set(k, v)
 		}
+	}
+
+	if len(beforeSend) > 0 {
+		beforeSend[0](req)
 	}
 
 	w := httptest.NewRecorder()
