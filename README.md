@@ -18,7 +18,6 @@ Simple and fast request router for golang HTTP applications.
 
 ## Godoc
 
-- [godoc for gopkg](https://godoc.org/gopkg.in/gookit/rux.v1)
 - [godoc for github](https://godoc.org/github.com/gookit/rux)
 
 ## Quick start

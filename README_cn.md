@@ -18,7 +18,6 @@
 
 ## GoDoc
 
-- [godoc for gopkg](https://godoc.org/gopkg.in/gookit/rux.v1)
 - [godoc for github](https://godoc.org/github.com/gookit/rux)
 
 ## 快速开始
