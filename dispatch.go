@@ -102,11 +102,33 @@ var internal405Handler HandlerFunc = func(c *Context) {
 
 // ServeHTTP for handle HTTP request, response data to client.
 func (r *Router) ServeHTTP(res http.ResponseWriter, req *http.Request) {
+	// get new context
+	ctx := r.pool.Get().(*Context)
+	ctx.Init(res, req)
+
+	// handle HTTP Request
+	r.handleHTTPRequest(ctx)
+
+	ctx.Reset() // reset data
+	// release data
+	r.pool.Put(ctx)
+}
+
+// HandleContext handle a given context
+func (r *Router) HandleContext(c *Context) {
+	c.Reset()
+	r.handleHTTPRequest(c)
+	r.pool.Put(c)
+}
+
+func (r *Router) handleHTTPRequest(ctx *Context) {
 	var handlers HandlersChain
 
-	path := req.URL.Path
+	path := ctx.Req.URL.Path
+	method := ctx.Req.Method
+
 	if r.useEncodedPath {
-		path = req.URL.EscapedPath()
+		path = ctx.Req.URL.EscapedPath()
 	}
 
 	if len(r.noRoute) == 0 {
@@ -114,11 +136,8 @@ func (r *Router) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	}
 
 	// match route
-	result := r.Match(req.Method, path)
-
-	// get new context
-	ctx := r.pool.Get().(*Context)
-	ctx.Init(res, req)
+	result := r.Match(method, path)
+	// save route params
 	ctx.Params = result.Params
 
 	// check match result
@@ -143,24 +162,8 @@ func (r *Router) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		handlers = append(r.handlers, handlers...)
 	}
 
-	// add handlers
 	ctx.SetHandlers(handlers)
-
-	ctx.Next()  // handle processing
-	ctx.Reset() // reset data
-	// ctx.Resp.WriteHeaderNow()
-
-	// release data
-	r.pool.Put(ctx)
+	ctx.Next() // handle processing
+	ctx.writer.EnsureWriteHeader()
 	result = nil
-}
-
-func (r *Router) HandleContext(c *Context) {
-	c.Reset()
-	r.handleHTTPRequest(c)
-	r.pool.Put(c)
-}
-
-func (r *Router) handleHTTPRequest(c *Context) {
-
 }

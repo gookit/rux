@@ -481,7 +481,7 @@ func (c *Context) Cookie(name string) (string, error) {
 
 // SetStatus code for the response
 func (c *Context) SetStatus(status int) {
-	c.Resp.WriteHeader(status)
+	c.writer.WriteHeader(status)
 }
 
 // StatusCode get status code from the response
@@ -615,22 +615,22 @@ func (c *Context) Binary(status int, in io.ReadSeeker, outName string, inline bo
 }
 
 // Stream read
-func (c *Context) Stream(step func(w io.Writer) bool) {
-	w := c.Resp
-	clientGone := w.(http.CloseNotifier).CloseNotify()
-	for {
-		select {
-		case <-clientGone:
-			return
-		default:
-			keepOpen := step(w)
-			w.(http.Flusher).Flush()
-			if !keepOpen {
-				return
-			}
-		}
-	}
-}
+// func (c *Context) Stream(step func(w io.Writer) bool) {
+// 	w := c.Resp
+// 	clientGone := w.(http.CloseNotifier).CloseNotify()
+// 	for {
+// 		select {
+// 		case <-clientGone:
+// 			return
+// 		default:
+// 			keepOpen := step(w)
+// 			w.(http.Flusher).Flush()
+// 			if !keepOpen {
+// 				return
+// 			}
+// 		}
+// 	}
+// }
 
 func (c *Context) dispositionContent(w http.ResponseWriter, status int, outName string, inline bool) {
 	dispositionType := dispositionAttachment

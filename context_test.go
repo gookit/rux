@@ -65,20 +65,24 @@ func TestContext_Query(t *testing.T) {
 }
 
 func TestContext_Post(t *testing.T) {
-	art := assert.New(t)
+	ris := assert.New(t)
 
 	body := bytes.NewBufferString("foo=bar&page=11&both=v0&foo=second")
 	c := mockContext("POST", "/?both=v1", body, m{
+		"Accept":    "application/json",
 		ContentType: "application/x-www-form-urlencoded",
 	})
 
 	_ = c.ParseMultipartForm(8 << 20)
 
 	val, has := c.PostParam("page")
-	art.True(has)
-	art.Equal("11", val)
-	art.Equal("11", c.Post("page"))
-	art.Equal("11", c.Post("page", "1"))
+	ris.True(has)
+	ris.Equal("11", val)
+	ris.Equal("11", c.Post("page"))
+	ris.Equal("11", c.Post("page", "1"))
+
+	ris.Equal([]string{"application/json"}, c.AcceptedTypes())
+	ris.Equal("application/x-www-form-urlencoded", c.ContentType())
 }
 
 func TestContext_FormFile(t *testing.T) {
