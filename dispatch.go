@@ -14,28 +14,30 @@ import (
  *************************************************************/
 
 // Listen quick create a HTTP server with the router
-func (r *Router) Listen(addr ...string) (err error) {
+func (r *Router) Listen(addr ...string) {
+	var err error
 	defer func() { debugPrintError(err) }()
+
 	address := resolveAddress(addr)
 
 	fmt.Printf("Serve listen on %s. Go to http://%s\n", address, address)
 	err = http.ListenAndServe(address, r)
-	return
 }
 
 // ListenTLS attaches the router to a http.Server and starts listening and serving HTTPS (secure) requests.
-func (r *Router) ListenTLS(addr, certFile, keyFile string) (err error) {
+func (r *Router) ListenTLS(addr, certFile, keyFile string) {
+	var err error
 	defer func() { debugPrintError(err) }()
 	address := resolveAddress([]string{addr})
 
 	fmt.Printf("Serve listen on %s. Go to https://%s\n", address, address)
 	err = http.ListenAndServeTLS(address, certFile, keyFile, r)
-	return
 }
 
 // ListenUnix attaches the router to a http.Server and starts listening and serving HTTP requests
 // through the specified unix socket (ie. a file)
-func (r *Router) ListenUnix(file string) (err error) {
+func (r *Router) ListenUnix(file string) {
+	var err error
 	defer func() { debugPrintError(err) }()
 	fmt.Printf("Serve listen on unix:/%s\n", file)
 
@@ -51,7 +53,6 @@ func (r *Router) ListenUnix(file string) (err error) {
 
 	err = http.Serve(listener, r)
 	_ = listener.Close()
-	return
 }
 
 // WrapHTTPHandlers apply some pre http handlers for the router.
@@ -82,8 +83,12 @@ func (r *Router) WrapHTTPHandlers(preHandlers ...func(h http.Handler) http.Handl
  * dispatch http request
  *************************************************************/
 
-// CTXAllowedMethods key name in the context
-const CTXAllowedMethods = "_allowedMethods"
+const (
+	// CTXRecoverResult key name in the context
+	CTXRecoverResult = "_recoverResult"
+	// CTXAllowedMethods key name in the context
+	CTXAllowedMethods = "_allowedMethods"
+)
 
 var internal404Handler HandlerFunc = func(c *Context) {
 	http.NotFound(c.Resp, c.Req)
@@ -122,11 +127,21 @@ func (r *Router) HandleContext(c *Context) {
 	r.pool.Put(c)
 }
 
+// handle HTTP Request
 func (r *Router) handleHTTPRequest(ctx *Context) {
 	var handlers HandlersChain
 
+	// has panic handler
+	if r.OnPanic != nil {
+		defer func() {
+			if ret := recover(); ret != nil {
+				ctx.Set(CTXRecoverResult, ret)
+				r.OnPanic(ctx)
+			}
+		}()
+	}
+
 	path := ctx.Req.URL.Path
-	method := ctx.Req.Method
 
 	if r.useEncodedPath {
 		path = ctx.Req.URL.EscapedPath()
@@ -136,8 +151,9 @@ func (r *Router) handleHTTPRequest(ctx *Context) {
 		r.noRoute = HandlersChain{internal404Handler}
 	}
 
-	// match route
-	result := r.Match(method, path)
+	method := ctx.Req.Method
+	result := r.Match(method, path) // match route
+
 	// save route params
 	ctx.Params = result.Params
 
@@ -163,8 +179,13 @@ func (r *Router) handleHTTPRequest(ctx *Context) {
 		handlers = append(r.handlers, handlers...)
 	}
 
+	result = nil
 	ctx.SetHandlers(handlers)
 	ctx.Next() // handle processing
 	ctx.writer.EnsureWriteHeader()
-	result = nil
+
+	// has errors and has error handler
+	if len(ctx.Errors) > 0 && r.OnError != nil {
+		r.OnError(ctx)
+	}
 }

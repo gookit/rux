@@ -155,11 +155,13 @@ func TestNameRoute(t *testing.T) {
 	// named route
 	r.GET("/path1", emptyHandler).NamedTo("route1", r)
 
-	r2 := NewRoute("post", "/path2", emptyHandler)
+	r2 := NewRoute("post", "/path2[.html]", emptyHandler)
 	r2.SetName("route2").AttachTo(r)
 
-	r3 := NewRoute("get", "/path3", emptyHandler).SetName("route3")
+	r3 := NewRoute("get", "/path3/{id}", emptyHandler).SetName("route3")
 	r.AddRoute(r3)
+
+	is.Len(r.Routes(), 3)
 
 	route := r.GetRoute("not-exist")
 	is.Nil(route)
@@ -180,6 +182,7 @@ func TestNameRoute(t *testing.T) {
 	route = r.GetRoute("route3")
 	is.NotEmpty(route)
 	is.Equal(route, r3)
+
 }
 
 func TestRouter_Group(t *testing.T) {

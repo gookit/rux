@@ -126,8 +126,12 @@ type Router struct {
 	handlers  HandlersChain
 
 	//
-	// Router Options:
+	// Router Settings:
 	//
+	// OnError on happen error
+	OnError HandlerFunc
+	// OnPanic on happen panic
+	OnPanic HandlerFunc
 	// intercept all request, then redirect to the path. eg. "/coming-soon" "/in-maintenance"
 	interceptAll string
 	// maximum number of cached dynamic routes. default is 1000

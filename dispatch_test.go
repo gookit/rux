@@ -2,6 +2,7 @@ package rux
 
 import (
 	"fmt"
+	"github.com/gookit/goutil/testUtil"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"os"
@@ -44,6 +45,8 @@ func TestRouterListen(t *testing.T) {
 	is := assert.New(t)
 	r := New()
 
+	Debug(true)
+
 	// multi params
 	is.Panics(func() {
 		r.Listen(":8080", "9090")
@@ -53,17 +56,21 @@ func TestRouterListen(t *testing.T) {
 		return
 	}
 
-	// httptest.NewServer()
+	// httptest.NewServer().Start()
+	testUtil.RewriteStdout()
+	r.Listen("invalid]")
+	r.Listen(":invalid]")
+	r.Listen("127.0.0.1:invalid]")
+	r.ListenTLS("invalid]", "", "")
+	r.ListenUnix("")
+	_ = os.Setenv("PORT", "invalid]")
+	r.Listen()
+	s := testUtil.RestoreStdout()
 
-	discardStdout()
-	is.Error(r.Listen("invalid]"))
-	is.Error(r.Listen(":invalid]"))
-	is.Error(r.Listen("127.0.0.1:invalid]"))
-	is.Error(r.ListenTLS("invalid]", "", ""))
-	is.Error(r.ListenUnix(""))
-	os.Setenv("PORT", "invalid]")
-	is.Error(r.Listen())
-	restoreStdout()
+	is.Contains(s, "[ERROR] listen tcp: address 0.0.0.0:invalid]")
+	is.Contains(s, "[ERROR] listen tcp: address 127.0.0.1:invalid]")
+
+	Debug(false)
 }
 
 func TestRouter_ServeHTTP(t *testing.T) {
@@ -169,16 +176,16 @@ func TestRouter_WrapHttpHandlers(t *testing.T) {
 	gh := func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(503)
-			w.Write([]byte("a"))
+			_, _ = w.Write([]byte("a"))
 			h.ServeHTTP(w, r)
-			w.Write([]byte("d"))
+			_, _ = w.Write([]byte("d"))
 		})
 	}
 	gh1 := func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte("b"))
+			_, _ = w.Write([]byte("b"))
 			h.ServeHTTP(w, r)
-			w.Write([]byte("c"))
+			_, _ = w.Write([]byte("c"))
 		})
 	}
 
