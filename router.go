@@ -79,8 +79,6 @@ type Router struct {
 	pool sync.Pool
 	// count routes
 	counter int
-	// mark init is completed
-	initialized bool
 
 	// static/stable/fixed routes, no path params.
 	// {
@@ -225,8 +223,8 @@ func HandleMethodNotAllowed(r *Router) {
 
 // WithOptions for the router
 func (r *Router) WithOptions(options ...func(*Router)) {
-	if r.initialized {
-		panic("router: unable to set options after initialization is complete")
+	if r.counter > 0 {
+		panic("router: unable to set options after add route")
 	}
 
 	for _, opt := range options {
@@ -302,22 +300,9 @@ func (r *Router) AddRoute(route *Route) *Route {
 	// route check
 	route.goodInfo()
 
-	if !r.initialized {
-		r.initialized = true
-	}
-
-	path := route.path
-
-	if r.currentGroupPrefix != "" {
-		path = r.currentGroupPrefix + r.formatPath(path)
-	}
-
-	if len(r.currentGroupHandlers) > 0 {
-		// middleware = append(r.currentGroupHandlers, middleware...)
-		route.handlers = combineHandlers(r.currentGroupHandlers, route.handlers)
-	}
-
 	r.counter++
+	r.appendGroupInfo(route)
+
 	debugPrintRoute(route)
 
 	// has name.
@@ -325,12 +310,12 @@ func (r *Router) AddRoute(route *Route) *Route {
 		r.namedRoutes[route.name] = route
 	}
 
+	path := route.path
 	method := route.method
-	route.path = r.formatPath(path) // re-storage
 
 	// path is fixed(no param vars). eg. "/users"
-	if isFixedPath(route.path) {
-		key := method + " " + route.path
+	if isFixedPath(path) {
+		key := method + " " + path
 		r.stableRoutes[key] = route
 		return route
 	}
@@ -354,6 +339,22 @@ func (r *Router) AddRoute(route *Route) *Route {
 	}
 
 	return route
+}
+
+func (r *Router) appendGroupInfo(route *Route)  {
+	path := route.path
+
+	if r.currentGroupPrefix != "" {
+		path = r.currentGroupPrefix + r.formatPath(path)
+	}
+
+	// re-setting
+	route.path = r.formatPath(path)
+
+	if len(r.currentGroupHandlers) > 0 {
+		// middleware = append(r.currentGroupHandlers, middleware...)
+		route.handlers = combineHandlers(r.currentGroupHandlers, route.handlers)
+	}
 }
 
 // Group add an group routes
