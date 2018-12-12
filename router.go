@@ -342,14 +342,14 @@ func (r *Router) AddRoute(route *Route) *Route {
 }
 
 func (r *Router) appendGroupInfo(route *Route)  {
-	path := route.path
+	path := r.formatPath(route.path)
 
 	if r.currentGroupPrefix != "" {
-		path = r.currentGroupPrefix + r.formatPath(path)
+		path = r.formatPath(r.currentGroupPrefix + path)
 	}
 
 	// re-setting
-	route.path = r.formatPath(path)
+	route.path = path
 
 	if len(r.currentGroupHandlers) > 0 {
 		// middleware = append(r.currentGroupHandlers, middleware...)
