@@ -125,7 +125,7 @@ func (c *Context) Reset() {
 	c.Params = nil
 	c.handlers = nil
 	c.Resp = &c.writer
-	c.Errors = c.Errors[0:0]
+	c.Errors = c.Errors[:0]
 	// c.Accepted = nil
 }
 
