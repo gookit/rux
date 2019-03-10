@@ -27,7 +27,6 @@ func (c HandlersChain) Last() HandlerFunc {
 	if length > 0 {
 		return c[length-1]
 	}
-
 	return nil
 }
 

@@ -200,7 +200,7 @@ func TestContext(t *testing.T) {
 	r := New()
 
 	route := r.GET("/ctx", namedHandler) // main handler
-	route.Use(func(c *Context) {         // middle 1
+	route.Use(func(c *Context) { // middle 1
 		// -> STEP 1:
 		is.NotEmpty(c.Handler())
 		is.NotEmpty(c.Router())
@@ -388,4 +388,22 @@ func TestContext_Cookie(t *testing.T) {
 
 	resCke := w.Header().Get("Set-Cookie")
 	ris.Equal("res-cke=val1; Path=/; Max-Age=300; Secure", resCke)
+}
+
+func TestHandleError(t *testing.T) {
+	r   := New()
+	ris := assert.New(t)
+
+	r.GET("/test", func(c *Context) {
+		c.Error(fmt.Errorf("oo, has an error"))
+		c.SetStatus(200)
+	})
+
+	r.OnError = func(c *Context) {
+		ris.Error(c.FirstError())
+		ris.Equal("oo, has an error", c.FirstError().Error())
+	}
+
+	w := mockRequest(r, GET, "/test", nil)
+	ris.Equal(200, w.Code)
 }

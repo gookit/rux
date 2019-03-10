@@ -8,7 +8,7 @@ import (
 	"sync"
 )
 
-// all supported HTTP verb methods name
+// All supported HTTP verb methods name
 const (
 	GET     = "GET"
 	PUT     = "PUT"
@@ -25,19 +25,19 @@ const (
 // more: ,COPY,PURGE,LINK,UNLINK,LOCK,UNLOCK,VIEW,SEARCH,CONNECT,TRACE
 const StringMethods = "GET,POST,PUT,PATCH,DELETE,OPTIONS,HEAD,CONNECT,TRACE"
 
-// match status: 1 found 2 not found 3 method not allowed
+// Match status: 1 found 2 not found 3 method not allowed
 const (
 	Found uint8 = iota + 1
 	NotFound
 	NotAllowed
 	// route type
-	StaticType = iota + 1
-	RegularType
-	IrregularType
+	// StaticType = iota + 1
+	// RegularType
+	// IrregularType
 )
 
-// IController a simple controller interface
-type IController interface {
+// ControllerFace a simple controller interface
+type ControllerFace interface {
 	// AddRoutes for support register routes in the controller.
 	AddRoutes(g *Router)
 }
@@ -341,7 +341,7 @@ func (r *Router) AddRoute(route *Route) *Route {
 	return route
 }
 
-func (r *Router) appendGroupInfo(route *Route)  {
+func (r *Router) appendGroupInfo(route *Route) {
 	path := r.formatPath(route.path)
 
 	if r.currentGroupPrefix != "" {
@@ -382,7 +382,7 @@ func (r *Router) Group(prefix string, register func(), middleware ...HandlerFunc
 }
 
 // Controller register some routes by a controller
-func (r *Router) Controller(basePath string, controller IController, middleware ...HandlerFunc) {
+func (r *Router) Controller(basePath string, controller ControllerFace, middleware ...HandlerFunc) {
 	r.Group(basePath, func() {
 		controller.AddRoutes(r)
 	}, middleware...)

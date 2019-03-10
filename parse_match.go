@@ -176,7 +176,11 @@ func (r *Router) match(method, path string) (ret *MatchResult) {
 
 		if rs, ok := r.regularRoutes[key]; ok {
 			for _, route := range rs {
-				if ps, ok := route.match(path); ok {
+				if strings.Index(path, route.start) != 0 {
+					continue
+				}
+
+				if ps, ok := route.matchRegex(path); ok {
 					ret = newFoundResult(route.handler, route.handlers, ps)
 					r.cacheDynamicRoute(path, ps, route)
 					return
@@ -188,7 +192,7 @@ func (r *Router) match(method, path string) (ret *MatchResult) {
 	// find in irregular routes
 	if rs, ok := r.irregularRoutes[method]; ok {
 		for _, route := range rs {
-			if ps, ok := route.match(path); ok {
+			if ps, ok := route.matchRegex(path); ok {
 				ret = newFoundResult(route.handler, route.handlers, ps)
 				r.cacheDynamicRoute(path, ps, route)
 				return

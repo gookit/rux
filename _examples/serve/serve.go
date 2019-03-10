@@ -26,14 +26,14 @@ func main() {
 	// r.StaticFiles("", "testdata", "css|js")
 	r.StaticFiles("/assets", "testdata", "css|js")
 
-	gh := http.HandlerFunc(func (w http.ResponseWriter, r *http.Request) {
+	gh := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("new-key", "val")
 	})
 
 	r.Use(handlers.RequestLogger(), rux.WrapHTTPHandler(gh))
 
 	r.GET("/", func(c *rux.Context) {
-		c.Text(200, "hello " + c.URL().Path)
+		c.Text(200, "hello "+c.URL().Path)
 	}).Use(handlers.HTTPBasicAuth(map[string]string{
 		// "test": "123",
 	}))
@@ -41,10 +41,10 @@ func main() {
 	r.GET("/about[.html]", defHandle)
 	r.GET("/hi-{name}", defHandle).NamedTo("my-route", r)
 	r.GET("/users/{id}", func(c *rux.Context) {
-		c.Text(200, "hello " + c.URL().Path)
+		c.Text(200, "hello "+c.URL().Path)
 	})
 	r.POST("/post", func(c *rux.Context) {
-		c.Text(200, "hello " + c.URL().Path)
+		c.Text(200, "hello "+c.URL().Path)
 	})
 	r.Group("/articles", func() {
 		r.GET("", func(c *rux.Context) {
@@ -54,7 +54,7 @@ func main() {
 			c.Text(200, "create ok")
 		})
 		r.GET(`/{id:\d+}`, func(c *rux.Context) {
-			c.Text(200, "view detail, id: " + c.Param("id"))
+			c.Text(200, "view detail, id: "+c.Param("id"))
 		})
 	})
 
@@ -171,5 +171,5 @@ func (c *BlogController) Get(ctx *rux.Context) {
 
 // Post action
 func (c *BlogController) Post(ctx *rux.Context) {
-	ctx.Text(200, "hello, in " + ctx.URL().Path)
+	ctx.Text(200, "hello, in "+ctx.URL().Path)
 }

@@ -10,10 +10,10 @@ import (
 )
 
 var (
-	methods = strings.Split("GET,POST,PUT,PATCH,DELETE,OPTIONS,HEAD", ",")
-	inTimes   = flag.Int("t", 1000, "the match times")
-	inNumber  = flag.Int("n", 1000, "the generate routes numbers")
-	percent = flag.Int("percent", 5, "the generate dynamic routes percentage. allow 1 - 10")
+	methods  = strings.Split("GET,POST,PUT,PATCH,DELETE,OPTIONS,HEAD", ",")
+	inTimes  = flag.Int("t", 1000, "the match times")
+	inNumber = flag.Int("n", 1000, "the generate routes numbers")
+	percent  = flag.Int("percent", 5, "the generate dynamic routes percentage. allow 1 - 10")
 )
 
 var r = rux.New()
@@ -21,7 +21,7 @@ var alphaNum = []byte(`0123456789abcdefghijklmnopqrstuvwxyz`)
 var routes []map[string]string
 var emptyHandler = func(c *rux.Context) {}
 var (
-	times, number int
+	times, number                    int
 	firstRoute, randRoute, lastRoute map[string]string
 )
 

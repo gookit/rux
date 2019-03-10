@@ -36,7 +36,7 @@ func main() {
 	<-idleConnsClosed
 }
 
-func grace2()  {
+func grace2() {
 	var srv http.Server
 
 	c := make(chan os.Signal, 1)

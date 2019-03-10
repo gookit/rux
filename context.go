@@ -195,6 +195,14 @@ func (c *Context) Error(err error) {
 	}
 }
 
+// FirstError get first error
+func (c *Context) FirstError() error {
+	if len(c.Errors) > 0 {
+		return *c.Errors[0]
+	}
+	return nil
+}
+
 /*************************************************************
  * Context: request data
  *************************************************************/
@@ -213,7 +221,6 @@ func (c *Context) Header(key string) string {
 	if values, _ := c.Req.Header[key]; len(values) > 0 {
 		return values[0]
 	}
-
 	return ""
 }
 
@@ -232,7 +239,6 @@ func (c *Context) Query(key string, defVal ...string) string {
 	if len(defVal) > 0 {
 		return defVal[0]
 	}
-
 	return ""
 }
 
@@ -241,7 +247,6 @@ func (c *Context) QueryParam(key string) (string, bool) {
 	if vs, ok := c.QueryParams(key); ok {
 		return vs[0], true
 	}
-
 	return "", false
 }
 
@@ -250,7 +255,6 @@ func (c *Context) QueryParams(key string) ([]string, bool) {
 	if vs, ok := c.Req.URL.Query()[key]; ok && len(vs) > 0 {
 		return vs, ok
 	}
-
 	return []string{}, false
 }
 
@@ -269,7 +273,6 @@ func (c *Context) Post(key string, defVal ...string) string {
 	if len(defVal) > 0 {
 		return defVal[0]
 	}
-
 	return ""
 }
 
@@ -278,7 +281,6 @@ func (c *Context) PostParam(key string) (string, bool) {
 	if vs, ok := c.PostParams(key); ok {
 		return vs[0], true
 	}
-
 	return "", false
 }
 
@@ -292,7 +294,6 @@ func (c *Context) PostParams(key string) ([]string, bool) {
 	if vs := req.PostForm[key]; len(vs) > 0 {
 		return vs, true
 	}
-
 	return []string{}, false
 }
 
@@ -702,6 +703,5 @@ func (c *Context) Value(key interface{}) interface{} {
 	if keyAsString, ok := key.(string); ok {
 		return c.MustGet(keyAsString)
 	}
-
 	return nil
 }

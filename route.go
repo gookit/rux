@@ -163,13 +163,17 @@ func (r *Route) goodInfo() {
 	}
 }
 
-// match a regex route
+// check start string and match a regex route
 func (r *Route) match(path string) (ps Params, ok bool) {
 	// check start string
 	if r.start != "" && strings.Index(path, r.start) != 0 {
 		return
 	}
+	return r.matchRegex(path)
+}
 
+// match a regex route
+func (r *Route) matchRegex(path string) (ps Params, ok bool) {
 	// regex match
 	ss := r.regex.FindAllStringSubmatch(path, -1)
 	if len(ss) == 0 {
@@ -184,7 +188,6 @@ func (r *Route) match(path string) (ps Params, ok bool) {
 			ps[n] = item[1]
 		}
 	}
-
 	return
 }
 
