@@ -395,7 +395,7 @@ func TestHandleError(t *testing.T) {
 	ris := assert.New(t)
 
 	r.GET("/test", func(c *Context) {
-		c.Error(fmt.Errorf("oo, has an error"))
+		c.AddError(fmt.Errorf("oo, has an error"))
 		c.SetStatus(200)
 	})
 
