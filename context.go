@@ -333,15 +333,17 @@ func (c *Context) SaveFile(file *multipart.FileHeader, dst string) error {
 	if err != nil {
 		return err
 	}
-	defer src.Close()
 
 	out, err := os.Create(dst)
 	if err != nil {
+		_ = src.Close()
 		return err
 	}
 	defer out.Close()
 
 	_, err = io.Copy(out, src)
+	_ = src.Close()
+
 	return err
 }
 

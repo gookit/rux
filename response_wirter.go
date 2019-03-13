@@ -60,21 +60,24 @@ func (w *responseWriter) WriteHeader(status int) {
 		w.status = status
 	}
 
-	w.Writer.WriteHeader(status)
+	// Don't write, real write on EnsureWriteHeader()
+	// w.Writer.WriteHeader(status)
 }
 
 // Write data to resp
 // Tips: implement the http.ResponseWriter interface.
-func (w *responseWriter) Write(b []byte) (int, error) {
+func (w *responseWriter) Write(b []byte) (n int, err error) {
 	w.EnsureWriteHeader()
-	n, err := w.Writer.Write(b)
+
+	n, err = w.Writer.Write(b)
 	w.length += n
-	return n, err
+	return
 }
 
 // WriteString write string.
 func (w *responseWriter) WriteString(s string) (n int, err error) {
 	w.EnsureWriteHeader()
+
 	n, err = io.WriteString(w.Writer, s)
 	w.length += n
 	return
