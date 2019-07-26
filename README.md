@@ -5,15 +5,16 @@
 [![Coverage Status](https://coveralls.io/repos/github/gookit/rux/badge.svg?branch=master)](https://coveralls.io/github/gookit/rux?branch=master)
 [![Go Report Card](https://goreportcard.com/badge/github.com/gookit/rux)](https://goreportcard.com/report/github.com/gookit/rux)
 
-Simple and fast request router for golang HTTP applications.
+Simple and fast web framework for build golang HTTP applications.
 
 > **[中文说明](README_cn.md)**
 
-- support route group
+- fast route match, support route group
 - support route path params
 - support cache recently accessed dynamic routes
 - support route middleware, group middleware, global middleware
 - support generic `http.Handler` interface middleware
+- support static file access handle
 - support add handlers for handle `NotFound` and `NotAllowed`
 
 ## Godoc
