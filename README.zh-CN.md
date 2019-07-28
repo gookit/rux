@@ -216,6 +216,27 @@ func main() {
 }
 ```
 
+## 帮助
+
+- lint
+
+```bash
+golint ./...
+```
+
+- 格式检查
+
+```bash
+gofmt -s  ./
+gofmt -s -w some.go
+```
+
+- 单元测试
+
+```bash
+go test -cover ./...
+```
+
 ## Gookit 工具包
 
 - [gookit/ini](https://github.com/gookit/ini) INI配置读取管理，支持多文件加载，数据覆盖合并, 解析ENV变量, 解析变量引用

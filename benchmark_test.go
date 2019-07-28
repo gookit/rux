@@ -112,14 +112,14 @@ func mockRequest(h http.Handler, method, path string, data *md, beforeSend ...fu
 }
 
 // will store old env value, set new val. will restore old value on end.
-func mockEnvValue(key, val string, fn func())  {
+func mockEnvValue(key, val string, fn func()) {
 	old := os.Getenv(key)
 	_ = os.Setenv(key, val)
 
 	fn()
 
 	if old != "" {
-		_= os.Setenv(key, old)
+		_ = os.Setenv(key, old)
 	}
 }
 

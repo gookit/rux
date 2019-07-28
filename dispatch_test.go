@@ -203,7 +203,7 @@ func TestContext(t *testing.T) {
 	r := New()
 
 	route := r.GET("/ctx", namedHandler) // main handler
-	route.Use(func(c *Context) { // middle 1
+	route.Use(func(c *Context) {         // middle 1
 		// -> STEP 1:
 		is.NotEmpty(c.Handler())
 		is.NotEmpty(c.Router())
@@ -424,7 +424,7 @@ func TestHandleError(t *testing.T) {
 	ris.Equal(200, w.Code)
 }
 
-func TestHandlePanic(t *testing.T)  {
+func TestHandlePanic(t *testing.T) {
 	ris := assert.New(t)
 
 	r := New()
