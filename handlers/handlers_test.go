@@ -37,7 +37,7 @@ func TestHTTPMethodOverrideHandler(t *testing.T) {
 
 	r.PUT("/put", func(c *rux.Context) {
 		// real method save on the request.Context
-		art.Equal("POST", c.ReqCtxValue("originalMethod"))
+		art.Equal("POST", c.ReqCtxValue(OriginalMethodContextKey))
 		c.Text(200, "put")
 	})
 

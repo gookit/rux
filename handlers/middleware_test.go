@@ -1,11 +1,13 @@
 package handlers
 
 import (
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -70,22 +72,37 @@ func TestHTTPBasicAuth(t *testing.T) {
 
 func TestRequestLogger(t *testing.T) {
 	r := rux.New()
-	art := assert.New(t)
+	ris := assert.New(t)
+
+	m2code := map[string]int{
+		"GET": 200,
+		"PUT": 301,
+		"PATCH": 401,
+		"HEAD": 501,
+	}
 
 	// log req
 	rewriteStdout()
 	r.Any("/req-log", func(c *rux.Context) {
-		c.Text(200, "hello")
+		code, err := strconv.Atoi(c.Query("code", "200"))
+		c.Text(code, "hello")
+		ris.NoError(err)
 	}, RequestLogger())
 
 	for _, m := range rux.AnyMethods() {
-		w := mockRequest(r, m, "/req-log", nil)
-		art.Equal(200, w.Code)
-		art.Equal("hello", w.Body.String())
+		code := m2code[m]
+		if code == 0 {
+			code = 200
+		}
+
+		uri := fmt.Sprintf("/req-log?code=%d", code)
+		w := mockRequest(r, m, uri, nil)
+		ris.Equal(code, w.Code)
+		ris.Equal("hello", w.Body.String())
 	}
 
 	out := restoreStdout()
-	art.Contains(out, "/req-log")
+	ris.Contains(out, "/req-log")
 
 	// skip log
 	rewriteStdout()
@@ -94,11 +111,11 @@ func TestRequestLogger(t *testing.T) {
 	}, RequestLogger())
 
 	w := mockRequest(r, "GET", "/status", nil)
-	art.Equal(200, w.Code)
-	art.Equal("hello", w.Body.String())
+	ris.Equal(200, w.Code)
+	ris.Equal("hello", w.Body.String())
 
 	out = restoreStdout()
-	art.Equal(out, "")
+	ris.Equal(out, "")
 }
 
 /*************************************************************
@@ -163,7 +180,7 @@ func restoreStdout() string {
 
 	// Notice: must close writer before read data
 	// close now reader
-	os.Stdout.Close()
+	_= os.Stdout.Close()
 	// restore
 	os.Stdout = oldStdout
 	oldStdout = nil
@@ -172,7 +189,7 @@ func restoreStdout() string {
 	out, _ := ioutil.ReadAll(newReader)
 
 	// close reader
-	newReader.Close()
+	_= newReader.Close()
 	newReader = nil
 
 	return string(out)

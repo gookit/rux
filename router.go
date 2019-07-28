@@ -43,6 +43,7 @@ type ControllerFace interface {
 
 var (
 	debug      bool
+	// current supported HTTP method
 	anyMethods = []string{GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD, CONNECT, TRACE}
 )
 
