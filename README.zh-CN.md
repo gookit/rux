@@ -227,7 +227,9 @@ golint ./...
 - 格式检查
 
 ```bash
-gofmt -s  ./
+# list error files
+gofmt -s -l ./
+# fix format and write to file
 gofmt -s -w some.go
 ```
 

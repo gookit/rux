@@ -75,10 +75,10 @@ func TestRequestLogger(t *testing.T) {
 	ris := assert.New(t)
 
 	m2code := map[string]int{
-		"GET": 200,
-		"PUT": 301,
+		"GET":   200,
+		"PUT":   301,
 		"PATCH": 401,
-		"HEAD": 501,
+		"HEAD":  501,
 	}
 
 	// log req
@@ -180,7 +180,7 @@ func restoreStdout() string {
 
 	// Notice: must close writer before read data
 	// close now reader
-	_= os.Stdout.Close()
+	_ = os.Stdout.Close()
 	// restore
 	os.Stdout = oldStdout
 	oldStdout = nil
@@ -189,7 +189,7 @@ func restoreStdout() string {
 	out, _ := ioutil.ReadAll(newReader)
 
 	// close reader
-	_= newReader.Close()
+	_ = newReader.Close()
 	newReader = nil
 
 	return string(out)

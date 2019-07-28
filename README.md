@@ -230,7 +230,10 @@ golint ./...
 - format check
 
 ```bash
-gofmt -s -e ./
+# list error files
+gofmt -s -l ./
+# fix format and write to file
+gofmt -s -w some.go
 ```
 
 - unit test
