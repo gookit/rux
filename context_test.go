@@ -2,13 +2,14 @@ package rux
 
 import (
 	"bytes"
-	"github.com/stretchr/testify/assert"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func mockContext(method, uri string, body io.Reader, header m) *Context {

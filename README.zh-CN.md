@@ -1,18 +1,18 @@
-# rux 路由器
+# Rux
 
 [![GoDoc](https://godoc.org/github.com/gookit/rux?status.svg)](https://godoc.org/github.com/gookit/rux)
 [![Build Status](https://travis-ci.org/gookit/rux.svg?branch=master)](https://travis-ci.org/gookit/rux)
 [![Coverage Status](https://coveralls.io/repos/github/gookit/rux/badge.svg?branch=master)](https://coveralls.io/github/gookit/rux?branch=master)
 [![Go Report Card](https://goreportcard.com/badge/github.com/gookit/rux)](https://goreportcard.com/report/github.com/gookit/rux)
 
-简单且快速的 Go HTTP 请求路由器，支持中间件，兼容 http.Handler 接口。
+简单且快速的 Go web 框架，支持中间件，兼容 http.Handler 接口。
 
 > **[EN README](README.md)**
 
 - 支持路由参数，支持路由组，支持给路由命名
 - 支持方便的静态文件/目录处理
 - 支持缓存最近访问的动态路由以获得更高性能
-- 支持中间件: 路由中间件，组中间件，全局中间件。
+- 支持中间件: 路由中间件，组中间件，全局中间件
 - 兼容支持 `http.Handler` 接口，可以直接使用其他的常用中间件
 - 支持添加 `NotFound` 和 `NotAllowed` 处理
 

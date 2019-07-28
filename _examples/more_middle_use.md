@@ -9,9 +9,10 @@ package main
 
 import (
         "encoding/json"
+        "net/http"
+
         "github.com/gookit/rux"
         "github.com/thoas/stats"
-        "net/http"
 )
 
 func main() {

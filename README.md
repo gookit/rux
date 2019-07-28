@@ -1,4 +1,4 @@
-# rux router
+# Rux
 
 [![GoDoc](https://godoc.org/github.com/gookit/rux?status.svg)](https://godoc.org/github.com/gookit/rux)
 [![Build Status](https://travis-ci.org/gookit/rux.svg?branch=master)](https://travis-ci.org/gookit/rux)
@@ -7,7 +7,7 @@
 
 Simple and fast web framework for build golang HTTP applications.
 
-> **[中文说明](README_cn.md)**
+> **[中文说明](README.zh-CN.md)**
 
 - fast route match, support route group
 - support route path params

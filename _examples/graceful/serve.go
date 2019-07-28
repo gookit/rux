@@ -64,5 +64,9 @@ func grace2() {
 			}
 		}
 	}()
-	srv.ListenAndServe()
+
+	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+		// Error starting or closing listener:
+		log.Printf("HTTP server ListenAndServe: %v", err)
+	}
 }

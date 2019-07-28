@@ -2,12 +2,13 @@ package rux
 
 import (
 	"fmt"
-	"github.com/gookit/goutil/testutil"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"os"
 	"runtime"
 	"testing"
+
+	"github.com/gookit/goutil/testutil"
+	"github.com/stretchr/testify/assert"
 )
 
 func ExampleRouter_ServeHTTP() {
@@ -391,7 +392,7 @@ func TestContext_Cookie(t *testing.T) {
 }
 
 func TestHandleError(t *testing.T) {
-	r   := New()
+	r := New()
 	ris := assert.New(t)
 
 	r.GET("/test", func(c *Context) {
