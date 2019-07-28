@@ -63,13 +63,15 @@ func resolveAddress(addr []string) (fullAddr string) {
 		return ip + ":8080"
 	case 1:
 		var port string
+
+		// "IP:PORT"
 		if strings.IndexByte(addr[0], ':') != -1 {
 			ss := strings.SplitN(addr[0], ":", 2)
 			if ss[0] != "" {
 				return addr[0]
 			}
 			port = ss[1]
-		} else {
+		} else { // Only port
 			port = addr[0]
 		}
 
@@ -131,8 +133,11 @@ func debugPrint(f string, v ...interface{}) {
 
 // from gin framework
 func parseAccept(acceptHeader string) []string {
-	parts := strings.Split(acceptHeader, ",")
+	if acceptHeader == "" {
+		return []string{}
+	}
 
+	parts := strings.Split(acceptHeader, ",")
 	if len(parts) == 0 {
 		return []string{}
 	}
