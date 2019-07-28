@@ -2,9 +2,10 @@ package handlers
 
 import (
 	"context"
-	"github.com/gookit/rux"
 	"net/http"
 	"strings"
+
+	"github.com/gookit/rux"
 )
 
 // DumpRoutesHandler dump all registered routes info
@@ -19,10 +20,12 @@ func DumpRoutesHandler() rux.HandlerFunc {
  *************************************************************/
 
 const (
-	// HTTPMethodOverrideHeader is a commonly used http header to override a request method.
+	// HTTPMethodOverrideHeader is a commonly used http header to override a request method
 	HTTPMethodOverrideHeader = "X-HTTP-Method-Override"
-	// HTTPMethodOverrideFormKey is a commonly used HTML form key to override a request method.
+	// HTTPMethodOverrideFormKey is a commonly used HTML form key to override a request method
 	HTTPMethodOverrideFormKey = "_method"
+	// HTTPMethodOriginalMethodKey is a commonly for record old original request method
+	HTTPMethodOriginalMethodKey = "originalMethod"
 )
 
 // HTTPMethodOverrideHandler wraps and returns a http.Handler which checks for
@@ -46,7 +49,7 @@ func HTTPMethodOverrideHandler(h http.Handler) http.Handler {
 			if om == "PUT" || om == "PATCH" || om == "DELETE" {
 				r.Method = om
 				// record old method to context
-				r = r.WithContext(context.WithValue(r.Context(), "originalMethod", "POST"))
+				r = r.WithContext(context.WithValue(r.Context(), HTTPMethodOriginalMethodKey, "POST"))
 			}
 		}
 

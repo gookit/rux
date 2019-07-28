@@ -64,7 +64,7 @@ func Benchmark404Many(B *testing.B) {
  *************************************************************/
 
 type (
-	m map[string]string
+	m  map[string]string
 	md struct {
 		// body
 		B string

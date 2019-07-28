@@ -3,10 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/gookit/rux"
 	"math/rand"
 	"strings"
 	"time"
+
+	"github.com/gookit/rux"
 )
 
 var (

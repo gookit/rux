@@ -4,8 +4,9 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
-	"github.com/gookit/rux"
 	"time"
+
+	"github.com/gookit/rux"
 )
 
 // FavIcon uri for favicon.ico

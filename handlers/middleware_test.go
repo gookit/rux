@@ -1,8 +1,6 @@
 package handlers
 
 import (
-	"github.com/gookit/rux"
-	"github.com/stretchr/testify/assert"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -10,6 +8,9 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/gookit/rux"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSomeMiddleware(t *testing.T) {

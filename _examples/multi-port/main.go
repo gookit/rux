@@ -46,5 +46,5 @@ func Launch(fn func()) {
 
 func Hello(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
-	_,_= fmt.Fprintf(w, "hello, gopher")
+	_, _ = fmt.Fprintf(w, "hello, gopher")
 }

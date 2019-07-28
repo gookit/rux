@@ -4,21 +4,21 @@ import "net/http"
 
 func main() {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_,_ = w.Write([]byte("-O-"))
+		_, _ = w.Write([]byte("-O-"))
 	})
 
 	mdl1 := func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			_,_ = w.Write([]byte("a"))
+			_, _ = w.Write([]byte("a"))
 			h.ServeHTTP(w, r)
-			_,_ = w.Write([]byte("A"))
+			_, _ = w.Write([]byte("A"))
 		})
 	}
 	mdl2 := func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			_,_ = w.Write([]byte("b"))
+			_, _ = w.Write([]byte("b"))
 			h.ServeHTTP(w, r)
-			_,_ = w.Write([]byte("B"))
+			_, _ = w.Write([]byte("B"))
 		})
 	}
 

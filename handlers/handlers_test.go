@@ -1,10 +1,11 @@
 package handlers
 
 import (
-	"github.com/gookit/rux"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"testing"
+
+	"github.com/gookit/rux"
+	"github.com/stretchr/testify/assert"
 )
 
 func ExampleHTTPMethodOverrideHandler() {

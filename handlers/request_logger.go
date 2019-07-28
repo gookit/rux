@@ -2,9 +2,10 @@ package handlers
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/gookit/color"
 	"github.com/gookit/rux"
-	"time"
 )
 
 // RequestLogger middleware.
