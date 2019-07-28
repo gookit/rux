@@ -440,7 +440,7 @@ func TestRouter_WithOptions(t *testing.T) {
 	// is.Equal(8 << 20, r.maxMultipisMemory)
 }
 
-func TestRouterStaticAssets(t *testing.T) {
+func TestAccessStaticAssets(t *testing.T) {
 	r := New()
 	is := assert.New(t)
 

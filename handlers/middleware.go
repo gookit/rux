@@ -25,9 +25,9 @@ func IgnoreFavIcon() rux.HandlerFunc {
 // GenRequestID for the request
 func GenRequestID() rux.HandlerFunc {
 	return func(c *rux.Context) {
-		reqId := genMd5(fmt.Sprintf("rux-%d", time.Now().Nanosecond()))
+		reqID := genMd5(fmt.Sprintf("rux-%d", time.Now().Nanosecond()))
 		// add reqID to context
-		c.Set("reqID", reqId)
+		c.Set("reqID", reqID)
 	}
 }
 

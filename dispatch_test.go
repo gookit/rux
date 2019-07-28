@@ -3,7 +3,6 @@ package rux
 import (
 	"fmt"
 	"net/http"
-	"os"
 	"runtime"
 	"testing"
 
@@ -64,8 +63,11 @@ func TestRouterListen(t *testing.T) {
 	r.Listen("127.0.0.1:invalid]")
 	r.ListenTLS("invalid]", "", "")
 	r.ListenUnix("")
-	_ = os.Setenv("PORT", "invalid]")
-	r.Listen()
+
+	mockEnvValue("PORT", "invalid]", func() {
+		r.Listen()
+	})
+
 	s := testutil.RestoreStdout()
 
 	is.Contains(s, "[ERROR] listen tcp: address 0.0.0.0:invalid]")
@@ -391,20 +393,51 @@ func TestContext_Cookie(t *testing.T) {
 	ris.Equal("res-cke=val1; Path=/; Max-Age=300; Secure", resCke)
 }
 
+func TestRepeatSetStatusCode(t *testing.T) {
+	rux := New()
+	ris := assert.New(t)
+
+	rux.GET("/test-status-code", func(c *Context) {
+		c.SetStatusCode(200)
+		c.SetStatusCode(201)
+	})
+
+	w := mockRequest(rux, GET, "/test-status-code", nil)
+	ris.Equal(201, w.Code)
+}
+
 func TestHandleError(t *testing.T) {
 	r := New()
 	ris := assert.New(t)
-
-	r.GET("/test", func(c *Context) {
-		c.AddError(fmt.Errorf("oo, has an error"))
-		c.SetStatus(200)
-	})
 
 	r.OnError = func(c *Context) {
 		ris.Error(c.FirstError())
 		ris.Equal("oo, has an error", c.FirstError().Error())
 	}
 
-	w := mockRequest(r, GET, "/test", nil)
+	r.GET("/test-error", func(c *Context) {
+		c.AddError(fmt.Errorf("oo, has an error"))
+		c.SetStatusCode(200)
+	})
+
+	w := mockRequest(r, GET, "/test-error", nil)
+	ris.Equal(200, w.Code)
+}
+
+func TestHandlePanic(t *testing.T)  {
+	ris := assert.New(t)
+
+	r := New()
+	r.OnPanic = func(c *Context) {
+		err, ok := c.Get(CTXRecoverResult)
+		ris.True(ok)
+		ris.Equal("panic test", err)
+	}
+
+	r.GET("/test-panic", func(c *Context) {
+		panic("panic test")
+	})
+
+	w := mockRequest(r, GET, "/test-panic", nil)
 	ris.Equal(200, w.Code)
 }

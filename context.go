@@ -495,6 +495,11 @@ func (c *Context) SetStatus(status int) {
 	c.writer.WriteHeader(status)
 }
 
+// SetStatusCode code for the response. alias of the SetStatus()
+func (c *Context) SetStatusCode(status int) {
+	c.writer.WriteHeader(status)
+}
+
 // StatusCode get status code from the response
 func (c *Context) StatusCode() int {
 	return c.writer.Status()

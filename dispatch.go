@@ -129,8 +129,6 @@ func (r *Router) HandleContext(c *Context) {
 
 // handle HTTP Request
 func (r *Router) handleHTTPRequest(ctx *Context) {
-	var handlers HandlersChain
-
 	// has panic handler
 	if r.OnPanic != nil {
 		defer func() {
@@ -142,7 +140,6 @@ func (r *Router) handleHTTPRequest(ctx *Context) {
 	}
 
 	path := ctx.Req.URL.Path
-
 	if r.useEncodedPath {
 		path = ctx.Req.URL.EscapedPath()
 	}
@@ -151,13 +148,13 @@ func (r *Router) handleHTTPRequest(ctx *Context) {
 		r.noRoute = HandlersChain{internal404Handler}
 	}
 
-	method := ctx.Req.Method
-	result := r.Match(method, path) // match route
+	// match route
+	result := r.Match(ctx.Req.Method, path)
 
 	// save route params
 	ctx.Params = result.Params
 
-	// check match result
+	var handlers HandlersChain
 	switch result.Status {
 	case Found:
 		// append main handler to last

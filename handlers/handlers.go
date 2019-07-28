@@ -19,13 +19,16 @@ func DumpRoutesHandler() rux.HandlerFunc {
  * for support method override
  *************************************************************/
 
+// context.WithValue suggestion key should not be of basic type
+type contextKey string
+
 const (
 	// HTTPMethodOverrideHeader is a commonly used http header to override a request method
 	HTTPMethodOverrideHeader = "X-HTTP-Method-Override"
 	// HTTPMethodOverrideFormKey is a commonly used HTML form key to override a request method
 	HTTPMethodOverrideFormKey = "_method"
-	// HTTPMethodOriginalMethodKey is a commonly for record old original request method
-	HTTPMethodOriginalMethodKey = "originalMethod"
+	// OriginalMethodContextKey is a commonly for record old original request method
+	OriginalMethodContextKey contextKey = "originalMethod"
 )
 
 // HTTPMethodOverrideHandler wraps and returns a http.Handler which checks for
@@ -49,7 +52,7 @@ func HTTPMethodOverrideHandler(h http.Handler) http.Handler {
 			if om == "PUT" || om == "PATCH" || om == "DELETE" {
 				r.Method = om
 				// record old method to context
-				r = r.WithContext(context.WithValue(r.Context(), HTTPMethodOriginalMethodKey, "POST"))
+				r = r.WithContext(context.WithValue(r.Context(), OriginalMethodContextKey, "POST"))
 			}
 		}
 

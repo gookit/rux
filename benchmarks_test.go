@@ -4,6 +4,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 )
@@ -108,6 +109,18 @@ func mockRequest(h http.Handler, method, path string, data *md, beforeSend ...fu
 
 	// return w.Result() will return http.Response
 	return w
+}
+
+// will store old env value, set new val. will restore old value on end.
+func mockEnvValue(key, val string, fn func())  {
+	old := os.Getenv(key)
+	_ = os.Setenv(key, val)
+
+	fn()
+
+	if old != "" {
+		_= os.Setenv(key, old)
+	}
 }
 
 func runRequest(B *testing.B, r *Router, method, path string) {

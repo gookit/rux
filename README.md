@@ -9,13 +9,13 @@ Simple and fast web framework for build golang HTTP applications.
 
 > **[中文说明](README.zh-CN.md)**
 
-- fast route match, support route group
-- support route path params
-- support cache recently accessed dynamic routes
-- support route middleware, group middleware, global middleware
-- support generic `http.Handler` interface middleware
-- support static file access handle
-- support add handlers for handle `NotFound` and `NotAllowed`
+- Fast route match, support route group
+- Support route path params
+- Support cache recently accessed dynamic routes
+- Support route middleware, group middleware, global middleware
+- Support generic `http.Handler` interface middleware
+- Support static file access handle
+- Support add handlers for handle `NotFound` and `NotAllowed`
 
 ## Godoc
 
@@ -219,7 +219,27 @@ func main() {
 }
 ```
 
-## Gookit packages
+## Help
+
+- lint
+
+```bash
+golint ./...
+```
+
+- format check
+
+```bash
+gofmt -s -e ./
+```
+
+- unit test
+
+```bash
+go test -cover ./...
+```
+
+## Gookit Packages
 
 - [gookit/ini](https://github.com/gookit/ini) Go config management, use INI files
 - [gookit/rux](https://github.com/gookit/rux) Simple and fast request router for golang HTTP 

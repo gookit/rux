@@ -64,7 +64,7 @@ func resolveAddress(addr []string) (fullAddr string) {
 	case 1:
 		var port string
 
-		// "IP:PORT"
+		// "IP:PORT" OR ":PORT"
 		if strings.IndexByte(addr[0], ':') != -1 {
 			ss := strings.SplitN(addr[0], ":", 2)
 			if ss[0] != "" {
@@ -138,15 +138,12 @@ func parseAccept(acceptHeader string) []string {
 	}
 
 	parts := strings.Split(acceptHeader, ",")
-	if len(parts) == 0 {
-		return []string{}
-	}
+	outs := make([]string, 0, len(parts))
 
-	out := make([]string, 0, len(parts))
 	for _, part := range parts {
 		if part = strings.TrimSpace(strings.Split(part, ";")[0]); part != "" {
-			out = append(out, part)
+			outs = append(outs, part)
 		}
 	}
-	return out
+	return outs
 }

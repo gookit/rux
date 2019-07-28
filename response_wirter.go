@@ -2,7 +2,6 @@ package rux
 
 import (
 	"bufio"
-	"io"
 	"net"
 	"net/http"
 )
@@ -64,7 +63,7 @@ func (w *responseWriter) WriteHeader(status int) {
 	// w.Writer.WriteHeader(status)
 }
 
-// Write data to resp
+// Write data to response writer
 // Tips: implement the http.ResponseWriter interface.
 func (w *responseWriter) Write(b []byte) (n int, err error) {
 	w.EnsureWriteHeader()
@@ -75,13 +74,13 @@ func (w *responseWriter) Write(b []byte) (n int, err error) {
 }
 
 // WriteString write string.
-func (w *responseWriter) WriteString(s string) (n int, err error) {
-	w.EnsureWriteHeader()
-
-	n, err = io.WriteString(w.Writer, s)
-	w.length += n
-	return
-}
+// func (w *responseWriter) WriteString(s string) (n int, err error) {
+// 	w.EnsureWriteHeader()
+//
+// 	n, err = io.WriteString(w.Writer, s)
+// 	w.length += n
+// 	return
+// }
 
 // Flush get status code
 // Tips: implement the http.Flusher interface.

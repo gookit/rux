@@ -22,18 +22,17 @@ const (
 )
 
 // StringMethods all supported methods string, use for method check
-// more: ,COPY,PURGE,LINK,UNLINK,LOCK,UNLOCK,VIEW,SEARCH,CONNECT,TRACE
+// more: ,COPY,PURGE,LINK,UNLINK,LOCK,UNLOCK,VIEW,SEARCH
 const StringMethods = "GET,POST,PUT,PATCH,DELETE,OPTIONS,HEAD,CONNECT,TRACE"
 
-// Match status: 1 found 2 not found 3 method not allowed
+// Match status:
+// - 1: found
+// - 2: not found
+// - 3: method not allowed
 const (
 	Found uint8 = iota + 1
 	NotFound
 	NotAllowed
-	// route type
-	// StaticType = iota + 1
-	// RegularType
-	// IrregularType
 )
 
 // ControllerFace a simple controller interface
@@ -80,22 +79,23 @@ type Router struct {
 	// count routes
 	counter int
 
-	// static/stable/fixed routes, no path params.
+	// Static/stable/fixed routes, no path params.
 	// {
 	// 	"GET /users": Route,
 	// 	"POST /users/register": Route,
 	// }
 	stableRoutes map[string]*Route
 
-	// cached dynamic routes
+	// Cached dynamic routes
 	// {
 	// 	"GET /users/12": Route,
 	// }
 	cachedRoutes map[string]*Route
 
-	// regular dynamic routing 规律的动态路由
-	// key is "METHOD first-node":
-	// first node string in the route path. "/users/{id}" -> "user"
+	// Regular dynamic routing
+	// - key is "METHOD first-node":
+	// - first node string in the route path. "/users/{id}" -> "user"
+	// Data example:
 	// {
 	// 	"GET blog": [ Route{path:"/blog/{id}"}, ...],
 	// 	"POST blog": [ Route{path:"/blog/{user}/add"}, ...],
@@ -104,7 +104,7 @@ type Router struct {
 	// }
 	regularRoutes methodRoutes
 
-	// irregular dynamic routing 无规律的动态路由
+	// Irregular dynamic routing
 	// {
 	// 	"GET": [Route, ...],
 	// 	"POST": [Route, Route, ...],
@@ -147,11 +147,11 @@ type Router struct {
 }
 
 // New router instance, can with some options.
-// quick start:
+// Quick start:
 // 	r := New()
 // 	r.GET("/path", MyAction)
 //
-// with options:
+// With options:
 // 	r := New(EnableCaching, MaxNumCaches(1000))
 // 	r.GET("/path", MyAction)
 //
@@ -302,7 +302,6 @@ func (r *Router) AddRoute(route *Route) *Route {
 
 	r.counter++
 	r.appendGroupInfo(route)
-
 	debugPrintRoute(route)
 
 	// has name.
