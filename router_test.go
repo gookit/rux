@@ -156,18 +156,19 @@ func TestNameRoute(t *testing.T) {
 	// named route
 	r.GET("/path1", emptyHandler).NamedTo("route1", r)
 
-	r2 := NewRoute("post", "/path2[.html]", emptyHandler)
+	r2 := NewRoute(POST, "/path2[.html]", emptyHandler)
 	r2.SetName("route2").AttachTo(r)
+	is.Equal("route2", r2.Name())
 
 	r3 := NewRoute("get", "/path3/{id}", emptyHandler).SetName("route3")
 	r.AddRoute(r3)
 
-	is.Len(r.Routes(), 3)
+	r4 := NewNamedRoute("route4", GET, "/path4/some/{id}", emptyHandler)
+	r.AddRoute(r4)
 
-	route := r.GetRoute("not-exist")
-	is.Nil(route)
+	is.Len(r.Routes(), 4)
 
-	route = r.GetRoute("route1")
+	route := r.GetRoute("route1")
 	is.NotEmpty(route)
 	is.Equal("/path1", route.Path())
 	is.Equal("GET", route.Method())
@@ -179,11 +180,22 @@ func TestNameRoute(t *testing.T) {
 	route = r.GetRoute("route2")
 	is.NotEmpty(route)
 	is.Equal(route, r2)
+	is.Equal("route2", route.Name())
+	_, ok := route.match("/path2")
+	is.True(ok)
 
 	route = r.GetRoute("route3")
 	is.NotEmpty(route)
 	is.Equal(route, r3)
+	is.Equal("", route.start)
 
+	route = r.GetRoute("route4")
+	is.NotEmpty(route)
+	is.Equal(route, r4)
+	is.Equal("/path4/some/", route.start)
+
+	route = r.GetRoute("not-exist")
+	is.Nil(route)
 }
 
 func TestRouter_Group(t *testing.T) {

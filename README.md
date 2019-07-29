@@ -10,7 +10,7 @@ Simple and fast web framework for build golang HTTP applications.
 > **[中文说明](README.zh-CN.md)**
 
 - Fast route match, support route group
-- Support route path params
+- Support route path params and named routing
 - Support cache recently accessed dynamic routes
 - Support route middleware, group middleware, global middleware
 - Support generic `http.Handler` interface middleware

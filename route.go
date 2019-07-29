@@ -88,6 +88,19 @@ func NewRoute(method, path string, handler HandlerFunc, middleware ...HandlerFun
 	}
 }
 
+// NewNamedRoute create a new route with name
+func NewNamedRoute(name, method, path string, handler HandlerFunc, middleware ...HandlerFunc) *Route {
+	return &Route{
+		name: strings.TrimSpace(name),
+		path: strings.TrimSpace(path),
+		// method
+		method: strings.ToUpper(method),
+		// handler
+		handler:  handler,
+		handlers: middleware,
+	}
+}
+
 // Use add middleware handlers to the route
 func (r *Route) Use(middleware ...HandlerFunc) *Route {
 	r.handlers = append(r.handlers, middleware...)
