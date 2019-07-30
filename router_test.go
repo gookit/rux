@@ -305,6 +305,35 @@ func TestFixFirstNodeOnlyOneChar(t *testing.T) {
 	is.Equal(Found, ret.Status)
 }
 
+func TestMultiPathParam(t *testing.T) {
+	ris := assert.New(t)
+
+	r := New()
+	r.PATCH(`/news/{category_id}/{new_id:\d+}/detail`, emptyHandler)
+
+	ret := r.Match(PATCH, "/news/100/20/detail")
+	ris.Equal(Found, ret.Status)
+	ris.Len(ret.Params, 2)
+	ris.True(ret.Params.Has("category_id"))
+	ris.Equal(100, ret.Params.Int("category_id"))
+	ris.True(ret.Params.Has("new_id"))
+	ris.Equal(20, ret.Params.Int("new_id"))
+
+	r2 := r.GET(`/news/{category_id}/{new_id:\d+}/{tid:\d+}/detail`, emptyHandler)
+	ris.Equal("/news/{category_id}/{new_id}/{tid}/detail", r2.spath)
+
+	ret = r.Match(GET, "/news/100/20/10/detail")
+	ris.Equal(Found, ret.Status)
+	ris.Len(ret.Params, 3)
+	ris.True(ret.Params.Has("category_id"))
+	ris.True(ret.Params.Has("new_id"))
+	ris.True(ret.Params.Has("tid"))
+
+	ris.PanicsWithValue(`invalid path var regex string, dont allow add char '('. var: new_id, regex: (\d+)`, func() {
+		r.GET(`/news/{category_id}/{new_id:(\d+)}/{tid:(\d+)}/detail`, emptyHandler)
+	})
+}
+
 func TestOptionalRoute(t *testing.T) {
 	is := assert.New(t)
 

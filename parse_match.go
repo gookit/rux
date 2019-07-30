@@ -46,12 +46,15 @@ func (r *Router) parseParamRoute(route *Route) (first string) {
 			varRegex = append(varRegex, str, "("+v+")")
 		}
 
+		route.goodRegexString(n, v)
 		route.matches = append(route.matches, n)
 	}
 
 	// `/users/{uid:\d+}/blog/{id}` -> `/users/{uid}/blog/{id}`
 	if len(rawVar) > 0 {
 		path = strings.NewReplacer(rawVar...).Replace(path)
+		// save simple path
+		route.spath = path
 	}
 
 	// "." -> "\."

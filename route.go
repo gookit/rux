@@ -53,6 +53,9 @@ type Route struct {
 
 	// start string in the route path. "/users/{id}" -> "/user/"
 	start string
+	// path but no regex
+	// "/users/{uid:\d+}/blog/{id}" -> "/users/{uid}/blog/{id}"
+	spath string
 	// hosts []string
 	// regexp for the route path
 	regex *regexp.Regexp
@@ -176,6 +179,19 @@ func (r *Route) goodInfo() {
 	}
 }
 
+// check custom var regex string.
+// ERROR: "{id:(\d+)}" -> "(\d+)"
+// RIGHT: "{id:\d+}"
+func (r *Route) goodRegexString(n, v string) {
+	if strings.IndexByte(v, '(') != -1 {
+		panicf("invalid path var regex string, dont allow add char '('. var: %s, regex: %s", n, v)
+	}
+
+	if strings.IndexByte(v, ')') != -1 {
+		panicf("invalid path var regex string, dont allow add char ')'. var: %s, regex: %s", n, v)
+	}
+}
+
 // check start string and match a regex route
 func (r *Route) match(path string) (ps Params, ok bool) {
 	// check start string
@@ -194,12 +210,13 @@ func (r *Route) matchRegex(path string) (ps Params, ok bool) {
 	}
 
 	ok = true
-	ps = make(Params, len(ss))
-	for i, item := range ss {
-		if len(item) > 1 {
-			n := r.matches[i]
-			ps[n] = item[1]
-		}
+	vs := ss[0]
+	ps = make(Params, len(vs))
+
+	// Notice: vs[0] is full path.
+	for i, val := range vs[1:] {
+		n := r.matches[i]
+		ps[n] = val
 	}
 	return
 }
