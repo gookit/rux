@@ -84,6 +84,8 @@ func (r *Router) WrapHTTPHandlers(preHandlers ...func(h http.Handler) http.Handl
  *************************************************************/
 
 const (
+	// CTXMatchResult key name in the context
+	// CTXMatchResult = "_matchResult"
 	// CTXRecoverResult key name in the context
 	CTXRecoverResult = "_recoverResult"
 	// CTXAllowedMethods key name in the context
@@ -115,7 +117,8 @@ func (r *Router) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	// handle HTTP Request
 	r.handleHTTPRequest(ctx)
 
-	ctx.Reset() // reset data
+	// reset data
+	ctx.Reset()
 	// release data
 	r.pool.Put(ctx)
 }

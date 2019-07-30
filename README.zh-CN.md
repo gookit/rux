@@ -105,9 +105,10 @@ func main() {
         c.WriteString("a")
         c.Next() // Notice: call Next()
         c.WriteString("A")
-        // if call Abort(), will abort at the end of this middleware run
-        // c.Abort() 
+		// if call Abort(), will abort at the end of this middleware run
+		// c.Abort() 
     })
+
 	// add by Use()
 	route.Use(func(c *rux.Context) { // middle 2
 		c.WriteString("b")
@@ -168,12 +169,55 @@ func main() {
 	})
 	// add routes ...
 	
-    // Wrap our server with our gzip handler to gzip compress all responses.
-    http.ListenAndServe(":8000", handlers.CompressHandler(r))
+	// Wrap our server with our gzip handler to gzip compress all responses.
+	http.ListenAndServe(":8000", handlers.CompressHandler(r))
 }
 ```
 
-## 多个域名
+## 更多功能
+
+### 路由命名
+
+rux 中你可以添加命名路由，根据名称可以从路由器里拿到对应的路由实例 `rux.Route`。
+
+有几种方式添加命名路由：
+
+```go
+	r := rux.New()
+	
+	// Method 1
+	myRoute := NewNamedRoute("name1", GET, "/path4/some/{id}", emptyHandler)
+	r.AddRoute(myRoute)
+	
+	// Method 2
+	r.GET("/", func(c *rux.Context) {
+		c.Text(200, "hello")
+	}).SetName("name2").AttachTo(r)
+	
+	// Method 3
+	r.GET("/hi", func(c *rux.Context) {
+		c.Text(200, "hello")
+	}).NamedTo("name3", r)
+	
+	// get route by name
+	myRoute = r.GetRoute("name1")
+```
+
+### 重定向跳转
+
+```go
+	r.GET("/", func(c *rux.Context) {
+		c.AbortThen().Redirect("/login", 302)
+	})
+    
+	// Or
+	r.GET("/", func(c *rux.Context) {
+		c.Redirect("/login", 302)
+        c.Abort()
+	})
+```
+
+### 多个域名
 
 > code is ref from `julienschmidt/httprouter`
 

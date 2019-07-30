@@ -176,7 +176,50 @@ func main() {
 }
 ```
 
-## Multi Domains
+## More Usage
+
+### Name Route
+
+In `rux`, you can add a named route, and you can get the corresponding route instance(`rux.Route`) from the router according to the name.
+
+Examples：
+
+```go
+	r := rux.New()
+
+	// Method 1
+	myRoute := NewNamedRoute("name1", GET, "/path4/some/{id}", emptyHandler)
+	r.AddRoute(myRoute)
+	
+	// Method 2
+	r.GET("/", func(c *rux.Context) {
+		c.Text(200, "hello")
+	}).SetName("name2").AttachTo(r)
+	
+	// Method 3
+	r.GET("/hi", func(c *rux.Context) {
+		c.Text(200, "hello")
+	}).NamedTo("name3", r)
+	
+	// get route by name
+	myRoute = r.GetRoute("name1")
+```
+
+### Redirect
+
+```go
+	r.GET("/", func(c *rux.Context) {
+		c.AbortThen().Redirect("/login", 302)
+	})
+    
+	// Or
+	r.GET("/", func(c *rux.Context) {
+		c.Redirect("/login", 302)
+        c.Abort()
+	})
+```
+
+### Multi Domains
 
 > code is ref from `julienschmidt/httprouter`
 
