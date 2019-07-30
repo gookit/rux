@@ -180,15 +180,17 @@ func (r *Route) goodInfo() {
 }
 
 // check custom var regex string.
-// ERROR: "{id:(\d+)}" -> "(\d+)"
-// RIGHT: "{id:\d+}"
+// ERROR:
+// 	"{id:(\d+)}" -> "(\d+)"
+//
+// RIGHT:
+// 	"{id:\d+}"
+// 	"{id:(?:\d+)}"
 func (r *Route) goodRegexString(n, v string) {
-	if strings.IndexByte(v, '(') != -1 {
-		panicf("invalid path var regex string, dont allow add char '('. var: %s, regex: %s", n, v)
-	}
+	pos := strings.IndexByte(v, '(')
 
-	if strings.IndexByte(v, ')') != -1 {
-		panicf("invalid path var regex string, dont allow add char ')'. var: %s, regex: %s", n, v)
+	if pos != -1 && pos < len(v) && v[pos+1] != '?' {
+		panicf("invalid path var regex string, dont allow add char '('. var: %s, regex: %s", n, v)
 	}
 }
 
