@@ -290,9 +290,9 @@ func main() {
         // println(b.Build().String())
         
         println(c.Router().BuildRequestUrl("new_detail", b).String())
-		
+		// result:  /news/100/20/detail?username=admin&password=12345
 		// get current route name
-		if c.Router().Name == "new_detail" {
+		if c.CurrentRouteName == "new_detail" {
             // post data etc....
         }
 	}).NamedTo("new_detail", r)

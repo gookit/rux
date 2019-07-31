@@ -61,7 +61,8 @@ type Context struct {
 
 	index int8
 	// current router instance
-	router *Router
+	router           *Router
+	CurrentRouteName string
 	// context data, you can save some custom data.
 	data map[string]interface{}
 	// all handlers for current request.
@@ -725,4 +726,19 @@ func (c *Context) Value(key interface{}) interface{} {
 		return c.MustGet(keyAsString)
 	}
 	return nil
+}
+
+/*************************************************************
+ * Context function extends
+ *************************************************************/
+func (c *Context) Bind(i interface{}) error {
+	return c.Router().Binder.Bind(i, c)
+}
+
+func (c *Context) Render(name string, data interface{}) error {
+	return c.Router().Renderer.Render(c.Resp, name, data, c)
+}
+
+func (c *Context) Validate(i interface{}) error {
+	return c.Router().Validator.Validate(i)
 }

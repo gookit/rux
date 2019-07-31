@@ -3,6 +3,7 @@ package rux
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"sync"
@@ -65,6 +66,17 @@ func AnyMethods() []string {
 /*************************************************************
  * Router definition
  *************************************************************/
+type Binder interface {
+	Bind(i interface{}, c *Context) error
+}
+
+type Renderer interface {
+	Render(io.Writer, string, interface{}, *Context) error
+}
+
+type Validator interface {
+	Validate(i interface{}) error
+}
 
 type routes []*Route
 
@@ -145,6 +157,9 @@ type Router struct {
 	// maxMultipartMemory int64
 	// whether checks if another method is allowed for the current route. default is False
 	handleMethodNotAllowed bool
+	Binder                 Binder
+	Renderer               Renderer
+	Validator              Validator
 }
 
 // New router instance, can with some options.

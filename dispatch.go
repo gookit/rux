@@ -89,7 +89,8 @@ const (
 	// CTXRecoverResult key name in the context
 	CTXRecoverResult = "_recoverResult"
 	// CTXAllowedMethods key name in the context
-	CTXAllowedMethods = "_allowedMethods"
+	CTXAllowedMethods   = "_allowedMethods"
+	CTXCurrentRouteName = "_currentRouteName"
 )
 
 var internal404Handler HandlerFunc = func(c *Context) {
@@ -156,6 +157,7 @@ func (r *Router) handleHTTPRequest(ctx *Context) {
 
 	// save route params
 	ctx.Params = result.Params
+	ctx.Set(CTXCurrentRouteName, result.Name)
 
 	var handlers HandlersChain
 	switch result.Status {
