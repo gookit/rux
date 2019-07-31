@@ -575,12 +575,21 @@ func (c *Context) NoContent() {
 // Redirect other URL with status code(3xx e.g 301, 302).
 func (c *Context) Redirect(path string, optionalCode ...int) {
 	// default is http.StatusMovedPermanently
-	code := 301
+	code := http.StatusMovedPermanently
 	if len(optionalCode) > 0 {
 		code = optionalCode[0]
 	}
 
 	http.Redirect(c.Resp, c.Req, path, code)
+}
+
+func (c *Context) Back(optionalCode ...int) {
+	code := http.StatusFound
+	if len(optionalCode) > 0 {
+		code = optionalCode[0]
+	}
+
+	c.Redirect(c.Req.Referer(), code)
 }
 
 // File writes the specified file into the body stream in a efficient way.
