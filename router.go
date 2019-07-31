@@ -157,8 +157,11 @@ type Router struct {
 	// maxMultipartMemory int64
 	// whether checks if another method is allowed for the current route. default is False
 	handleMethodNotAllowed bool
+	// bind form,params,json body,query value to struct interface
 	Binder                 Binder
+	// template(view) interface
 	Renderer               Renderer
+	// validator interface
 	Validator              Validator
 }
 
