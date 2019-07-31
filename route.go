@@ -169,7 +169,7 @@ func (r *Route) Info() RouteInfo {
 	return RouteInfo{r.path, r.method, r.HandlerName()}
 }
 
-func (r *Router) BuildRequestUrl(name string, buildRequestUrl *BuildRequestUrl) *url.URL {
+func (r *Router) BuildRequestURL(name string, buildRequestURL *BuildRequestURL) *url.URL {
 	path := r.GetRoute(name).path
 	ss := varRegex.FindAllString(path, -1)
 
@@ -196,7 +196,7 @@ func (r *Router) BuildRequestUrl(name string, buildRequestUrl *BuildRequestUrl) 
 		path = strings.NewReplacer(paramRegex, name).Replace(path)
 	}
 
-	return buildRequestUrl.Path(path).Build()
+	return buildRequestURL.Path(path).Build()
 }
 
 // check route info

@@ -9,7 +9,7 @@ import (
 func TestBuildRequestUrl_Params(t *testing.T) {
 	is := assert.New(t)
 
-	b := NewBuildRequestUrl()
+	b := NewBuildRequestURL()
 	b.Path(`/news/{category_id}/{new_id}/detail`)
 	b.Params("{category_id}", "100", "{new_id}", "20")
 
@@ -19,7 +19,7 @@ func TestBuildRequestUrl_Params(t *testing.T) {
 func TestBuildRequestUrl_Host(t *testing.T) {
 	is := assert.New(t)
 
-	b := NewBuildRequestUrl()
+	b := NewBuildRequestURL()
 	b.Scheme("https")
 	b.Host("127.0.0.1")
 	b.Path(`/news`)
@@ -34,7 +34,7 @@ func TestBuildRequestUrl_Queries(t *testing.T) {
 	u.Add("username", "admin")
 	u.Add("password", "12345")
 
-	b := NewBuildRequestUrl()
+	b := NewBuildRequestURL()
 	b.Queries(u)
 	b.Path(`/news`)
 

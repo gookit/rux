@@ -279,7 +279,7 @@ func main() {
         u.Add("username", "admin")
         u.Add("password", "12345")
 		
-		b := rux.NewBuildRequestUrl()
+		b := rux.NewBuildRequestURL()
         // b.Scheme("https")
         // b.Host("www.mytest.com")
         b.Queries(u)
@@ -287,7 +287,7 @@ func main() {
 		// b.Path("/dev")
         // println(b.Build().String())
         
-        println(c.Router().BuildRequestUrl("new_detail", b).String())
+        println(c.Router().BuildRequestURL("new_detail", b).String())
 		// result:  /news/100/20/detail?username=admin&password=12345
 		// get current route name
 		if c.Get(rux.CTXCurrentRouteName) == "new_detail" {

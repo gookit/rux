@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-type BuildRequestUrl struct {
+type BuildRequestURL struct {
 	queries url.Values
 	params  []string
 	path    string
@@ -14,47 +14,47 @@ type BuildRequestUrl struct {
 	user    *url.Userinfo
 }
 
-func NewBuildRequestUrl() *BuildRequestUrl {
-	return &BuildRequestUrl{}
+func NewBuildRequestURL() *BuildRequestURL {
+	return &BuildRequestURL{}
 }
 
-func (b *BuildRequestUrl) Queries(queries url.Values) *BuildRequestUrl {
+func (b *BuildRequestURL) Queries(queries url.Values) *BuildRequestURL {
 	b.queries = queries
 
 	return b
 }
 
-func (b *BuildRequestUrl) Params(params ...string) *BuildRequestUrl {
+func (b *BuildRequestURL) Params(params ...string) *BuildRequestURL {
 	b.params = params
 
 	return b
 }
 
-func (b *BuildRequestUrl) Scheme(scheme string) *BuildRequestUrl {
+func (b *BuildRequestURL) Scheme(scheme string) *BuildRequestURL {
 	b.scheme = scheme
 
 	return b
 }
 
-func (b *BuildRequestUrl) User(username, password string) *BuildRequestUrl {
+func (b *BuildRequestURL) User(username, password string) *BuildRequestURL {
 	b.user = url.UserPassword(username, password)
 
 	return b
 }
 
-func (b *BuildRequestUrl) Host(host string) *BuildRequestUrl {
+func (b *BuildRequestURL) Host(host string) *BuildRequestURL {
 	b.host = host
 
 	return b
 }
 
-func (b *BuildRequestUrl) Path(path string) *BuildRequestUrl {
+func (b *BuildRequestURL) Path(path string) *BuildRequestURL {
 	b.path = path
 
 	return b
 }
 
-func (b *BuildRequestUrl) Build() *url.URL {
+func (b *BuildRequestURL) Build() *url.URL {
 	var path = b.path
 
 	if len(b.params) > 0 {
