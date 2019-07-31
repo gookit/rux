@@ -262,6 +262,46 @@ func main() {
 }
 ```
 
+### Get route-name and Build url
+
+```go
+package main
+
+import (
+	"github.com/gookit/rux"
+	"log"
+	"net/http"
+)
+
+func main() {
+	// Initialize a router as usual
+	router := rux.New()
+	router.GET(`/news/{category_id}/{new_id:\d+}/detail`, func(c *rux.Context) {
+		var u = make(url.Values)
+        u.Add("username", "admin")
+        u.Add("password", "12345")
+		
+		b := rux.NewBuildRequestUrl()
+        // b.Scheme("https")
+        // b.Host("www.mytest.com")
+        b.Queries(u)
+        b.Params("{category_id}", "100", "{new_id}", "20")
+		// b.Path("/dev")
+        // println(b.Build().String())
+        
+        println(c.Router().BuildRequestUrl("new_detail", b).String())
+		
+		// get current route name
+		if c.Router().Name == "new_detail" {
+            // post data etc....
+        }
+	}).NamedTo("new_detail", r)
+
+	// Use the HostSwitch to listen and serve on port 12345
+	log.Fatal(http.ListenAndServe(":12345", router))
+}
+```
+
 ## Help
 
 - lint

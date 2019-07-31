@@ -2,6 +2,7 @@ package rux
 
 import (
 	"fmt"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -166,6 +167,36 @@ func (r *Route) String() string {
 // Info get basic info of the route
 func (r *Route) Info() RouteInfo {
 	return RouteInfo{r.path, r.method, r.HandlerName()}
+}
+
+func (r *Router) BuildRequestUrl(name string, buildRequestUrl *BuildRequestUrl) *url.URL {
+	path := r.GetRoute(name).path
+	ss := varRegex.FindAllString(path, -1)
+
+	if len(ss) == 0 {
+		return nil
+	}
+
+	var n string
+	var varParams = make(map[string]string)
+
+	for _, str := range ss {
+		nvStr := str[1 : len(str)-1]
+
+		if strings.IndexByte(nvStr, ':') > 0 {
+			nv := strings.SplitN(nvStr, ":", 2)
+			n, _ = strings.TrimSpace(nv[0]), strings.TrimSpace(nv[1])
+			varParams[str] = "{" + n + "}"
+		} else {
+			varParams[str] = str
+		}
+	}
+
+	for paramRegex, name := range varParams {
+		path = strings.NewReplacer(paramRegex, name).Replace(path)
+	}
+
+	return buildRequestUrl.Path(path).Build()
 }
 
 // check route info
