@@ -169,6 +169,7 @@ func (r *Route) Info() RouteInfo {
 	return RouteInfo{r.path, r.method, r.HandlerName()}
 }
 
+// BuildRequestURL build BuildRequestURL
 func (r *Router) BuildRequestURL(name string, buildRequestURL *BuildRequestURL) *url.URL {
 	path := r.GetRoute(name).path
 	ss := varRegex.FindAllString(path, -1)

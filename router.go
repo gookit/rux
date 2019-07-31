@@ -66,14 +66,18 @@ func AnyMethods() []string {
 /*************************************************************
  * Router definition
  *************************************************************/
+
+ // Binder interface
 type Binder interface {
 	Bind(i interface{}, c *Context) error
 }
 
+// Renderer interface
 type Renderer interface {
 	Render(io.Writer, string, interface{}, *Context) error
 }
 
+// Validator interface
 type Validator interface {
 	Validate(i interface{}) error
 }
@@ -304,6 +308,13 @@ func (r *Router) CONNECT(path string, handler HandlerFunc, middleware ...Handler
 func (r *Router) Any(path string, handler HandlerFunc, middleware ...HandlerFunc) {
 	for _, method := range anyMethods {
 		r.Add(method, path, handler, middleware...)
+	}
+}
+
+// AnyMethodsIteration all methods
+func (r *Router) AnyMethodsIteration(iteration func(string) *Route) {
+	for _, method := range anyMethods {
+		r.AddRoute(iteration(method))
 	}
 }
 

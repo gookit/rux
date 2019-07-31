@@ -583,6 +583,7 @@ func (c *Context) Redirect(path string, optionalCode ...int) {
 	http.Redirect(c.Resp, c.Req, path, code)
 }
 
+// Back Redirect back url
 func (c *Context) Back(optionalCode ...int) {
 	code := http.StatusFound
 	if len(optionalCode) > 0 {
@@ -731,17 +732,17 @@ func (c *Context) Value(key interface{}) interface{} {
  * Context function extends
  *************************************************************/
 
-// context bind struct
+// Bind context bind struct
 func (c *Context) Bind(i interface{}) error {
 	return c.Router().Binder.Bind(i, c)
 }
 
-// context template
+// Render context template
 func (c *Context) Render(name string, data interface{}) error {
 	return c.Router().Renderer.Render(c.Resp, name, data, c)
 }
 
-// context validator
+// Validate context validator
 func (c *Context) Validate(i interface{}) error {
 	return c.Router().Validator.Validate(i)
 }
