@@ -386,6 +386,11 @@ func (c *Context) IsAjax() bool {
 	return c.Header("X-Requested-With") == "XMLHttpRequest"
 }
 
+// IsPost check request is post request
+func (c *Context) IsPost() bool {
+	return c.Req.Method == http.MethodPost
+}
+
 // IsMethod returns true if current is equal to input method name
 func (c *Context) IsMethod(method string) bool {
 	return c.Req.Method == method
