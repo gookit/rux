@@ -90,6 +90,7 @@ const (
 	CTXRecoverResult = "_recoverResult"
 	// CTXAllowedMethods key name in the context
 	CTXAllowedMethods   = "_allowedMethods"
+	// CTXCurrentRouteName key name in the context
 	CTXCurrentRouteName = "_currentRouteName"
 )
 
