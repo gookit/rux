@@ -61,8 +61,7 @@ type Context struct {
 
 	index int8
 	// current router instance
-	router           *Router
-	CurrentRouteName string
+	router *Router
 	// context data, you can save some custom data.
 	data map[string]interface{}
 	// all handlers for current request.
