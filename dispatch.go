@@ -189,7 +189,7 @@ func (r *Router) handleHTTPRequest(ctx *Context) {
 	result = nil
 	ctx.SetHandlers(handlers)
 	ctx.Next() // handle processing
-	ctx.writer.EnsureWriteHeader()
+	ctx.writer.ensureWriteHeader()
 
 	// has errors and has error handler
 	if r.OnError != nil && len(ctx.Errors) > 0 {

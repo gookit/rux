@@ -188,6 +188,7 @@ func TestNameRoute(t *testing.T) {
 	is.NotEmpty(route)
 	is.Equal("/path1", route.Path())
 	is.Equal("GET", route.MethodString(""))
+	is.Equal([]string{"GET"}, route.Methods())
 
 	info := route.Info()
 	is.Equal("/path1", info.Path)

@@ -116,6 +116,7 @@ func TestRouter_ServeHTTP(t *testing.T) {
 
 		n := c.Query("no-key", "defVal")
 		is.Equal("defVal", n)
+		is.False(c.IsGet())
 		is.True(c.IsPost())
 	})
 	s.reset()
@@ -204,6 +205,8 @@ func TestContext(t *testing.T) {
 	r := New()
 
 	route := r.GET("/ctx", namedHandler) // main handler
+
+	// add middleware
 	route.Use(func(c *Context) { // middle 1
 		// -> STEP 1:
 		is.NotEmpty(c.Handler())
@@ -212,6 +215,7 @@ func TestContext(t *testing.T) {
 		is.False(c.IsWebSocket())
 		is.False(c.IsAjax())
 		is.False(c.IsPost())
+		is.True(c.IsGet())
 		is.True(c.IsMethod("GET"))
 		is.Equal("github.com/gookit/rux.namedHandler", c.HandlerName())
 		// set a new context data
@@ -380,6 +384,7 @@ func TestRepeatSetStatusCode(t *testing.T) {
 	rux.GET("/test-status-code", func(c *Context) {
 		c.SetStatusCode(200)
 		c.SetStatusCode(201)
+		_, _ = c.Resp.Write([]byte("hi"))
 	})
 
 	w := mockRequest(rux, GET, "/test-status-code", nil)
@@ -426,7 +431,6 @@ func TestHandleIsPost(t *testing.T) {
 	is := assert.New(t)
 
 	r := New()
-
 	r.Add("/test-is-post", func(c *Context) {
 		if c.IsPost() {
 			c.HTML(200, []byte("method is post"))
@@ -470,7 +474,7 @@ func TestHandleBinder(t *testing.T) {
 		}
 
 		if err := c.Bind(&form); err != nil {
-			is.Equal(err.Error(), "Binder not registered")
+			is.Equal(err.Error(), "binder not registered")
 		}
 	})
 
@@ -483,7 +487,7 @@ func TestHandleRender(t *testing.T) {
 
 	r.GET("/test-render", func(c *Context) {
 		if err := c.Render(200, "", nil); err != nil {
-			is.Equal(err.Error(), "Renderer not registered")
+			is.Equal(err.Error(), "renderer not registered")
 		}
 	})
 
@@ -495,11 +499,10 @@ func TestHandleValidate(t *testing.T) {
 	r := New()
 
 	r.GET("/test-validate", func(c *Context) {
-		var form struct {
-		}
+		var form struct{}
 
 		if err := c.Validate(&form); err != nil {
-			is.Equal(err.Error(), "Validator not registered")
+			is.Equal(err.Error(), "validator not registered")
 		}
 	})
 

@@ -136,12 +136,6 @@ func (r *Route) SetName(name string) *Route {
 	return r
 }
 
-// setMethods set a name for the route
-func (r *Route) setMethods(methods ...string) *Route {
-	r.methods = formatMethods(methods)
-	return r
-}
-
 // Name get route name
 func (r *Route) Name() string {
 	return r.name

@@ -388,6 +388,11 @@ func (c *Context) IsAjax() bool {
 	return c.Header("X-Requested-With") == "XMLHttpRequest"
 }
 
+// IsGet check request is post request
+func (c *Context) IsGet() bool {
+	return c.Req.Method == http.MethodGet
+}
+
 // IsPost check request is post request
 func (c *Context) IsPost() bool {
 	return c.Req.Method == http.MethodPost
@@ -737,35 +742,32 @@ func (c *Context) Value(key interface{}) interface{} {
 
 // Bind context bind struct
 func (c *Context) Bind(i interface{}) error {
-	if c.Router().Binder == nil {
-		return errors.New("Binder not registered")
+	if c.router.Binder == nil {
+		return errors.New("binder not registered")
 	}
 
-	return c.Router().Binder.Bind(i, c)
+	return c.router.Binder.Bind(i, c)
 }
 
 // Render context template
-func (c *Context) Render(status int, name string, data interface{}) error {
-	if c.Router().Renderer == nil {
-		return errors.New("Renderer not registered")
+func (c *Context) Render(status int, name string, data interface{}) (err error) {
+	if c.router.Renderer == nil {
+		return errors.New("renderer not registered")
 	}
 
-	var err error
 	var buf = new(bytes.Buffer)
-
-	if err = c.Router().Renderer.Render(buf, name, data, c); err != nil {
+	if err = c.router.Renderer.Render(buf, name, data, c); err != nil {
 		return err
 	}
 
 	c.HTML(status, buf.Bytes())
-
-	return nil
+	return
 }
 
 // Validate context validator
 func (c *Context) Validate(i interface{}) error {
 	if c.Router().Validator == nil {
-		return errors.New("Validator not registered")
+		return errors.New("validator not registered")
 	}
 
 	return c.Router().Validator.Validate(i)

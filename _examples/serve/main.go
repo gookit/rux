@@ -105,7 +105,7 @@ func main() {
 	r.Controller("/blog", &BlogController{})
 	r.Controller("/site", &SiteController{})
 
-	fmt.Println(r)
+	// fmt.Println(r)
 
 	// quick start
 	r.Listen(":18080")
