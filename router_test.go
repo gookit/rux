@@ -258,7 +258,8 @@ func TestDynamicRoute(t *testing.T) {
 	r := New()
 	is.NotEmpty(r)
 
-	r.GET("/users/{id}", emptyHandler)
+	r0 := r.GET("/users/{id}", emptyHandler)
+	is.Equal("", r0.start)
 
 	ret := r.Match(GET, "/users/23")
 	is.Equal(Found, ret.Status)
@@ -278,9 +279,15 @@ func TestDynamicRoute(t *testing.T) {
 	ret = r.Match(GET, "/not/exist")
 	is.Equal(NotFound, ret.Status)
 
-	r.GET("/site/settings/{id}", emptyHandler)
+	r1 := r.GET("/site/settings/{id}", emptyHandler)
 	ret = r.Match(GET, "/site/exist")
 	is.Equal(NotFound, ret.Status)
+
+	// test start check.
+	is.Equal("/site/settings/", r1.start)
+	ps, ok := r1.match("/get")
+	is.False(ok)
+	is.Nil(ps)
 
 	// add regex for var
 	r.GET(`/path1/{id:[1-9]\d*}`, emptyHandler)
@@ -320,6 +327,7 @@ func TestFixFirstNodeOnlyOneChar(t *testing.T) {
 
 	r := New()
 	r.PATCH(`/r/{name}/hq2hah9/dxt/g/hoovln`, emptyHandler)
+
 	ret := r.Match(PATCH, "/r/lnamel/hq2hah9/dxt/g/hoovln")
 	is.Equal(Found, ret.Status)
 }

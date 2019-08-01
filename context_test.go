@@ -93,10 +93,18 @@ func TestContext_SetCookie(t *testing.T) {
 	})
 
 	c.SetCookie("ck-name", "val", 30, "/", "abc.com", true, true)
+	c.SetCookie("ck-name1", "val1", 40, "", "abc.com", true, true)
 
+	// Header().Get() will only return first
 	s := c.Resp.Header().Get("Set-Cookie")
 	ris.NotEmpty(s)
 	ris.Contains(s, "ck-name=val")
+
+	hs := c.Resp.Header()
+	ris.Contains(hs, "Set-Cookie")
+	ris.Len(hs["Set-Cookie"], 2)
+	ris.Contains(hs["Set-Cookie"][0], "ck-name=val")
+	ris.Contains(hs["Set-Cookie"][1], "ck-name1=val1")
 }
 
 func TestContext_FormFile(t *testing.T) {
@@ -224,4 +232,77 @@ func TestContext_RouteName(t *testing.T) {
 
 	is.True(ok)
 	is.Equal("test_name", name)
+}
+
+func TestContext_Cookie(t *testing.T) {
+	ris := assert.New(t)
+
+	r := New()
+	r.GET("/test", func(c *Context) {
+		val := c.Cookie("req-cke")
+		ris.Equal("req-val", val)
+
+		val = c.Cookie("not-exist")
+		ris.Equal("", val)
+
+		c.FastSetCookie("res-cke", "val1", 300)
+	})
+
+	w := mockRequest(r, GET, "/test", nil, func(req *http.Request) {
+		req.AddCookie(&http.Cookie{Name: "req-cke", Value: "req-val"})
+	})
+
+	ris.Equal(200, w.Code)
+
+	resCke := w.Header().Get("Set-Cookie")
+	ris.Equal("res-cke=val1; Path=/; Max-Age=300; Secure", resCke)
+}
+
+func TestContext_Redirect(t *testing.T) {
+	ris := assert.New(t)
+	r := New()
+
+	// Redirect()
+	uri := "/Redirect"
+	r.GET(uri, func(c *Context) {
+		c.Redirect("/new-path")
+	})
+	w := mockRequest(r, GET, uri, nil)
+	ris.Equal(301, w.Code)
+	ris.Equal("/new-path", w.Header().Get("Location"))
+	ris.Equal("<a href=\"/new-path\">Moved Permanently</a>.\n\n", w.Body.String())
+
+	uri = "/Redirect1"
+	r.GET(uri, func(c *Context) {
+		c.Redirect("/new-path1", 302)
+	})
+	w = mockRequest(r, GET, uri, nil)
+	ris.Equal(302, w.Code)
+	ris.Equal("/new-path1", w.Header().Get("Location"))
+	ris.Equal("<a href=\"/new-path1\">Found</a>.\n\n", w.Body.String())
+}
+
+func TestContext_Back(t *testing.T) {
+	ris := assert.New(t)
+	r := New()
+
+	// Back()
+	uri := "/Back"
+	r.GET(uri, func(c *Context) {
+		c.Back()
+	})
+	w := mockRequest(r, GET, uri, &md{H: m{"Referer": "/old-path"}})
+	ris.Equal(302, w.Code)
+	ris.Equal("/old-path", w.Header().Get("Location"))
+	ris.Equal("<a href=\"/old-path\">Found</a>.\n\n", w.Body.String())
+
+	// Back()
+	uri = "/Back1"
+	r.GET(uri, func(c *Context) {
+		c.Back(301)
+	})
+	w = mockRequest(r, GET, uri, &md{H: m{"Referer": "/old-path1"}})
+	ris.Equal(301, w.Code)
+	ris.Equal("/old-path1", w.Header().Get("Location"))
+	ris.Equal("<a href=\"/old-path1\">Moved Permanently</a>.\n\n", w.Body.String())
 }

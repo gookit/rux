@@ -116,6 +116,7 @@ func TestRouter_ServeHTTP(t *testing.T) {
 
 		n := c.Query("no-key", "defVal")
 		is.Equal("defVal", n)
+		is.True(c.IsPost())
 	})
 	s.reset()
 	mockRequest(r, POST, "/users", &md{B: "data"})
@@ -210,6 +211,7 @@ func TestContext(t *testing.T) {
 		is.NotEmpty(c.Copy())
 		is.False(c.IsWebSocket())
 		is.False(c.IsAjax())
+		is.False(c.IsPost())
 		is.True(c.IsMethod("GET"))
 		is.Equal("github.com/gookit/rux.namedHandler", c.HandlerName())
 		// set a new context data
@@ -369,28 +371,6 @@ func TestContext_Write(t *testing.T) {
 	})
 	w = mockRequest(r, GET, uri, nil)
 	is.Equal(504, w.Code)
-}
-
-func TestContext_Cookie(t *testing.T) {
-	ris := assert.New(t)
-
-	r := New()
-	r.GET("/test", func(c *Context) {
-		val, err := c.Cookie("req-cke")
-		ris.Nil(err)
-		ris.Equal("req-val", val)
-
-		c.FastSetCookie("res-cke", "val1", 300)
-	})
-
-	w := mockRequest(r, GET, "/test", nil, func(req *http.Request) {
-		req.AddCookie(&http.Cookie{Name: "req-cke", Value: "req-val"})
-	})
-
-	ris.Equal(200, w.Code)
-
-	resCke := w.Header().Get("Set-Cookie")
-	ris.Equal("res-cke=val1; Path=/; Max-Age=300; Secure", resCke)
 }
 
 func TestRepeatSetStatusCode(t *testing.T) {

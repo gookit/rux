@@ -8,6 +8,12 @@ import (
 	"github.com/kataras/muxie"
 )
 
+// install bombardier:
+// 	go get -u github.com/codesenberg/bombardier
+// run serve:
+// 	go run ./_benchmarks/muxie
+// bench test:
+// 	bombardier -c 125 -n 1000000 http://localhost:3000
 func main() {
 	r := muxie.NewMux()
 

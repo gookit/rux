@@ -483,14 +483,14 @@ func (c *Context) FastSetCookie(name, value string, maxAge int) {
 // ErrNoCookie if not found. And return the named cookie is unescaped.
 // If multiple cookies match the given name, only one cookie will
 // be returned.
-func (c *Context) Cookie(name string) (string, error) {
+func (c *Context) Cookie(name string) string {
 	cookie, err := c.Req.Cookie(name)
 	if err != nil {
-		return "", err
+		return ""
 	}
 
 	val, _ := url.QueryUnescape(cookie.Value)
-	return val, nil
+	return val
 }
 
 /*************************************************************
@@ -576,7 +576,7 @@ func (c *Context) NoContent() {
 
 // Redirect other URL with status code(3xx e.g 301, 302).
 func (c *Context) Redirect(path string, optionalCode ...int) {
-	// default is http.StatusMovedPermanently
+	// default is 301
 	code := http.StatusMovedPermanently
 	if len(optionalCode) > 0 {
 		code = optionalCode[0]
@@ -587,6 +587,7 @@ func (c *Context) Redirect(path string, optionalCode ...int) {
 
 // Back Redirect back url
 func (c *Context) Back(optionalCode ...int) {
+	// default is 302
 	code := http.StatusFound
 	if len(optionalCode) > 0 {
 		code = optionalCode[0]

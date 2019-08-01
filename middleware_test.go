@@ -297,3 +297,13 @@ func TestWrapHTTPHandler(t *testing.T) {
 	w = mockRequest(r, GET, "/path1", nil)
 	is.Equal("hello", w.Body.String())
 }
+
+func TestHandlerFunc_ServeHTTP(t *testing.T) {
+	ris := assert.New(t)
+	hf := HandlerFunc(func(c *Context) {
+		c.WriteString("hello, " + c.URL().Path)
+	})
+
+	w := mockRequest(hf, GET, "/path1", nil)
+	ris.Equal("hello, /path1", w.Body.String())
+}
