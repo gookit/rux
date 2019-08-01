@@ -234,6 +234,18 @@ func TestContext_RouteName(t *testing.T) {
 	is.Equal("test_name", name)
 }
 
+func TestContext_RoutePath(t *testing.T) {
+	is := assert.New(t)
+	c := mockContext("GET", "/test/{name}", nil, nil)
+
+	c.Set(CTXCurrentRoutePath, "/test/{name}")
+
+	name, ok := c.Get(CTXCurrentRoutePath)
+
+	is.True(ok)
+	is.Equal("/test/{name}", name)
+}
+
 func TestContext_Cookie(t *testing.T) {
 	ris := assert.New(t)
 

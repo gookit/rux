@@ -185,7 +185,7 @@ func (r *Route) Info() RouteInfo {
 	return RouteInfo{r.name, r.path, r.HandlerName(), r.methods}
 }
 
-// BuildRequestURL build BuildRequestURL
+// BuildRequestURL build RequestURL
 func (r *Router) BuildRequestURL(name string, buildRequestURL *BuildRequestURL) *url.URL {
 	path := r.GetRoute(name).path
 

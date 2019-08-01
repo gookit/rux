@@ -41,3 +41,17 @@ func TestBuildRequestUrl_Queries(t *testing.T) {
 
 	is.Equal(b.Build().String(), `/news?password=12345&username=admin`)
 }
+
+func TestBuildRequestUrl_Build(t *testing.T) {
+	is := assert.New(t)
+
+	r := New()
+
+	homepage := NewNamedRoute("homepage", `/build-test/{name}/{id:\d+}`, emptyHandler, GET)
+	r.AddRoute(homepage)
+
+	b := NewBuildRequestURL()
+	b.Params("{name}", "test", "{id}", "20")
+
+	is.Equal(r.BuildRequestURL("homepage", b).String(), `/build-test/test/20`)
+}

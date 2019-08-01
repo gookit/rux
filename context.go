@@ -747,7 +747,7 @@ func (c *Context) Bind(i interface{}) error {
 // Render context template
 func (c *Context) Render(status int, name string, data interface{}) error {
 	if c.Router().Renderer == nil {
-		return errors.New("renderer not registered")
+		return errors.New("Renderer not registered")
 	}
 
 	var err error
@@ -765,7 +765,7 @@ func (c *Context) Render(status int, name string, data interface{}) error {
 // Validate context validator
 func (c *Context) Validate(i interface{}) error {
 	if c.Router().Validator == nil {
-		return errors.New("validator not registered")
+		return errors.New("Validator not registered")
 	}
 
 	return c.Router().Validator.Validate(i)

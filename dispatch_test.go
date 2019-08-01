@@ -204,7 +204,7 @@ func TestContext(t *testing.T) {
 	r := New()
 
 	route := r.GET("/ctx", namedHandler) // main handler
-	route.Use(func(c *Context) {         // middle 1
+	route.Use(func(c *Context) { // middle 1
 		// -> STEP 1:
 		is.NotEmpty(c.Handler())
 		is.NotEmpty(c.Router())
@@ -375,7 +375,7 @@ func TestContext_Write(t *testing.T) {
 
 func TestRepeatSetStatusCode(t *testing.T) {
 	rux := New()
-	ris := assert.New(t)
+	is := assert.New(t)
 
 	rux.GET("/test-status-code", func(c *Context) {
 		c.SetStatusCode(200)
@@ -383,16 +383,16 @@ func TestRepeatSetStatusCode(t *testing.T) {
 	})
 
 	w := mockRequest(rux, GET, "/test-status-code", nil)
-	ris.Equal(201, w.Code)
+	is.Equal(201, w.Code)
 }
 
 func TestHandleError(t *testing.T) {
 	r := New()
-	ris := assert.New(t)
+	is := assert.New(t)
 
 	r.OnError = func(c *Context) {
-		ris.Error(c.FirstError())
-		ris.Equal("oo, has an error", c.FirstError().Error())
+		is.Error(c.FirstError())
+		is.Equal("oo, has an error", c.FirstError().Error())
 	}
 
 	r.GET("/test-error", func(c *Context) {
@@ -401,17 +401,17 @@ func TestHandleError(t *testing.T) {
 	})
 
 	w := mockRequest(r, GET, "/test-error", nil)
-	ris.Equal(200, w.Code)
+	is.Equal(200, w.Code)
 }
 
 func TestHandlePanic(t *testing.T) {
-	ris := assert.New(t)
+	is := assert.New(t)
 
 	r := New()
 	r.OnPanic = func(c *Context) {
 		err, ok := c.Get(CTXRecoverResult)
-		ris.True(ok)
-		ris.Equal("panic test", err)
+		is.True(ok)
+		is.Equal("panic test", err)
 	}
 
 	r.GET("/test-panic", func(c *Context) {
@@ -419,5 +419,89 @@ func TestHandlePanic(t *testing.T) {
 	})
 
 	w := mockRequest(r, GET, "/test-panic", nil)
-	ris.Equal(200, w.Code)
+	is.Equal(200, w.Code)
+}
+
+func TestHandleIsPost(t *testing.T) {
+	is := assert.New(t)
+
+	r := New()
+
+	r.Add("/test-is-post", func(c *Context) {
+		if c.IsPost() {
+			c.HTML(200, []byte("method is post"))
+			return
+		}
+
+		c.NoContent()
+	}, GET, POST)
+
+	w := mockRequest(r, GET, "/test-is-post", nil)
+	is.Equal(204, w.Code)
+	w = mockRequest(r, POST, "/test-is-post", nil)
+	is.Equal(200, w.Code)
+}
+
+func TestHandleBack(t *testing.T) {
+	is := assert.New(t)
+
+	r := New()
+
+	r.GET("/test-back", func(c *Context) {
+		c.Back()
+	})
+
+	r.GET("/test-back-301", func(c *Context) {
+		c.Back(301)
+	})
+
+	w := mockRequest(r, GET, "/test-back", nil)
+	is.Equal(302, w.Code)
+	w = mockRequest(r, GET, "/test-back-301", nil)
+	is.Equal(301, w.Code)
+}
+
+func TestHandleBinder(t *testing.T) {
+	is := assert.New(t)
+	r := New()
+
+	r.GET("/test-binder", func(c *Context) {
+		var form struct {
+		}
+
+		if err := c.Bind(&form); err != nil {
+			is.Equal(err.Error(), "Binder not registered")
+		}
+	})
+
+	mockRequest(r, GET, "/test-binder", nil)
+}
+
+func TestHandleRender(t *testing.T) {
+	is := assert.New(t)
+	r := New()
+
+	r.GET("/test-render", func(c *Context) {
+		if err := c.Render(200, "", nil); err != nil {
+			is.Equal(err.Error(), "Renderer not registered")
+		}
+	})
+
+	mockRequest(r, GET, "/test-render", nil)
+}
+
+func TestHandleValidate(t *testing.T) {
+	is := assert.New(t)
+	r := New()
+
+	r.GET("/test-validate", func(c *Context) {
+		var form struct {
+		}
+
+		if err := c.Validate(&form); err != nil {
+			is.Equal(err.Error(), "Validator not registered")
+		}
+	})
+
+	mockRequest(r, GET, "/test-validate", nil)
 }
