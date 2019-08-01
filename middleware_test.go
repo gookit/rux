@@ -194,6 +194,31 @@ func TestGroupMiddleware(t *testing.T) {
 	r := New()
 	is.NotEmpty(r)
 
+	r.Group("/g0", func() {
+		// main handler
+		r.GET("/m0", func(c *Context) {
+			c.WriteString("-O-")
+		})
+
+		// main handler
+		r.GET("/m1", func(c *Context) {
+			c.WriteString("-O-")
+		}, func(c *Context) {
+			c.WriteString("a")
+			c.Next()
+			c.WriteString("A")
+		})
+	}, func(c *Context) {
+		c.WriteString("x")
+		c.Next()
+		c.WriteString("X")
+	})
+	w := mockRequest(r, GET, "/g0/m0", nil)
+	is.Equal("x-O-X", w.Body.String())
+
+	w = mockRequest(r, GET, "/g0/m1", nil)
+	is.Equal("xa-O-AX", w.Body.String())
+
 	r.Group("/grp", func() {
 		r.GET("/middle", func(c *Context) { // main handler
 			c.WriteString("-O-")
@@ -212,7 +237,9 @@ func TestGroupMiddleware(t *testing.T) {
 			r.GET("/middle", func(c *Context) { // main handler
 				c.WriteString("-O-")
 			})
-			r.GET("/middle1", func(c *Context) { // main handler
+
+			// main handler
+			r.GET("/middle1", func(c *Context) {
 				c.WriteString("-O-")
 			}).Use(func(c *Context) {
 				c.WriteString("a")
@@ -233,7 +260,7 @@ func TestGroupMiddleware(t *testing.T) {
 		c.Next()
 		c.WriteString("Y")
 	})
-	w := mockRequest(r, GET, "/grp/middle", nil)
+	w = mockRequest(r, GET, "/grp/middle", nil)
 	is.Equal("zy-O-YZ", w.Body.String())
 	w = mockRequest(r, GET, "/grp/middle1", nil)
 	is.Equal("zya-O-AYZ", w.Body.String())
@@ -247,7 +274,7 @@ func TestWrapHTTPHandler(t *testing.T) {
 	r := New()
 	is := assert.New(t)
 	gh := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("he"))
+		_,_ = w.Write([]byte("he"))
 	})
 
 	r.GET("/path", func(c *Context) {
@@ -255,7 +282,7 @@ func TestWrapHTTPHandler(t *testing.T) {
 	}).Use(
 		WrapHTTPHandler(gh),
 		WrapHTTPHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte("ll"))
+			_,_ =w.Write([]byte("ll"))
 		})))
 	w := mockRequest(r, GET, "/path", nil)
 	is.Equal("hello", w.Body.String())
@@ -265,7 +292,7 @@ func TestWrapHTTPHandler(t *testing.T) {
 	}).Use(
 		WrapHTTPHandlerFunc(gh),
 		WrapHTTPHandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte("ll"))
+			_,_ =w.Write([]byte("ll"))
 		}))
 	w = mockRequest(r, GET, "/path1", nil)
 	is.Equal("hello", w.Body.String())

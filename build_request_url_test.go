@@ -1,9 +1,10 @@
 package rux
 
 import (
-	"github.com/stretchr/testify/assert"
 	"net/url"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestBuildRequestUrl_Params(t *testing.T) {

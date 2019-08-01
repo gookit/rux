@@ -51,6 +51,8 @@ type Route struct {
 	// path for the route. eg "/users" "/users/{id}"
 	path   string
 	method string
+	// allowed methods TODO
+	methods []string
 
 	// start string in the route path. "/users/{id}" -> "/user/"
 	start string
@@ -76,37 +78,41 @@ type Route struct {
 	// defaults
 }
 
-// RouteInfo struct
+// RouteInfo simple route info struct
 type RouteInfo struct {
-	Path, Method, HandlerName string
+	Name, Path, HandlerName string
+	Methods []string
 }
 
 // NewRoute create a new route
-func NewRoute(method, path string, handler HandlerFunc, middleware ...HandlerFunc) *Route {
+func NewRoute(path string, handler HandlerFunc, methods ...string) *Route {
 	return &Route{
-		path:   strings.TrimSpace(path),
-		method: strings.ToUpper(method),
+		path: strings.TrimSpace(path),
 		// handler
 		handler:  handler,
-		handlers: middleware,
+		methods: formatMethodsWithDefault(methods, GET),
+		// handlers: middleware,
 	}
 }
 
 // NewNamedRoute create a new route with name
-func NewNamedRoute(name, method, path string, handler HandlerFunc, middleware ...HandlerFunc) *Route {
+func NewNamedRoute(name, path string, handler HandlerFunc, methods ...string) *Route {
 	return &Route{
 		name: strings.TrimSpace(name),
 		path: strings.TrimSpace(path),
-		// method
-		method: strings.ToUpper(method),
 		// handler
 		handler:  handler,
-		handlers: middleware,
+		methods: formatMethodsWithDefault(methods, GET),
 	}
 }
 
 // Use add middleware handlers to the route
 func (r *Route) Use(middleware ...HandlerFunc) *Route {
+	finalSize := len(r.handlers) + len(middleware)
+	if finalSize >= int(abortIndex) {
+		panicf("too many handlers(number: %d)", finalSize)
+	}
+
 	r.handlers = append(r.handlers, middleware...)
 	return r
 }
@@ -119,7 +125,6 @@ func (r *Route) AttachTo(router *Router) {
 // NamedTo add name and register the route to router.
 func (r *Route) NamedTo(name string, router *Router) {
 	r.SetName(name)
-
 	if r.name != "" {
 		router.namedRoutes[r.name] = r
 	}
@@ -131,7 +136,13 @@ func (r *Route) SetName(name string) *Route {
 	return r
 }
 
-// Name get
+// setMethods set a name for the route
+func (r *Route) setMethods(methods ...string) *Route {
+	r.methods = formatMethods(methods)
+	return r
+}
+
+// Name get route name
 func (r *Route) Name() string {
 	return r.name
 }
@@ -141,9 +152,14 @@ func (r *Route) Path() string {
 	return r.path
 }
 
-// Method get route request method string.
-func (r *Route) Method() string {
-	return r.method
+// Methods get route allowed request methods
+func (r *Route) Methods() []string {
+	return r.methods
+}
+
+// MethodString join allowed methods to an string
+func (r *Route) MethodString(char string) string {
+	return strings.Join(r.methods, char)
 }
 
 // Handler returns the main handler.
@@ -160,20 +176,20 @@ func (r *Route) HandlerName() string {
 func (r *Route) String() string {
 	return fmt.Sprintf(
 		"%-7s %-25s --> %s (%d middleware)",
-		r.method, r.path, r.HandlerName(), len(r.handlers),
+		r.MethodString(","), r.path, r.HandlerName(), len(r.handlers),
 	)
 }
 
 // Info get basic info of the route
 func (r *Route) Info() RouteInfo {
-	return RouteInfo{r.path, r.method, r.HandlerName()}
+	return RouteInfo{r.name, r.path, r.HandlerName(), r.methods}
 }
 
 // BuildRequestURL build BuildRequestURL
 func (r *Router) BuildRequestURL(name string, buildRequestURL *BuildRequestURL) *url.URL {
 	path := r.GetRoute(name).path
-	ss := varRegex.FindAllString(path, -1)
 
+	ss := varRegex.FindAllString(path, -1)
 	if len(ss) == 0 {
 		return nil
 	}
@@ -206,8 +222,14 @@ func (r *Route) goodInfo() {
 		panicf("the route handler cannot be empty.(path: '%s')", r.path)
 	}
 
-	if strings.Index(","+StringMethods, ","+r.method) == -1 {
-		panicf("invalid method name '%s', must in: %s", r.method, StringMethods)
+	if len(r.methods) == 0 {
+		panicf("the route allowed methods cannot be empty.(path: '%s')", r.path)
+	}
+
+	for _, method := range r.methods {
+		if strings.Index(","+StringMethods, ","+method) == -1 {
+			panicf("invalid method name '%s', must in: %s", method, StringMethods)
+		}
 	}
 }
 
@@ -222,7 +244,7 @@ func (r *Route) goodRegexString(n, v string) {
 	pos := strings.IndexByte(v, '(')
 
 	if pos != -1 && pos < len(v) && v[pos+1] != '?' {
-		panicf("invalid path var regex string, dont allow add char '('. var: %s, regex: %s", n, v)
+		panicf("invalid path var regex string, dont allow char '('. var: %s, regex: %s", n, v)
 	}
 }
 

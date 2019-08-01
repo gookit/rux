@@ -55,10 +55,6 @@ func (r *Router) Use(handlers ...HandlerFunc) {
 
 func combineHandlers(oldHandlers, newHandlers HandlersChain) HandlersChain {
 	finalSize := len(oldHandlers) + len(newHandlers)
-	if finalSize >= int(abortIndex) {
-		panic("router: too many handlers")
-	}
-
 	mergedHandlers := make(HandlersChain, finalSize)
 
 	copy(mergedHandlers, oldHandlers)

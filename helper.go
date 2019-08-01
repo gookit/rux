@@ -147,3 +147,24 @@ func parseAccept(acceptHeader string) []string {
 	}
 	return outs
 }
+
+func formatMethods(methods []string) (formatted []string) {
+	for _, method := range methods {
+		method = strings.TrimSpace(method)
+
+		if method != "" {
+			formatted = append(formatted, strings.ToUpper(method))
+		}
+	}
+	return
+}
+
+func formatMethodsWithDefault(methods []string, defMethod string) []string {
+	if len(methods) == 0 {
+		methods = []string{defMethod}
+	} else {
+		methods = formatMethods(methods)
+	}
+
+	return methods
+}

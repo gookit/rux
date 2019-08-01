@@ -85,13 +85,29 @@ func TestAddRoute(t *testing.T) {
 	is.NotEmpty(r)
 
 	// no handler
-	is.Panics(func() {
+	is.PanicsWithValue("the route handler cannot be empty.(path: '/get')", func() {
 		r.GET("/get", nil)
 	})
 
 	// invalid method
-	is.Panics(func() {
-		r.Add("invalid", "/get", emptyHandler)
+	is.PanicsWithValue("invalid method name 'INVALID', must in: " + StringMethods, func() {
+		r.Add("/get", emptyHandler, "invalid")
+	})
+
+	// empty method
+	is.PanicsWithValue("the route allowed methods cannot be empty.(path: '/')", func() {
+		r.AddRoute(&Route{path: "/", handler: emptyHandler})
+	})
+
+	// overflow max num of the route handlers
+	is.PanicsWithValue("too many handlers(number: 65)", func() {
+		var i int8 = -1
+		var hs HandlersChain
+		for ; i <= abortIndex; i++ {
+			hs = append(hs, emptyHandler)
+		}
+
+		r.GET("/overflow", emptyHandler, hs...)
 	})
 
 	route := r.GET("/get", namedHandler)
@@ -156,14 +172,14 @@ func TestNameRoute(t *testing.T) {
 	// named route
 	r.GET("/path1", emptyHandler).NamedTo("route1", r)
 
-	r2 := NewRoute(POST, "/path2[.html]", emptyHandler)
+	r2 := NewRoute("/path2[.html]", emptyHandler, POST)
 	r2.SetName("route2").AttachTo(r)
 	is.Equal("route2", r2.Name())
 
-	r3 := NewRoute("get", "/path3/{id}", emptyHandler).SetName("route3")
+	r3 := NewRoute("/path3/{id}", emptyHandler, "get").SetName("route3")
 	r.AddRoute(r3)
 
-	r4 := NewNamedRoute("route4", GET, "/path4/some/{id}", emptyHandler)
+	r4 := NewNamedRoute("route4", "/path4/some/{id}", emptyHandler, GET)
 	r.AddRoute(r4)
 
 	is.Len(r.Routes(), 4)
@@ -171,11 +187,11 @@ func TestNameRoute(t *testing.T) {
 	route := r.GetRoute("route1")
 	is.NotEmpty(route)
 	is.Equal("/path1", route.Path())
-	is.Equal("GET", route.Method())
+	is.Equal("GET", route.MethodString(""))
 
 	info := route.Info()
 	is.Equal("/path1", info.Path)
-	is.Equal("GET", info.Method)
+	is.Equal([]string{"GET"}, info.Methods)
 
 	route = r.GetRoute("route2")
 	is.NotEmpty(route)
@@ -207,17 +223,6 @@ func TestRouter_Group(t *testing.T) {
 	r.Group("/users", func() {
 		r.GET("", emptyHandler)
 		r.GET("/{id}", emptyHandler)
-
-		// overflow max num of the route handlers
-		is.Panics(func() {
-			var i int8 = -1
-			var hs HandlersChain
-			for ; i <= abortIndex; i++ {
-				hs = append(hs, emptyHandler)
-			}
-
-			r.GET("/overflow", emptyHandler, hs...)
-		})
 	}, func(c *Context) {
 		// ...
 	})
@@ -231,6 +236,20 @@ func TestRouter_Group(t *testing.T) {
 	is.Equal(Found, ret.Status)
 	is.NotEmpty(ret.Handler)
 	is.Len(ret.Handlers, 1)
+
+	// overflow max num of the route handlers
+	is.PanicsWithValue("too many handlers(number: 65)", func() {
+		var i int8 = -1
+		var hs HandlersChain
+		for ; i <= abortIndex; i++ {
+			hs = append(hs, emptyHandler)
+		}
+
+		r.Group("/test", func() {
+			r.GET("", emptyHandler)
+			r.GET("/{id}", emptyHandler)
+		}, hs...)
+	})
 }
 
 func TestDynamicRoute(t *testing.T) {
@@ -329,7 +348,7 @@ func TestMultiPathParam(t *testing.T) {
 	ris.True(ret.Params.Has("new_id"))
 	ris.True(ret.Params.Has("tid"))
 
-	ris.PanicsWithValue(`invalid path var regex string, dont allow add char '('. var: new_id, regex: (\d+)`, func() {
+	ris.PanicsWithValue(`invalid path var regex string, dont allow char '('. var: new_id, regex: (\d+)`, func() {
 		r.GET(`/news/{category_id}/{new_id:(\d+)}/{tid:(\d+)}/detail`, emptyHandler)
 	})
 }
@@ -342,11 +361,11 @@ func TestOptionalRoute(t *testing.T) {
 
 	// invalid
 	is.Panics(func() {
-		r.Add(GET, "/blog[/{category}]/{id}", emptyHandler)
+		r.Add("/blog[/{category}]/{id}", emptyHandler, GET)
 	})
 
 	// simple
-	r.Add(GET, "/about[.html]", emptyHandler)
+	r.Add("/about[.html]", emptyHandler, GET)
 
 	ret := r.Match(GET, "about")
 	is.Equal(Found, ret.Status)
@@ -356,7 +375,7 @@ func TestOptionalRoute(t *testing.T) {
 	is.Equal(Found, ret.Status)
 
 	// with Params
-	r.Add(GET, "/blog[/{category}]", emptyHandler)
+	r.Add("/blog[/{category}]", emptyHandler, GET)
 
 	ret = r.Match(GET, "/blog")
 	is.Equal(Found, ret.Status)
@@ -371,9 +390,9 @@ func TestMethodNotAllowed(t *testing.T) {
 	r := New(HandleMethodNotAllowed)
 	is.True(r.handleMethodNotAllowed)
 
-	r.Add(GET, "/path/some", emptyHandler)
-	r.Add(PUT, "/path/{var}", emptyHandler)
-	r.Add(DELETE, "/path[/{var}]", emptyHandler)
+	r.Add("/path/some", emptyHandler)
+	r.Add("/path/{var}", emptyHandler, PUT)
+	r.Add("/path[/{var}]", emptyHandler, DELETE)
 
 	is.Contains(r.String(), "Routes Count: 3")
 

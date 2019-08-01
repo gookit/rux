@@ -67,7 +67,7 @@ func AnyMethods() []string {
  * Router definition
  *************************************************************/
 
- // Binder interface
+// Binder interface
 type Binder interface {
 	Bind(i interface{}, c *Context) error
 }
@@ -162,11 +162,11 @@ type Router struct {
 	// whether checks if another method is allowed for the current route. default is False
 	handleMethodNotAllowed bool
 	// bind form,params,json body,query value to struct interface
-	Binder                 Binder
+	Binder Binder
 	// template(view) interface
-	Renderer               Renderer
+	Renderer Renderer
 	// validator interface
-	Validator              Validator
+	Validator Validator
 }
 
 // New router instance, can with some options.
@@ -261,129 +261,140 @@ func (r *Router) WithOptions(options ...func(*Router)) {
 
 // GET add routing and only allow GET request methods
 func (r *Router) GET(path string, handler HandlerFunc, middleware ...HandlerFunc) *Route {
-	return r.Add(GET, path, handler, middleware...)
+	return r.Add(path, handler, GET).Use(middleware...)
 }
 
 // HEAD add routing and only allow HEAD request methods
 func (r *Router) HEAD(path string, handler HandlerFunc, middleware ...HandlerFunc) *Route {
-	return r.Add(HEAD, path, handler, middleware...)
+	return r.Add(path, handler, HEAD).Use(middleware...)
 }
 
 // POST add routing and only allow POST request methods
 func (r *Router) POST(path string, handler HandlerFunc, middleware ...HandlerFunc) *Route {
-	return r.Add(POST, path, handler, middleware...)
+	return r.Add(path, handler, POST).Use(middleware...)
 }
 
 // PUT add routing and only allow PUT request methods
 func (r *Router) PUT(path string, handler HandlerFunc, middleware ...HandlerFunc) *Route {
-	return r.Add(PUT, path, handler, middleware...)
+	return r.Add(path, handler, PUT).Use(middleware...)
 }
 
 // PATCH add routing and only allow PATCH request methods
 func (r *Router) PATCH(path string, handler HandlerFunc, middleware ...HandlerFunc) *Route {
-	return r.Add(PATCH, path, handler, middleware...)
+	return r.Add(path, handler, PATCH).Use(middleware...)
 }
 
 // TRACE add routing and only allow TRACE request methods
 func (r *Router) TRACE(path string, handler HandlerFunc, middleware ...HandlerFunc) *Route {
-	return r.Add(TRACE, path, handler, middleware...)
+	return r.Add(path, handler, TRACE).Use(middleware...)
 }
 
 // OPTIONS add routing and only allow OPTIONS request methods
 func (r *Router) OPTIONS(path string, handler HandlerFunc, middleware ...HandlerFunc) *Route {
-	return r.Add(OPTIONS, path, handler, middleware...)
+	return r.Add(path, handler, OPTIONS).Use(middleware...)
 }
 
 // DELETE add routing and only allow OPTIONS request methods
 func (r *Router) DELETE(path string, handler HandlerFunc, middleware ...HandlerFunc) *Route {
-	return r.Add(DELETE, path, handler, middleware...)
+	return r.Add(path, handler, DELETE).Use(middleware...)
 }
 
 // CONNECT add routing and only allow CONNECT request methods
 func (r *Router) CONNECT(path string, handler HandlerFunc, middleware ...HandlerFunc) *Route {
-	return r.Add(CONNECT, path, handler, middleware...)
+	return r.Add(path, handler, CONNECT).Use(middleware...)
 }
 
 // Any add route and allow any request methods
-func (r *Router) Any(path string, handler HandlerFunc, middleware ...HandlerFunc) {
-	for _, method := range anyMethods {
-		r.Add(method, path, handler, middleware...)
-	}
+func (r *Router) Any(path string, handler HandlerFunc, middles ...HandlerFunc) {
+	route := NewRoute(path, handler, anyMethods...)
+	route.Use(middles...)
+
+	r.AddRoute(route)
 }
 
-// AnyMethodsIteration all methods
-func (r *Router) AnyMethodsIteration(iteration func(string) *Route) {
-	for _, method := range anyMethods {
-		r.AddRoute(iteration(method))
-	}
-}
-
-// Add a route to router
-func (r *Router) Add(method, path string, handler HandlerFunc, middleware ...HandlerFunc) *Route {
-	// create new route instance
-	route := NewRoute(method, path, handler, middleware...)
+// Add a route to router, allow set multi method
+// Usage:
+//	r.Add("/path", myHandler)
+//	r.Add("/path1", myHandler, "GET", "POST")
+func (r *Router) Add(path string, handler HandlerFunc, methods ...string) *Route {
+	route := NewRoute(path, handler, methods...)
 	return r.AddRoute(route)
 }
 
-// AddRoute add a route by Route instance.
+// AddRoute add a route by Route instance. , methods ...string
 func (r *Router) AddRoute(route *Route) *Route {
-	// route check
-	route.goodInfo()
+	r.appendRoute(route)
+	return route
+}
 
-	r.counter++
+func (r *Router) appendRoute(route *Route) {
+	// route check: methods, handler
+	route.goodInfo()
+	// format path and append group info
 	r.appendGroupInfo(route)
+	// print debug info
 	debugPrintRoute(route)
 
-	// has name.
+	// has route name.
 	if route.name != "" {
 		r.namedRoutes[route.name] = route
 	}
 
-	path := route.path
-	method := route.method
-
 	// path is fixed(no param vars). eg. "/users"
-	if isFixedPath(path) {
-		key := method + " " + path
-		r.stableRoutes[key] = route
-		return route
+	if isFixedPath(route.path) {
+		path := route.path
+		for _, method := range route.methods {
+			key := method + " " + path
+
+			r.counter++
+			r.stableRoutes[key] = route
+		}
+		return
 	}
 
 	// parsing route path with parameters
 	if first := r.parseParamRoute(route); first != "" {
-		key := method + " " + first
-		rs, has := r.regularRoutes[key]
-		if !has {
-			rs = routes{}
-		}
+		for _, method := range route.methods {
+			key := method + " " + first
+			rs, has := r.regularRoutes[key]
+			if !has {
+				rs = routes{}
+			}
 
-		r.regularRoutes[key] = append(rs, route)
-	} else {
+			r.counter++
+			r.regularRoutes[key] = append(rs, route)
+		}
+		return
+	}
+
+	// it's irregular param route
+	for _, method := range route.methods {
 		rs, has := r.irregularRoutes[method]
 		if has {
 			rs = routes{}
 		}
 
+		r.counter++
 		r.irregularRoutes[method] = append(rs, route)
 	}
-
-	return route
 }
 
 func (r *Router) appendGroupInfo(route *Route) {
 	path := r.formatPath(route.path)
-
 	if r.currentGroupPrefix != "" {
 		path = r.formatPath(r.currentGroupPrefix + path)
 	}
 
-	// re-setting
-	route.path = path
-
 	if len(r.currentGroupHandlers) > 0 {
-		// middleware = append(r.currentGroupHandlers, middleware...)
 		route.handlers = combineHandlers(r.currentGroupHandlers, route.handlers)
+
+		if finalSize := len(route.handlers); finalSize >= int(abortIndex) {
+			panicf("too many handlers(number: %d)", finalSize)
+		}
 	}
+
+	// re-set formatted path
+	route.path = path
 }
 
 // Group add an group routes

@@ -150,23 +150,23 @@ func (r *Router) handleHTTPRequest(ctx *Context) {
 		path = ctx.Req.URL.EscapedPath()
 	}
 
-	if len(r.noRoute) == 0 {
-		r.noRoute = HandlersChain{internal404Handler}
-	}
-
 	// match route
 	result := r.Match(ctx.Req.Method, path)
-
-	// save route params
-	ctx.Params = result.Params
-	ctx.Set(CTXCurrentRouteName, result.Name)
 
 	var handlers HandlersChain
 	switch result.Status {
 	case Found:
+		// save route params
+		ctx.Params = result.Params
+		ctx.Set(CTXCurrentRouteName, result.Name)
+
 		// append main handler to last
 		handlers = append(result.Handlers, result.Handler)
 	case NotFound:
+		if len(r.noRoute) == 0 {
+			r.noRoute = HandlersChain{internal404Handler}
+		}
+
 		handlers = r.noRoute
 	case NotAllowed:
 		if len(r.noAllowed) == 0 {
@@ -189,7 +189,7 @@ func (r *Router) handleHTTPRequest(ctx *Context) {
 	ctx.writer.EnsureWriteHeader()
 
 	// has errors and has error handler
-	if len(ctx.Errors) > 0 && r.OnError != nil {
+	if r.OnError != nil && len(ctx.Errors) > 0 {
 		r.OnError(ctx)
 	}
 }

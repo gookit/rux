@@ -98,7 +98,7 @@ func (r *Router) parseParamRoute(route *Route) (first string) {
 
 // MatchResult for the route match
 type MatchResult struct {
-	// current matcher router name
+	// Name current matched route name
 	Name string
 	// Status match status: 1 found 2 not found 3 method not allowed
 	Status uint8
@@ -187,7 +187,7 @@ func (r *Router) match(method, path string) (ret *MatchResult) {
 
 				if ps, ok := route.matchRegex(path); ok {
 					ret = newFoundResult(route.handler, route.handlers, ps, route.name)
-					r.cacheDynamicRoute(path, ps, route)
+					r.cacheDynamicRoute(method, path, ps, route)
 					return
 				}
 			}
@@ -199,7 +199,7 @@ func (r *Router) match(method, path string) (ret *MatchResult) {
 		for _, route := range rs {
 			if ps, ok := route.matchRegex(path); ok {
 				ret = newFoundResult(route.handler, route.handlers, ps, route.name)
-				r.cacheDynamicRoute(path, ps, route)
+				r.cacheDynamicRoute(method, path, ps, route)
 				return
 			}
 		}
@@ -209,7 +209,7 @@ func (r *Router) match(method, path string) (ret *MatchResult) {
 }
 
 // cache dynamic Params route when EnableRouteCache is true
-func (r *Router) cacheDynamicRoute(path string, ps Params, route *Route) {
+func (r *Router) cacheDynamicRoute(method, path string, ps Params, route *Route) {
 	if !r.enableCaching {
 		return
 	}
@@ -232,7 +232,7 @@ func (r *Router) cacheDynamicRoute(path string, ps Params, route *Route) {
 		}
 	}
 
-	key := route.method + " " + path
+	key := method + " " + path
 	// copy new route instance. Notice: cache matched Params
 	r.cachedRoutes[key] = route.copyWithParams(ps)
 }
