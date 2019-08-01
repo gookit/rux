@@ -386,6 +386,11 @@ func (c *Context) IsAjax() bool {
 	return c.Header("X-Requested-With") == "XMLHttpRequest"
 }
 
+// IsPost check request is post request
+func (c *Context) IsPost() bool {
+	return c.Req.Method == http.MethodPost
+}
+
 // IsMethod returns true if current is equal to input method name
 func (c *Context) IsMethod(method string) bool {
 	return c.Req.Method == method
@@ -570,12 +575,22 @@ func (c *Context) NoContent() {
 // Redirect other URL with status code(3xx e.g 301, 302).
 func (c *Context) Redirect(path string, optionalCode ...int) {
 	// default is http.StatusMovedPermanently
-	code := 301
+	code := http.StatusMovedPermanently
 	if len(optionalCode) > 0 {
 		code = optionalCode[0]
 	}
 
 	http.Redirect(c.Resp, c.Req, path, code)
+}
+
+// Back Redirect back url
+func (c *Context) Back(optionalCode ...int) {
+	code := http.StatusFound
+	if len(optionalCode) > 0 {
+		code = optionalCode[0]
+	}
+
+	c.Redirect(c.Req.Referer(), code)
 }
 
 // File writes the specified file into the body stream in a efficient way.
@@ -711,4 +726,23 @@ func (c *Context) Value(key interface{}) interface{} {
 		return c.MustGet(keyAsString)
 	}
 	return nil
+}
+
+/*************************************************************
+ * Context function extends
+ *************************************************************/
+
+// Bind context bind struct
+func (c *Context) Bind(i interface{}) error {
+	return c.Router().Binder.Bind(i, c)
+}
+
+// Render context template
+func (c *Context) Render(name string, data interface{}) error {
+	return c.Router().Renderer.Render(c.Resp, name, data, c)
+}
+
+// Validate context validator
+func (c *Context) Validate(i interface{}) error {
+	return c.Router().Validator.Validate(i)
 }

@@ -213,3 +213,15 @@ func TestContext_Binary(t *testing.T) {
 	is.Equal(ss[0], "inline; filename=new-name.md")
 	is.Equal("# readme", w.Body.String())
 }
+
+func TestContext_RouteName(t *testing.T) {
+	is := assert.New(t)
+	c := mockContext("GET", "/", nil, nil)
+
+	c.Set(CTXCurrentRouteName, "test_name")
+
+	name, ok := c.Get(CTXCurrentRouteName)
+
+	is.True(ok)
+	is.Equal("test_name", name)
+}
