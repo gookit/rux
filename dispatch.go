@@ -93,7 +93,7 @@ const (
 	CTXAllowedMethods = "_allowedMethods"
 	// CTXCurrentRouteName key name in the context
 	CTXCurrentRouteName = "_currentRouteName"
-	// CTXCurrentRouteName key name in the context
+	// CTXCurrentRoutePath key name in the context
 	CTXCurrentRoutePath = "_currentRoutePath"
 )
 
