@@ -63,6 +63,19 @@ func main() {
 		})
 	})
 
+	// 快速添加多个METHOD支持
+	r.Add("/post[/{id}]", func(c *rux.Context) {
+		if c.Param("id") == "" {
+			// do create post
+			c.Text(200, "created")
+			return
+		}
+		
+		id := c.Params.Int("id")
+		// do update post
+		c.Text(200, "updated " + fmt.Sprint(id))
+	}, rux.POST, rux.PUT)
+
 	// 启动服务并监听
 	r.Listen(":8080")
 	// 也可以
@@ -186,11 +199,11 @@ rux 中你可以添加命名路由，根据名称可以从路由器里拿到对�
 	r := rux.New()
 	
 	// Method 1
-	myRoute := NewNamedRoute("name1", GET, "/path4/some/{id}", emptyHandler)
+	myRoute := rux.NewNamedRoute("name1", "/path4/some/{id}", emptyHandler, "GET")
 	r.AddRoute(myRoute)
 	
 	// Method 2
-	r.GET("/", func(c *rux.Context) {
+	rux.NewRoute("/", func(c *rux.Context) {
 		c.Text(200, "hello")
 	}).SetName("name2").AttachTo(r)
 	

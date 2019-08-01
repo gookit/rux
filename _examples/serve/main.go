@@ -64,6 +64,19 @@ func main() {
 		})
 	})
 
+	// add multi method support for an route path
+	r.Add("/post[/{id}]", func(c *rux.Context) {
+		if c.Param("id") == "" {
+			// do create post
+			c.Text(200, "created")
+			return
+		}
+
+		id := c.Params.Int("id")
+		// do update post
+		c.Text(200, "updated "+fmt.Sprint(id))
+	}, rux.POST, rux.PUT)
+
 	// a simple proxy
 	// proxy := proxy("http://yzone.net/page/about-me")
 	pxy := newProxy("https://inhere.github.io/")

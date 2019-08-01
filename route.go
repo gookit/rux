@@ -49,9 +49,8 @@ type Route struct {
 	// route name.
 	name string
 	// path for the route. eg "/users" "/users/{id}"
-	path   string
-	method string
-	// allowed methods TODO
+	path string
+	// allowed methods
 	methods []string
 
 	// start string in the route path. "/users/{id}" -> "/user/"
@@ -81,7 +80,8 @@ type Route struct {
 // RouteInfo simple route info struct
 type RouteInfo struct {
 	Name, Path, HandlerName string
-	Methods                 []string
+	// supported method of the route
+	Methods []string
 }
 
 // NewRoute create a new route

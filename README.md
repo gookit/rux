@@ -63,6 +63,19 @@ func main() {
 			c.Text(200, "view detail, id: " + c.Param("id"))
 		})
 	})
+	
+	// add multi method support for an route path
+	r.Add("/post[/{id}]", func(c *rux.Context) {
+		if c.Param("id") == "" {
+			// do create post
+			c.Text(200, "created")
+			return
+		}
+		
+		id := c.Params.Int("id")
+		// do update post
+		c.Text(200, "updated " + fmt.Sprint(id))
+	}, rux.POST, rux.PUT)
 
 	// quick start
 	r.Listen(":8080")
@@ -186,13 +199,13 @@ Examples：
 
 ```go
 	r := rux.New()
-
+	
 	// Method 1
-	myRoute := NewNamedRoute("name1", GET, "/path4/some/{id}", emptyHandler)
+	myRoute := rux.NewNamedRoute("name1", "/path4/some/{id}", emptyHandler, "GET")
 	r.AddRoute(myRoute)
 	
 	// Method 2
-	r.GET("/", func(c *rux.Context) {
+	rux.NewRoute("/", func(c *rux.Context) {
 		c.Text(200, "hello")
 	}).SetName("name2").AttachTo(r)
 	
@@ -221,7 +234,7 @@ Examples：
 
 ### Multi Domains
 
-> code is ref from `julienschmidt/httprouter`
+> code is refer from `julienschmidt/httprouter`
 
 ```go
 package main
