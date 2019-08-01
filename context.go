@@ -1,8 +1,10 @@
 package rux
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -734,15 +736,36 @@ func (c *Context) Value(key interface{}) interface{} {
 
 // Bind context bind struct
 func (c *Context) Bind(i interface{}) error {
+	if c.Router().Binder == nil {
+		return errors.New("Binder not registered")
+	}
+
 	return c.Router().Binder.Bind(i, c)
 }
 
 // Render context template
-func (c *Context) Render(name string, data interface{}) error {
-	return c.Router().Renderer.Render(c.Resp, name, data, c)
+func (c *Context) Render(code int, name string, data interface{}) error {
+	if c.Router().Renderer == nil {
+		return errors.New("renderer not registered")
+	}
+
+	var err error
+	var buf = new(bytes.Buffer)
+
+	if err = c.Router().Renderer.Render(buf, name, data, c); err != nil {
+		return err
+	}
+
+	c.HTML(code, buf.Bytes())
+
+	return nil
 }
 
 // Validate context validator
 func (c *Context) Validate(i interface{}) error {
+	if c.Router().Validator == nil {
+		return errors.New("validator not registered")
+	}
+
 	return c.Router().Validator.Validate(i)
 }
