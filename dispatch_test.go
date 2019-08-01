@@ -505,3 +505,48 @@ func TestHandleValidate(t *testing.T) {
 
 	mockRequest(r, GET, "/test-validate", nil)
 }
+
+func TestHandleXML(t *testing.T) {
+	is := assert.New(t)
+	r := New()
+
+	r.GET("/test-xml", func(c *Context) {
+		type User struct {
+			Name string
+		}
+
+		u := &User{
+			Name: "test",
+		}
+
+		c.XML(200, u)
+	})
+
+	w := mockRequest(r, GET, "/test-xml", nil)
+	is.Equal(`application/xml; charset=UTF-8`, w.Header().Get("Content-Type"))
+	is.Equal(`<?xml version="1.0" encoding="UTF-8"?>
+<User><Name>test</Name></User>`, w.Body.String())
+}
+
+func TestHandleJSONP(t *testing.T) {
+	is := assert.New(t)
+	r := New()
+
+	r.GET("/test-jsonp", func(c *Context) {
+		type User struct {
+			Name string
+		}
+
+		u := &User{
+			Name: "test",
+		}
+
+		// or rux.M{"Name": "test"}
+		c.JSONP(200, "jquery-jsonp", &u)
+	})
+
+	w := mockRequest(r, GET, "/test-jsonp", nil)
+	is.Equal(`application/javascript; charset=UTF-8`, w.Header().Get("Content-Type"))
+	is.Equal(`jquery-jsonp({"Name":"test"}
+);`, w.Body.String())
+}

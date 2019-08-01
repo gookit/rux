@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"encoding/xml"
 	"errors"
 	"fmt"
 	"io"
@@ -567,6 +568,51 @@ func (c *Context) JSONBytes(status int, bs []byte) {
 	c.Resp.WriteHeader(status)
 	c.Resp.Header().Set(ContentType, "application/json; charset=UTF-8")
 	c.WriteBytes(bs)
+}
+
+// XML out struct pointer as xml response.
+func (c *Context) XML(status int, i interface{}, indents ...string) {
+	c.Resp.WriteHeader(status)
+	c.Resp.Header().Set("Content-Type", "application/xml; charset=UTF-8")
+	enc := xml.NewEncoder(c.Resp)
+
+	if len(indents) > 0 {
+		if indents[0] != "" {
+			enc.Indent("", indents[0])
+		}
+	}
+
+	var err error
+
+	if _, err = c.Resp.Write([]byte(xml.Header)); err != nil {
+		panic(err)
+	}
+
+	if err = enc.Encode(i); err != nil {
+		panic(err)
+	}
+}
+
+// JSONP is JSONP response.
+func (c *Context) JSONP(status int, callback string, i interface{}) {
+	enc := json.NewEncoder(c.Resp)
+
+	c.Resp.WriteHeader(status)
+	c.Resp.Header().Set("Content-Type", "application/javascript; charset=UTF-8")
+
+	var err error
+
+	if _, err = c.Resp.Write([]byte(callback + "(")); err != nil {
+		panic(err)
+	}
+
+	if err = enc.Encode(i); err != nil {
+		panic(err)
+	}
+
+	if _, err = c.Resp.Write([]byte(");")); err != nil {
+		panic(err)
+	}
 }
 
 // NoContent serve success but no content response
