@@ -93,6 +93,8 @@ const (
 	CTXAllowedMethods = "_allowedMethods"
 	// CTXCurrentRouteName key name in the context
 	CTXCurrentRouteName = "_currentRouteName"
+	// CTXCurrentRouteName key name in the context
+	CTXCurrentRoutePath = "_currentRoutePath"
 )
 
 var internal404Handler HandlerFunc = func(c *Context) {
@@ -159,6 +161,7 @@ func (r *Router) handleHTTPRequest(ctx *Context) {
 		// save route params
 		ctx.Params = result.Params
 		ctx.Set(CTXCurrentRouteName, result.Name)
+		ctx.Set(CTXCurrentRouteName, path)
 
 		// append main handler to last
 		handlers = append(result.Handlers, result.Handler)
