@@ -744,7 +744,7 @@ func (c *Context) Bind(i interface{}) error {
 }
 
 // Render context template
-func (c *Context) Render(code int, name string, data interface{}) error {
+func (c *Context) Render(status int, name string, data interface{}) error {
 	if c.Router().Renderer == nil {
 		return errors.New("renderer not registered")
 	}
@@ -756,7 +756,7 @@ func (c *Context) Render(code int, name string, data interface{}) error {
 		return err
 	}
 
-	c.HTML(code, buf.Bytes())
+	c.HTML(status, buf.Bytes())
 
 	return nil
 }
