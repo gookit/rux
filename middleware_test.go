@@ -274,7 +274,7 @@ func TestWrapHTTPHandler(t *testing.T) {
 	r := New()
 	is := assert.New(t)
 	gh := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_,_ = w.Write([]byte("he"))
+		_, _ = w.Write([]byte("he"))
 	})
 
 	r.GET("/path", func(c *Context) {
@@ -282,7 +282,7 @@ func TestWrapHTTPHandler(t *testing.T) {
 	}).Use(
 		WrapHTTPHandler(gh),
 		WrapHTTPHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			_,_ =w.Write([]byte("ll"))
+			_, _ = w.Write([]byte("ll"))
 		})))
 	w := mockRequest(r, GET, "/path", nil)
 	is.Equal("hello", w.Body.String())
@@ -292,7 +292,7 @@ func TestWrapHTTPHandler(t *testing.T) {
 	}).Use(
 		WrapHTTPHandlerFunc(gh),
 		WrapHTTPHandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			_,_ =w.Write([]byte("ll"))
+			_, _ = w.Write([]byte("ll"))
 		}))
 	w = mockRequest(r, GET, "/path1", nil)
 	is.Equal("hello", w.Body.String())

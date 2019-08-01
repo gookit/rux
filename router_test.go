@@ -90,7 +90,7 @@ func TestAddRoute(t *testing.T) {
 	})
 
 	// invalid method
-	is.PanicsWithValue("invalid method name 'INVALID', must in: " + StringMethods, func() {
+	is.PanicsWithValue("invalid method name 'INVALID', must in: "+StringMethods, func() {
 		r.Add("/get", emptyHandler, "invalid")
 	})
 
