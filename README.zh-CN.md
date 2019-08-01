@@ -111,7 +111,7 @@ func main() {
 	    // do something ...
 	})
 	
-	// 使用中间件作为路由
+	// 通过参数添加中间件
 	route := r.GET("/middle", func(c *rux.Context) { // main handler
 		c.WriteString("-O-")
 	}, func(c *rux.Context) { // middle 1
@@ -122,15 +122,15 @@ func main() {
 		// c.Abort() 
     })
 
-	// add by Use()
+	// 通过 Use() 添加中间件
 	route.Use(func(c *rux.Context) { // middle 2
 		c.WriteString("b")
 		c.Next()
 		c.WriteString("B")
 	})
 
-	// now, access the URI /middle
-	// will output: ab-O-BA
+	// 启动server访问: /middle
+	// 将会看到输出: ab-O-BA
 }
 ```
 
