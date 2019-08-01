@@ -12,7 +12,8 @@ import (
 	"github.com/gookit/rux/handlers"
 )
 
-// go run ./_examples/serve/serve.go
+// start: go run ./_examples/serve
+// access: http://127.0.0.1:18080
 func main() {
 	// open debug
 	rux.Debug(true)

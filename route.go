@@ -175,7 +175,7 @@ func (r *Route) HandlerName() string {
 // String route info to string
 func (r *Route) String() string {
 	return fmt.Sprintf(
-		"%-7s %-25s --> %s (%d middleware)",
+		"%-20s %-32s --> %s (%d middleware)",
 		r.MethodString(","), r.path, r.HandlerName(), len(r.handlers),
 	)
 }
