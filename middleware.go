@@ -38,9 +38,9 @@ func WrapHTTPHandler(gh http.Handler) HandlerFunc {
 }
 
 // WrapHTTPHandlerFunc warp an generic http.HandlerFunc as an middleware HandlerFunc
-func WrapHTTPHandlerFunc(gh http.HandlerFunc) HandlerFunc {
+func WrapHTTPHandlerFunc(hf http.HandlerFunc) HandlerFunc {
 	return func(c *Context) {
-		gh(c.Resp, c.Req)
+		hf(c.Resp, c.Req)
 	}
 }
 
@@ -48,9 +48,16 @@ func WrapHTTPHandlerFunc(gh http.HandlerFunc) HandlerFunc {
  * global middleware
  *************************************************************/
 
-// Use add handlers for the router
-func (r *Router) Use(handlers ...HandlerFunc) {
-	r.handlers = append(r.handlers, handlers...)
+// Use add handlers/middles for the router or group
+func (r *Router) Use(middles ...HandlerFunc) {
+	// use method in Group()
+	if r.currentGroupPrefix != "" {
+		r.currentGroupHandlers = append(r.currentGroupHandlers, middles...)
+		return
+	}
+
+	// global middleware
+	r.handlers = append(r.handlers, middles...)
 }
 
 func combineHandlers(oldHandlers, newHandlers HandlersChain) HandlersChain {

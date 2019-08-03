@@ -270,6 +270,53 @@ func TestGroupMiddleware(t *testing.T) {
 	is.Equal("zyxa-O-AXYZ", w.Body.String())
 }
 
+func TestRouter_Use(t *testing.T) {
+	is := assert.New(t)
+	r := New()
+
+	r.Use(func(c *Context) {
+		c.WriteString("z")
+		c.Next()
+		c.WriteString("Z")
+	})
+
+	r.Group("/g0", func() {
+		r.Use(func(c *Context) {
+			c.WriteString("x")
+			c.Next()
+			c.WriteString("X")
+		})
+
+		// main handler
+		r.GET("/m0", func(c *Context) {
+			c.WriteString("-O-")
+		})
+
+		// main handler
+		r.GET("/m1", func(c *Context) {
+			c.WriteString("-O-")
+		}, func(c *Context) {
+			c.WriteString("a")
+			c.Next()
+			c.WriteString("A")
+		})
+	})
+
+	r.Use(func(c *Context) {
+		c.WriteString("y")
+		c.Next()
+		c.WriteString("Y")
+	})
+
+	is.Len(r.Handlers(), 2)
+
+	w := mockRequest(r, GET, "/g0/m0", nil)
+	is.Equal("zyx-O-XYZ", w.Body.String())
+
+	w = mockRequest(r, GET, "/g0/m1", nil)
+	is.Equal("zyxa-O-AXYZ", w.Body.String())
+}
+
 func TestWrapHTTPHandler(t *testing.T) {
 	r := New()
 	is := assert.New(t)
