@@ -95,6 +95,11 @@ func NewRoute(path string, handler HandlerFunc, methods ...string) *Route {
 	}
 }
 
+// NamedRoute create a new route with name. alias of NewNamedRoute()
+func NamedRoute(name, path string, handler HandlerFunc, methods ...string) *Route {
+	return NewNamedRoute(name, path, handler, methods...)
+}
+
 // NewNamedRoute create a new route with name
 func NewNamedRoute(name, path string, handler HandlerFunc, methods ...string) *Route {
 	return &Route{
@@ -124,16 +129,11 @@ func (r *Route) AttachTo(router *Router) {
 
 // NamedTo add name and register the route to router.
 func (r *Route) NamedTo(name string, router *Router) {
-	r.SetName(name)
-	if r.name != "" {
-		router.namedRoutes[r.name] = r
+	if name = strings.TrimSpace(name); name != "" {
+		r.name = name
+		// attach to router
+		router.namedRoutes[name] = r
 	}
-}
-
-// SetName set a name for the route
-func (r *Route) SetName(name string) *Route {
-	r.name = strings.TrimSpace(name)
-	return r
 }
 
 // Name get route name

@@ -321,6 +321,12 @@ func (r *Router) Add(path string, handler HandlerFunc, methods ...string) *Route
 	return r.AddRoute(route)
 }
 
+// AddNamed add an named route to router, allow set multi method
+func (r *Router) AddNamed(name, path string, handler HandlerFunc, methods ...string) *Route {
+	route := NewNamedRoute(name, path, handler, methods...)
+	return r.AddRoute(route)
+}
+
 // AddRoute add a route by Route instance. , methods ...string
 func (r *Router) AddRoute(route *Route) *Route {
 	r.appendRoute(route)
@@ -397,19 +403,19 @@ func (r *Router) appendGroupInfo(route *Route) {
 	route.path = path
 }
 
-// Group add an group routes
-func (r *Router) Group(prefix string, register func(), middleware ...HandlerFunc) {
+// Group add an group routes, can with middleware
+func (r *Router) Group(prefix string, register func(), middles ...HandlerFunc) {
 	prevPrefix := r.currentGroupPrefix
 	r.currentGroupPrefix = prevPrefix + r.formatPath(prefix)
 
 	// handle prev middleware
 	prevHandlers := r.currentGroupHandlers
-	if len(middleware) > 0 {
-		// multi level group routes.
+	if len(middles) > 0 {
+		// in multi level group routes.
 		if len(prevHandlers) > 0 {
-			r.currentGroupHandlers = append(r.currentGroupHandlers, middleware...)
+			r.currentGroupHandlers = append(r.currentGroupHandlers, middles...)
 		} else {
-			r.currentGroupHandlers = middleware
+			r.currentGroupHandlers = middles
 		}
 	}
 
@@ -422,10 +428,10 @@ func (r *Router) Group(prefix string, register func(), middleware ...HandlerFunc
 }
 
 // Controller register some routes by a controller
-func (r *Router) Controller(basePath string, controller ControllerFace, middleware ...HandlerFunc) {
+func (r *Router) Controller(basePath string, controller ControllerFace, middles ...HandlerFunc) {
 	r.Group(basePath, func() {
 		controller.AddRoutes(r)
-	}, middleware...)
+	}, middles...)
 }
 
 // NotFound handlers for router
@@ -436,6 +442,11 @@ func (r *Router) NotFound(handlers ...HandlerFunc) {
 // NotAllowed handlers for router
 func (r *Router) NotAllowed(handlers ...HandlerFunc) {
 	r.noAllowed = handlers
+}
+
+// Handlers get global handlers
+func (r *Router) Handlers() HandlersChain {
+	return r.handlers
 }
 
 /*************************************************************

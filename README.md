@@ -203,12 +203,12 @@ Examples：
 	// Method 1
 	myRoute := rux.NewNamedRoute("name1", "/path4/some/{id}", emptyHandler, "GET")
 	r.AddRoute(myRoute)
-	
+
 	// Method 2
-	rux.NewRoute("/", func(c *rux.Context) {
+	rux.AddNamed("name2", "/", func(c *rux.Context) {
 		c.Text(200, "hello")
-	}).SetName("name2").AttachTo(r)
-	
+	})
+
 	// Method 3
 	r.GET("/hi", func(c *rux.Context) {
 		c.Text(200, "hello")
@@ -281,9 +281,10 @@ func main() {
 package main
 
 import (
-	"github.com/gookit/rux"
 	"log"
 	"net/http"
+
+	"github.com/gookit/rux"
 )
 
 func main() {
@@ -305,10 +306,10 @@ func main() {
         println(c.Router().BuildRequestURL("new_detail", b).String())
 		// result:  /news/100/20/detail?username=admin&password=12345
 		// get current route name
-		if c.Get(rux.CTXCurrentRouteName) == "new_detail" {
+		if c.MustGet(rux.CTXCurrentRouteName) == "new_detail" {
             // post data etc....
         }
-	}).NamedTo("new_detail", r)
+	}).NamedTo("new_detail", router)
 
 	// Use the HostSwitch to listen and serve on port 12345
 	log.Fatal(http.ListenAndServe(":12345", router))
