@@ -161,7 +161,7 @@ func (r *Router) handleHTTPRequest(ctx *Context) {
 		// save route params
 		ctx.Params = result.Params
 		ctx.Set(CTXCurrentRouteName, result.Name)
-		ctx.Set(CTXCurrentRouteName, path)
+		ctx.Set(CTXCurrentRoutePath, path)
 
 		// append main handler to last
 		handlers = append(result.Handlers, result.Handler)
