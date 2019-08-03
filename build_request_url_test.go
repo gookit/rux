@@ -1,7 +1,6 @@
 package rux
 
 import (
-	"fmt"
 	"net/url"
 	"testing"
 
@@ -59,19 +58,4 @@ func TestBuildRequestUrl_Build(t *testing.T) {
 
 	is.Equal(r.BuildRequestURL("homepage", b).String(), `/build-test/test/20`)
 	is.Equal(r.BuildRequestURL("homepage_fiexd_path").String(), `/build-test/fiexd/path`)
-}
-
-func TestBuildRequestUrl_Build2(t *testing.T) {
-	// is := assert.New(t)
-
-	r := New()
-	// r.Add(`/build-test/fiexd/path/{id}`, emptyHandler, GET).SetName("homepage_fiexd_path")
-	r.Add(`/build-test/fiexd/path/{id}`, emptyHandler, GET).NamedTo("homepage_fiexd_path", r)
-
-	fmt.Printf("%#v\n", r.namedRoutes)
-	fmt.Printf("%#v\n", r.stableRoutes)
-	fmt.Printf("%#v\n", r.regularRoutes)
-	fmt.Printf("%#v\n", r.irregularRoutes)
-
-	// is.Equal(r.BuildRequestURL("homepage_fiexd_path").String(), `/build-test/fiexd/path`)
 }
