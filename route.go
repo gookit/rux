@@ -180,10 +180,18 @@ func (r *Route) Info() RouteInfo {
 }
 
 // BuildRequestURL build RequestURL
-func (r *Router) BuildRequestURL(name string, buildRequestURL *BuildRequestURL) *url.URL {
+func (r *Router) BuildRequestURL(name string, buildRequestURLs ...*BuildRequestURL) *url.URL {
+	var buildRequestURL *BuildRequestURL
+
 	path := r.GetRoute(name).path
 
+	if len(buildRequestURLs) == 0 {
+		return NewBuildRequestURL().Path(path).Build()
+	}
+
+	buildRequestURL = buildRequestURLs[0]
 	ss := varRegex.FindAllString(path, -1)
+
 	if len(ss) == 0 {
 		return nil
 	}

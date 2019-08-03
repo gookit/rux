@@ -48,10 +48,14 @@ func TestBuildRequestUrl_Build(t *testing.T) {
 	r := New()
 
 	homepage := NewNamedRoute("homepage", `/build-test/{name}/{id:\d+}`, emptyHandler, GET)
+	homepageFiexdPath := NewNamedRoute("homepage_fiexd_path", `/build-test/fiexd/path`, emptyHandler, GET)
+
 	r.AddRoute(homepage)
+	r.AddRoute(homepageFiexdPath)
 
 	b := NewBuildRequestURL()
 	b.Params("{name}", "test", "{id}", "20")
 
 	is.Equal(r.BuildRequestURL("homepage", b).String(), `/build-test/test/20`)
+	is.Equal(r.BuildRequestURL("homepage_fiexd_path").String(), `/build-test/fiexd/path`)
 }
