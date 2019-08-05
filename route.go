@@ -180,8 +180,9 @@ func (r *Route) Info() RouteInfo {
 }
 
 // BuildRequestURL build RequestURL
-func (r *Router) BuildRequestURL(name string, buildRequestURLs ...*BuildRequestURL) *url.URL {
+func (r *Router) BuildRequestURL(name string, buildRequestURLs ...interface{}) *url.URL {
 	var buildRequestURL *BuildRequestURL
+	var withParams = make(M)
 
 	path := r.GetRoute(name).path
 
@@ -189,7 +190,14 @@ func (r *Router) BuildRequestURL(name string, buildRequestURLs ...*BuildRequestU
 		return NewBuildRequestURL().Path(path).Build()
 	}
 
-	buildRequestURL = buildRequestURLs[0]
+	switch buildRequestURLs[0].(type) {
+	case *BuildRequestURL:
+		buildRequestURL = buildRequestURLs[0].(*BuildRequestURL)
+	case M:
+		buildRequestURL = NewBuildRequestURL()
+		withParams = buildRequestURLs[0].(M)
+	}
+
 	ss := varRegex.FindAllString(path, -1)
 
 	if len(ss) == 0 {
@@ -215,7 +223,7 @@ func (r *Router) BuildRequestURL(name string, buildRequestURLs ...*BuildRequestU
 		path = strings.NewReplacer(paramRegex, name).Replace(path)
 	}
 
-	return buildRequestURL.Path(path).Build()
+	return buildRequestURL.Path(path).Build(withParams)
 }
 
 // check route info

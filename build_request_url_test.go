@@ -59,3 +59,31 @@ func TestBuildRequestUrl_Build(t *testing.T) {
 	is.Equal(r.BuildRequestURL("homepage", b).String(), `/build-test/test/20`)
 	is.Equal(r.BuildRequestURL("homepage_fiexd_path").String(), `/build-test/fiexd/path`)
 }
+
+func TestBuildRequestUrl_With(t *testing.T) {
+	is := assert.New(t)
+
+	r := New()
+
+	homepage := NewNamedRoute("homepage", `/build-test/{name}/{id:\d+}`, emptyHandler, GET)
+
+	r.AddRoute(homepage)
+
+	is.Equal(r.BuildRequestURL("homepage", M{
+		"{name}":   "test",
+		"{id}":     "20",
+		"username": "demo",
+	}).String(), `/build-test/test/20?username=demo`)
+}
+
+func TestBuildRequestUrl_WithCustom(t *testing.T) {
+	is := assert.New(t)
+
+	b := NewBuildRequestURL()
+	b.Path("/build-test/test/{id}")
+
+	is.Equal(b.Build(M{
+		"{id}":     "20",
+		"username": "demo",
+	}).String(), `/build-test/test/20?username=demo`)
+}

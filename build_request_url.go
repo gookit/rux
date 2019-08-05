@@ -17,7 +17,9 @@ type BuildRequestURL struct {
 
 // NewBuildRequestURL get new obj
 func NewBuildRequestURL() *BuildRequestURL {
-	return &BuildRequestURL{}
+	return &BuildRequestURL{
+		queries: make(url.Values),
+	}
 }
 
 // Queries set Queries
@@ -63,8 +65,18 @@ func (b *BuildRequestURL) Path(path string) *BuildRequestURL {
 }
 
 // Build build url
-func (b *BuildRequestURL) Build() *url.URL {
+func (b *BuildRequestURL) Build(withParams ...M) *url.URL {
 	var path = b.path
+
+	if len(withParams) > 0 {
+		for k, d := range withParams[0] {
+			if strings.Index(path, k) == -1 {
+				b.queries.Add(k, d.(string))
+			} else {
+				b.params = append(b.params, k, d.(string))
+			}
+		}
+	}
 
 	if len(b.params) > 0 {
 		path = strings.NewReplacer(b.params...).Replace(path)
