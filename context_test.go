@@ -3,6 +3,7 @@ package rux
 import (
 	"bytes"
 	"io"
+	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -317,4 +318,44 @@ func TestContext_Back(t *testing.T) {
 	ris.Equal(301, w.Code)
 	ris.Equal("/old-path1", w.Header().Get("Location"))
 	ris.Equal("<a href=\"/old-path1\">Moved Permanently</a>.\n\n", w.Body.String())
+}
+
+func TestContext_Blob(t *testing.T) {
+	ris := assert.New(t)
+	r := New()
+
+	r.GET("/blob", func(c *Context) {
+		c.Blob(200, "text/plain; charset=UTF-8", []byte("blob-test"))
+	})
+
+	w := mockRequest(r, GET, "/blob", nil)
+
+	ris.Equal(200, w.Code)
+	ris.Equal("text/plain; charset=UTF-8", w.Header().Get(ContentType))
+
+	body, err := ioutil.ReadAll(w.Body)
+
+	ris.NoError(err)
+	ris.Equal(string(body), "blob-test")
+}
+
+func TestContext_Stream(t *testing.T) {
+	ris := assert.New(t)
+	r := New()
+
+	r.GET("/stream", func(c *Context) {
+		reader := bytes.NewReader([]byte("stream-test"))
+
+		c.Stream(200, "text/plain; charset=UTF-8", reader)
+	})
+
+	w := mockRequest(r, GET, "/stream", nil)
+
+	ris.Equal(200, w.Code)
+	ris.Equal("text/plain; charset=UTF-8", w.Header().Get(ContentType))
+
+	body, err := ioutil.ReadAll(w.Body)
+
+	ris.NoError(err)
+	ris.Equal(string(body), "stream-test")
 }

@@ -543,18 +543,32 @@ func (c *Context) HTTPError(msg string, status int) {
 
 // Text writes out a string as plain text.
 func (c *Context) Text(status int, str string) {
-	c.Resp.WriteHeader(status)
-	c.Resp.Header().Set(ContentType, "text/plain; charset=UTF-8")
-	c.WriteBytes([]byte(str))
+	c.Blob(status, "text/plain; charset=UTF-8", []byte(str))
 }
 
 // HTML writes out as html text. if data is empty, only write headers
 func (c *Context) HTML(status int, data []byte) {
+	c.Blob(status, "text/html; charset=UTF-8", data)
+}
+
+// Blob writes out []byte
+func (c *Context) Blob(status int, contentType string, data []byte) {
 	c.Resp.WriteHeader(status)
-	c.Resp.Header().Set(ContentType, "text/html; charset=UTF-8")
+	c.Resp.Header().Set(ContentType, contentType)
 
 	if len(data) > 0 {
 		c.WriteBytes(data)
+	}
+}
+
+// Stream writes out io.Reader
+func (c *Context) Stream(status int, contentType string, r io.Reader) {
+	c.Resp.WriteHeader(status)
+	c.Resp.Header().Set(ContentType, contentType)
+	_, err := io.Copy(c.Resp, r)
+
+	if err != nil {
+		panic(err)
 	}
 }
 
@@ -570,15 +584,13 @@ func (c *Context) JSON(status int, v interface{}) {
 
 // JSONBytes writes out a string as JSON response.
 func (c *Context) JSONBytes(status int, bs []byte) {
-	c.Resp.WriteHeader(status)
-	c.Resp.Header().Set(ContentType, "application/json; charset=UTF-8")
-	c.WriteBytes(bs)
+	c.Blob(status, "application/json; charset=UTF-8", bs)
 }
 
 // XML out struct pointer as xml response.
 func (c *Context) XML(status int, i interface{}, indents ...string) {
 	c.Resp.WriteHeader(status)
-	c.Resp.Header().Set("Content-Type", "application/xml; charset=UTF-8")
+	c.Resp.Header().Set(ContentType, "application/xml; charset=UTF-8")
 	enc := xml.NewEncoder(c.Resp)
 
 	if len(indents) > 0 {
@@ -603,7 +615,7 @@ func (c *Context) JSONP(status int, callback string, i interface{}) {
 	enc := json.NewEncoder(c.Resp)
 
 	c.Resp.WriteHeader(status)
-	c.Resp.Header().Set("Content-Type", "application/javascript; charset=UTF-8")
+	c.Resp.Header().Set(ContentType, "application/javascript; charset=UTF-8")
 
 	var err error
 
@@ -732,7 +744,7 @@ func (c *Context) setRawContentHeader(w http.ResponseWriter, addType bool) {
 	w.Header().Set("Content-Description", "Raw content")
 
 	if addType {
-		w.Header().Set("Content-Type", "text/plain")
+		w.Header().Set(ContentType, "text/plain")
 	}
 
 	w.Header().Set("Expires", "0")
