@@ -99,3 +99,31 @@ func TestBuildRequestUrl_WithMutilArgs(t *testing.T) {
 
 	is.Equal(r.BuildRequestURL("homepage", "{name}", "test", "{id}", "20", "username", "demo").String(), `/build-test/test/20?username=demo`)
 }
+
+func TestBuildRequestUrl_EmptyRoue(t *testing.T) {
+	is := assert.New(t)
+
+	r := New()
+
+	homepage := NewNamedRoute("homepage", `/build-test/{name}/{id:\d+}`, emptyHandler, GET)
+
+	r.AddRoute(homepage)
+
+	is.PanicsWithValue("BuildRequestURL get route is nil", func() {
+		r.BuildRequestURL("homepage-empty", "{name}", "test", "{id}", "20", "username", "demo")
+	})
+}
+
+func TestBuildRequestUrl_ErrorArgs(t *testing.T) {
+	is := assert.New(t)
+
+	r := New()
+
+	homepage := NewNamedRoute("homepage", `/build-test/{name}/{id:\d+}`, emptyHandler, GET)
+
+	r.AddRoute(homepage)
+
+	is.PanicsWithValue("buildRequestURLs odd argument count", func() {
+		r.BuildRequestURL("homepage", "{name}", "test", "{id}")
+	})
+}
