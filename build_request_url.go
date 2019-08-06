@@ -71,9 +71,9 @@ func (b *BuildRequestURL) Build(withParams ...M) *url.URL {
 	if len(withParams) > 0 {
 		for k, d := range withParams[0] {
 			if strings.Index(path, k) == -1 {
-				b.queries.Add(k, d.(string))
+				b.queries.Add(k, toString(d))
 			} else {
-				b.params = append(b.params, k, d.(string))
+				b.params = append(b.params, k, toString(d))
 			}
 		}
 	}

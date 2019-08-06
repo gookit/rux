@@ -212,7 +212,7 @@ func (r *Router) BuildRequestURL(name string, buildRequestURLs ...interface{}) *
 		}
 
 		for i := 0; i < len(buildRequestURLs); i += 2 {
-			withParams[buildRequestURLs[i].(string)] = buildRequestURLs[i+1]
+			withParams[toString(buildRequestURLs[i])] = buildRequestURLs[i+1]
 		}
 
 		buildRequestURL = NewBuildRequestURL()

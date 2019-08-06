@@ -71,7 +71,7 @@ func TestBuildRequestUrl_With(t *testing.T) {
 
 	is.Equal(r.BuildRequestURL("homepage", M{
 		"{name}":   "test",
-		"{id}":     "20",
+		"{id}":     20,
 		"username": "demo",
 	}).String(), `/build-test/test/20?username=demo`)
 }
@@ -83,7 +83,7 @@ func TestBuildRequestUrl_WithCustom(t *testing.T) {
 	b.Path("/build-test/test/{id}")
 
 	is.Equal(b.Build(M{
-		"{id}":     "20",
+		"{id}":     20,
 		"username": "demo",
 	}).String(), `/build-test/test/20?username=demo`)
 }
@@ -97,10 +97,10 @@ func TestBuildRequestUrl_WithMutilArgs(t *testing.T) {
 
 	r.AddRoute(homepage)
 
-	is.Equal(r.BuildRequestURL("homepage", "{name}", "test", "{id}", "20", "username", "demo").String(), `/build-test/test/20?username=demo`)
+	is.Equal(r.BuildRequestURL("homepage", "{name}", "test", "{id}", 20, "username", "demo").String(), `/build-test/test/20?username=demo`)
 }
 
-func TestBuildRequestUrl_EmptyRoue(t *testing.T) {
+func TestBuildRequestUrl_EmptyRoute(t *testing.T) {
 	is := assert.New(t)
 
 	r := New()
