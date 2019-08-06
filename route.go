@@ -179,23 +179,43 @@ func (r *Route) Info() RouteInfo {
 	return RouteInfo{r.name, r.path, r.HandlerName(), r.methods}
 }
 
-// BuildRequestURL build RequestURL
+// BuildRequestURL build RequestURL one arg can be set buildRequestURL or rux.M
 func (r *Router) BuildRequestURL(name string, buildRequestURLs ...interface{}) *url.URL {
 	var buildRequestURL *BuildRequestURL
 	var withParams = make(M)
 
-	path := r.GetRoute(name).path
+	route := r.GetRoute(name)
+
+	if route == nil {
+		panic("BuildRequestURL get route is nil")
+	}
+
+	path := route.path
 
 	if len(buildRequestURLs) == 0 {
 		return NewBuildRequestURL().Path(path).Build()
 	}
 
-	switch buildRequestURLs[0].(type) {
-	case *BuildRequestURL:
-		buildRequestURL = buildRequestURLs[0].(*BuildRequestURL)
-	case M:
+	if len(buildRequestURLs) == 1 {
+		switch buildRequestURLs[0].(type) {
+		case *BuildRequestURL:
+			buildRequestURL = buildRequestURLs[0].(*BuildRequestURL)
+		case M:
+			buildRequestURL = NewBuildRequestURL()
+			withParams = buildRequestURLs[0].(M)
+		}
+	}
+
+	if len(buildRequestURLs) > 1 {
+		if len(buildRequestURLs)%2 == 1 {
+			panic("buildRequestURLs odd argument count")
+		}
+
+		for i := 0; i < len(buildRequestURLs); i += 2 {
+			withParams[buildRequestURLs[i].(string)] = buildRequestURLs[i+1]
+		}
+
 		buildRequestURL = NewBuildRequestURL()
-		withParams = buildRequestURLs[0].(M)
 	}
 
 	ss := varRegex.FindAllString(path, -1)
