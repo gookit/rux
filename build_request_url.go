@@ -8,7 +8,7 @@ import (
 // BuildRequestURL struct
 type BuildRequestURL struct {
 	queries url.Values
-	params  []string
+	params  M
 	path    string
 	scheme  string
 	host    string
@@ -19,6 +19,7 @@ type BuildRequestURL struct {
 func NewBuildRequestURL() *BuildRequestURL {
 	return &BuildRequestURL{
 		queries: make(url.Values),
+		params:  make(M),
 	}
 }
 
@@ -30,7 +31,7 @@ func (b *BuildRequestURL) Queries(queries url.Values) *BuildRequestURL {
 }
 
 // Params set Params
-func (b *BuildRequestURL) Params(params ...string) *BuildRequestURL {
+func (b *BuildRequestURL) Params(params M) *BuildRequestURL {
 	b.params = params
 
 	return b
@@ -70,23 +71,48 @@ func (b *BuildRequestURL) Build(withParams ...M) *url.URL {
 
 	if len(withParams) > 0 {
 		for k, d := range withParams[0] {
-			if strings.Index(path, k) == -1 {
+			if strings.IndexByte(k, '{') == -1 && strings.IndexByte(k, '}') == -1 {
 				b.queries.Add(k, toString(d))
 			} else {
-				b.params = append(b.params, k, toString(d))
+				b.params[k] = toString(d)
 			}
 		}
 	}
 
-	if len(b.params) > 0 {
-		path = strings.NewReplacer(b.params...).Replace(path)
+	var u = new(url.URL)
+
+	u.Scheme = b.scheme
+	u.User = b.user
+	u.Host = b.host
+	u.Path = path
+	u.RawQuery = b.queries.Encode()
+
+	ss := varRegex.FindAllString(path, -1)
+
+	if len(ss) == 0 {
+		return u
 	}
 
-	return &url.URL{
-		Scheme:   b.scheme,
-		User:     b.user,
-		Host:     b.host,
-		Path:     path,
-		RawQuery: b.queries.Encode(),
+	var n string
+	var varParams = make(map[string]string)
+
+	for _, str := range ss {
+		nvStr := str[1 : len(str)-1]
+
+		if strings.IndexByte(nvStr, ':') > 0 {
+			nv := strings.SplitN(nvStr, ":", 2)
+			n, _ = strings.TrimSpace(nv[0]), strings.TrimSpace(nv[1])
+			varParams[str] = "{" + n + "}"
+		} else {
+			varParams[str] = str
+		}
 	}
+
+	for paramRegex, name := range varParams {
+		path = strings.NewReplacer(paramRegex, toString(b.params[name])).Replace(path)
+	}
+
+	u.Path = path
+
+	return u
 }

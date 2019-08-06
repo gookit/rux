@@ -187,7 +187,7 @@ func (r *Router) BuildRequestURL(name string, buildRequestURLs ...interface{}) *
 	route := r.GetRoute(name)
 
 	if route == nil {
-		panic("BuildRequestURL get route is nil")
+		panicf("BuildRequestURL get route (name: %s) is nil", name)
 	}
 
 	path := route.path
@@ -216,31 +216,6 @@ func (r *Router) BuildRequestURL(name string, buildRequestURLs ...interface{}) *
 		}
 
 		buildRequestURL = NewBuildRequestURL()
-	}
-
-	ss := varRegex.FindAllString(path, -1)
-
-	if len(ss) == 0 {
-		return nil
-	}
-
-	var n string
-	var varParams = make(map[string]string)
-
-	for _, str := range ss {
-		nvStr := str[1 : len(str)-1]
-
-		if strings.IndexByte(nvStr, ':') > 0 {
-			nv := strings.SplitN(nvStr, ":", 2)
-			n, _ = strings.TrimSpace(nv[0]), strings.TrimSpace(nv[1])
-			varParams[str] = "{" + n + "}"
-		} else {
-			varParams[str] = str
-		}
-	}
-
-	for paramRegex, name := range varParams {
-		path = strings.NewReplacer(paramRegex, name).Replace(path)
 	}
 
 	return buildRequestURL.Path(path).Build(withParams)
