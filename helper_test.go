@@ -104,9 +104,9 @@ func TestHelper(t *testing.T) {
 		Username: "Test",
 	}
 
-	testUsernameJson, err := json.Marshal(testUsername)
+	testUsernameJSON, err := json.Marshal(testUsername)
 
 	ts = toString(testUsername)
 	assert.Nil(t, err)
-	assert.Equal(t, ts, string(testUsernameJson))
+	assert.Equal(t, ts, string(testUsernameJSON))
 }
