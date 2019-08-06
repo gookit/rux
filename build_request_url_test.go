@@ -87,3 +87,15 @@ func TestBuildRequestUrl_WithCustom(t *testing.T) {
 		"username": "demo",
 	}).String(), `/build-test/test/20?username=demo`)
 }
+
+func TestBuildRequestUrl_WithMutilArgs(t *testing.T) {
+	is := assert.New(t)
+
+	r := New()
+
+	homepage := NewNamedRoute("homepage", `/build-test/{name}/{id:\d+}`, emptyHandler, GET)
+
+	r.AddRoute(homepage)
+
+	is.Equal(r.BuildRequestURL("homepage", "{name}", "test", "{id}", "20", "username", "demo").String(), `/build-test/test/20?username=demo`)
+}
