@@ -42,4 +42,55 @@ func TestHelper(t *testing.T) {
 	ss = parseAccept("application/json")
 	assert.Len(t, ss, 1)
 	assert.Equal(t, []string{"application/json"}, ss)
+
+	ts := toString("test-string")
+	assert.Equal(t, ts, "test-string")
+
+	ts = toString(20)
+	assert.Equal(t, ts, "20")
+
+	ts = toString(int(30))
+	assert.Equal(t, ts, "30")
+
+	ts = toString(int8(30))
+	assert.Equal(t, ts, "30")
+
+	ts = toString(int16(30))
+	assert.Equal(t, ts, "30")
+
+	ts = toString(int32(30))
+	assert.Equal(t, ts, "30")
+
+	ts = toString(int64(30))
+	assert.Equal(t, ts, "30")
+
+	ts = toString(uint(30))
+	assert.Equal(t, ts, "30")
+
+	ts = toString(uint8(30))
+	assert.Equal(t, ts, "30")
+
+	ts = toString(uint16(30))
+	assert.Equal(t, ts, "30")
+
+	ts = toString(uint32(30))
+	assert.Equal(t, ts, "30")
+
+	ts = toString(uint64(30))
+	assert.Equal(t, ts, "30")
+
+	ts = toString(float32(30.00))
+	assert.Equal(t, ts, "30")
+
+	ts = toString(float64(30.00))
+	assert.Equal(t, ts, "30")
+
+	ts = toString(true)
+	assert.Equal(t, ts, "true")
+
+	ts = toString(false)
+	assert.Equal(t, ts, "false")
+
+	ts = toString([]byte{'t', 'e', 's', 't'})
+	assert.Equal(t, ts, "test")
 }
