@@ -1,6 +1,7 @@
 package rux
 
 import (
+	"encoding/json"
 	"errors"
 	"os"
 	"testing"
@@ -93,4 +94,19 @@ func TestHelper(t *testing.T) {
 
 	ts = toString([]byte{'t', 'e', 's', 't'})
 	assert.Equal(t, ts, "test")
+
+	ts = toString(nil)
+	assert.Equal(t, ts, "")
+
+	testUsername := struct {
+		Username string
+	}{
+		Username: "Test",
+	}
+
+	testUsernameJson, err := json.Marshal(testUsername)
+
+	ts = toString(testUsername)
+	assert.Nil(t, err)
+	assert.Equal(t, ts, string(testUsernameJson))
 }
