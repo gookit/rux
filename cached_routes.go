@@ -7,21 +7,21 @@ import (
 // CachedRoutes struct
 type CachedRoutes struct {
 	m    map[string]*Route
-	lock *sync.Mutex
+	lock *sync.RWMutex
 }
 
 // NewCachedRoutes get CachedRoutes pointer
 func NewCachedRoutes() *CachedRoutes {
 	return &CachedRoutes{
-		lock: new(sync.Mutex),
+		lock: new(sync.RWMutex),
 		m:    make(map[string]*Route),
 	}
 }
 
 // Get Router pointer
 func (c *CachedRoutes) Get(k string) *Route {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	c.lock.RLock()
+	defer c.lock.RUnlock()
 
 	if val, ok := c.m[k]; ok {
 		return val
@@ -49,8 +49,8 @@ func (c *CachedRoutes) Set(k string, v *Route) bool {
 
 // Has Returns true if k is exist in the map.
 func (c *CachedRoutes) Has(k string) (*Route, bool) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	c.lock.RLock()
+	defer c.lock.RUnlock()
 
 	if _, ok := c.m[k]; ok {
 		return c.m[k], true
@@ -61,16 +61,16 @@ func (c *CachedRoutes) Has(k string) (*Route, bool) {
 
 // Len the given m total.
 func (c *CachedRoutes) Len() int {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	c.lock.RLock()
+	defer c.lock.RUnlock()
 
 	return len(c.m)
 }
 
 // Items the given m.
 func (c *CachedRoutes) Items() map[string]*Route {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	c.lock.RLock()
+	defer c.lock.RUnlock()
 
 	r := make(map[string]*Route)
 
