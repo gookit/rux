@@ -503,7 +503,7 @@ func TestRouter_WithOptions(t *testing.T) {
 	is.Equal("id:23", w.Body.String())
 	w = mockRequest(r, "GET", "/users/23", nil)
 	is.Equal("id:23", w.Body.String())
-	is.Len(r.cachedRoutes, 1)
+	is.Equal(1, r.cachedRoutes.Len())
 
 	for id := range []int{19: 0} {
 		idStr := fmt.Sprint(id)
