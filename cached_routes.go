@@ -11,10 +11,10 @@ type CachedRoutes struct {
 }
 
 // NewCachedRoutes get CachedRoutes pointer
-func NewCachedRoutes() *CachedRoutes {
+func NewCachedRoutes(size int) *CachedRoutes {
 	return &CachedRoutes{
 		lock: new(sync.RWMutex),
-		m:    make(map[string]*Route),
+		m:    make(map[string]*Route, size),
 	}
 }
 

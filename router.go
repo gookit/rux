@@ -187,8 +187,6 @@ func New(options ...func(*Router)) *Router {
 		stableRoutes: make(map[string]*Route),
 		namedRoutes:  make(map[string]*Route),
 
-		cachedRoutes: NewCachedRoutes(),
-
 		regularRoutes:   make(methodRoutes),
 		irregularRoutes: make(methodRoutes),
 	}
@@ -333,6 +331,12 @@ func (r *Router) AddNamed(name, path string, handler HandlerFunc, methods ...str
 // AddRoute add a route by Route instance. , methods ...string
 func (r *Router) AddRoute(route *Route) *Route {
 	r.appendRoute(route)
+
+	// init route cache container
+	if r.enableCaching && r.cachedRoutes == nil {
+		r.cachedRoutes = NewCachedRoutes(int(r.maxNumCaches))
+	}
+
 	return route
 }
 

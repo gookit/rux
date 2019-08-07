@@ -28,6 +28,18 @@ func TestBuildRequestUrl_Host(t *testing.T) {
 	is.Equal(b.Build().String(), `https://127.0.0.1/news`)
 }
 
+func TestBuildRequestURL_User(t *testing.T) {
+	is := assert.New(t)
+
+	b := NewBuildRequestURL()
+	b.Scheme("https")
+	b.User("tom", "123")
+	b.Host("127.0.0.1")
+	b.Path(`/news`)
+
+	is.Equal(b.Build().String(), `https://tom:123@127.0.0.1/news`)
+}
+
 func TestBuildRequestUrl_Queries(t *testing.T) {
 	is := assert.New(t)
 
@@ -61,9 +73,8 @@ func TestBuildRequestUrl_Build(t *testing.T) {
 }
 
 func TestBuildRequestUrl_With(t *testing.T) {
-	is := assert.New(t)
-
 	r := New()
+	is := assert.New(t)
 
 	homepage := NewNamedRoute("homepage", `/build-test/{name}/{id:\d+}`, emptyHandler, GET)
 
@@ -89,9 +100,8 @@ func TestBuildRequestUrl_WithCustom(t *testing.T) {
 }
 
 func TestBuildRequestUrl_WithMutilArgs(t *testing.T) {
-	is := assert.New(t)
-
 	r := New()
+	is := assert.New(t)
 
 	homepage := NewNamedRoute("homepage", `/build-test/{name}/{id:\d+}`, emptyHandler, GET)
 
@@ -101,9 +111,8 @@ func TestBuildRequestUrl_WithMutilArgs(t *testing.T) {
 }
 
 func TestBuildRequestUrl_WithMutilArgs2(t *testing.T) {
-	is := assert.New(t)
-
 	r := New()
+	is := assert.New(t)
 
 	homepage := NewNamedRoute("homepage", `/build-test`, emptyHandler, GET)
 
@@ -113,9 +122,8 @@ func TestBuildRequestUrl_WithMutilArgs2(t *testing.T) {
 }
 
 func TestBuildRequestUrl_WithMutilArgs3(t *testing.T) {
-	is := assert.New(t)
-
 	r := New()
+	is := assert.New(t)
 
 	homepage := NewNamedRoute("homepage", `/build-test/{id}`, emptyHandler, GET)
 
@@ -125,9 +133,8 @@ func TestBuildRequestUrl_WithMutilArgs3(t *testing.T) {
 }
 
 func TestBuildRequestUrl_EmptyRoute(t *testing.T) {
-	is := assert.New(t)
-
 	r := New()
+	is := assert.New(t)
 
 	homepage := NewNamedRoute("homepage", `/build-test/{name}/{id:\d+}`, emptyHandler, GET)
 
@@ -139,9 +146,8 @@ func TestBuildRequestUrl_EmptyRoute(t *testing.T) {
 }
 
 func TestBuildRequestUrl_ErrorArgs(t *testing.T) {
-	is := assert.New(t)
-
 	r := New()
+	is := assert.New(t)
 
 	homepage := NewNamedRoute("homepage", `/build-test/{name}/{id:\d+}`, emptyHandler, GET)
 

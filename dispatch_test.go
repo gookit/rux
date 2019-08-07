@@ -234,6 +234,9 @@ func TestContext(t *testing.T) {
 		is.Equal("val", c.MustGet("newKey").(string))
 		is.Equal("val", c.Value("newKey").(string))
 
+		_, ok = c.Value(nil).(*http.Request)
+		is.True(ok)
+
 		c.Next()
 
 		// STEP 3 ->:

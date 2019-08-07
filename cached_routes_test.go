@@ -1,35 +1,35 @@
 package rux
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCachedRoutes_SetAndGet(t *testing.T) {
-	is := assert.New(t)
-
 	r := New()
+	is := assert.New(t)
 
 	test := r.GET("/users/{id}", func(c *Context) {
 
 	})
 
-	c := NewCachedRoutes()
+	c := NewCachedRoutes(10)
 	c.Set("test", test)
 
-	is.Equal(c.Get("test"), test)
+	is.Equal(test, c.Get("test"))
+	is.Nil(c.Get("not-exist"))
 }
 
 func TestCachedRoutes_Delete(t *testing.T) {
-	is := assert.New(t)
-
 	r := New()
+	is := assert.New(t)
 
 	test := r.GET("/users/{id}", func(c *Context) {
 
 	})
 
-	c := NewCachedRoutes()
+	c := NewCachedRoutes(10)
 	c.Set("test", test)
 	c.Delete("test")
 
@@ -37,35 +37,35 @@ func TestCachedRoutes_Delete(t *testing.T) {
 }
 
 func TestCachedRoutes_Has(t *testing.T) {
-	is := assert.New(t)
-
 	r := New()
+	is := assert.New(t)
 
 	test := r.GET("/users/{id}", func(c *Context) {
 
 	})
 
-	c := NewCachedRoutes()
+	c := NewCachedRoutes(10)
 	c.Set("test", test)
 
 	_, ok := c.Has("test")
-
 	is.True(ok)
 }
 
 func TestCachedRoutes_Items(t *testing.T) {
+	r := New()
 	is := assert.New(t)
 
-	r := New()
+	test := r.GET("/users/{id}", func(c *Context) {})
+	test1 := r.GET("/news/{id}", func(c *Context) {})
 
-	test := r.GET("/users/{id}", func(c *Context) {
-
-	})
-
-	c := NewCachedRoutes()
+	c := NewCachedRoutes(10)
 	c.Set("test", test)
 
 	for _, r := range c.Items() {
 		is.Equal(r, test)
 	}
+
+	is.False(c.Set("test", test))
+	is.True(c.Set("test", test1))
+	is.Equal(1, c.Len())
 }
