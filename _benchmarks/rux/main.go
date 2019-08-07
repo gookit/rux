@@ -14,13 +14,14 @@ import (
 // 	go run ./_benchmarks/rux
 // bench test:
 // 	bombardier -c 125 -n 1000000 http://localhost:3000
+// 	bombardier -c 125 -n 1000000 http://localhost:3000/user/42
 func main() {
 	// close debug
 	rux.Debug(false)
-	r := rux.New()
+	r := rux.New(rux.EnableCaching)
 
 	r.GET("/", func(c *rux.Context) {
-		c.WriteString("welcome")
+		_, _ = c.Resp.Write([]byte("Welcome!\n"))
 	})
 
 	r.GET("/user/{id}", func(c *rux.Context) {
