@@ -299,7 +299,7 @@ func main() {
         // b.Scheme("https")
         // b.Host("www.mytest.com")
         b.Queries(u)
-        b.Params("{category_id}", "100", "{new_id}", "20")
+        b.Params(rux.M{"{category_id}": "100", "{new_id}": "20"})
 		// b.Path("/dev")
         // println(b.Build().String())
         
