@@ -179,48 +179,43 @@ func (r *Route) Info() RouteInfo {
 	return RouteInfo{r.name, r.path, r.HandlerName(), r.methods}
 }
 
-// BuildRequestURL build RequestURL
+// BuildRequestURL build RequestURL one arg can be set buildRequestURL or rux.M
 func (r *Router) BuildRequestURL(name string, buildRequestURLs ...interface{}) *url.URL {
 	var buildRequestURL *BuildRequestURL
 	var withParams = make(M)
 
-	path := r.GetRoute(name).path
+	route := r.GetRoute(name)
+
+	if route == nil {
+		panicf("BuildRequestURL get route (name: %s) is nil", name)
+	}
+
+	path := route.path
 
 	if len(buildRequestURLs) == 0 {
 		return NewBuildRequestURL().Path(path).Build()
 	}
 
-	switch buildRequestURLs[0].(type) {
-	case *BuildRequestURL:
-		buildRequestURL = buildRequestURLs[0].(*BuildRequestURL)
-	case M:
-		buildRequestURL = NewBuildRequestURL()
-		withParams = buildRequestURLs[0].(M)
-	}
-
-	ss := varRegex.FindAllString(path, -1)
-
-	if len(ss) == 0 {
-		return nil
-	}
-
-	var n string
-	var varParams = make(map[string]string)
-
-	for _, str := range ss {
-		nvStr := str[1 : len(str)-1]
-
-		if strings.IndexByte(nvStr, ':') > 0 {
-			nv := strings.SplitN(nvStr, ":", 2)
-			n, _ = strings.TrimSpace(nv[0]), strings.TrimSpace(nv[1])
-			varParams[str] = "{" + n + "}"
-		} else {
-			varParams[str] = str
+	if len(buildRequestURLs) == 1 {
+		switch buildRequestURLs[0].(type) {
+		case *BuildRequestURL:
+			buildRequestURL = buildRequestURLs[0].(*BuildRequestURL)
+		case M:
+			buildRequestURL = NewBuildRequestURL()
+			withParams = buildRequestURLs[0].(M)
 		}
 	}
 
-	for paramRegex, name := range varParams {
-		path = strings.NewReplacer(paramRegex, name).Replace(path)
+	if len(buildRequestURLs) > 1 {
+		if len(buildRequestURLs)%2 == 1 {
+			panic("buildRequestURLs odd argument count")
+		}
+
+		for i := 0; i < len(buildRequestURLs); i += 2 {
+			withParams[toString(buildRequestURLs[i])] = buildRequestURLs[i+1]
+		}
+
+		buildRequestURL = NewBuildRequestURL()
 	}
 
 	return buildRequestURL.Path(path).Build(withParams)

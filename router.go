@@ -107,7 +107,8 @@ type Router struct {
 	// {
 	// 	"GET /users/12": Route,
 	// }
-	cachedRoutes map[string]*Route
+	// cachedRoutes map[string]*Route
+	cachedRoutes *CachedRoutes
 
 	// Regular dynamic routing
 	// - key is "METHOD first-node":
@@ -314,8 +315,8 @@ func (r *Router) Any(path string, handler HandlerFunc, middles ...HandlerFunc) {
 
 // Add a route to router, allow set multi method
 // Usage:
-//	r.Add("/path", myHandler)
-//	r.Add("/path1", myHandler, "GET", "POST")
+// 	r.Add("/path", myHandler)
+// 	r.Add("/path1", myHandler, "GET", "POST")
 func (r *Router) Add(path string, handler HandlerFunc, methods ...string) *Route {
 	route := NewRoute(path, handler, methods...)
 	return r.AddRoute(route)
@@ -330,6 +331,12 @@ func (r *Router) AddNamed(name, path string, handler HandlerFunc, methods ...str
 // AddRoute add a route by Route instance. , methods ...string
 func (r *Router) AddRoute(route *Route) *Route {
 	r.appendRoute(route)
+
+	// init route cache container
+	if r.enableCaching && r.cachedRoutes == nil {
+		r.cachedRoutes = NewCachedRoutes(int(r.maxNumCaches))
+	}
+
 	return route
 }
 

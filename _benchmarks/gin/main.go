@@ -8,6 +8,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// run serve:
+// 	go run ./_benchmarks/gin
+// bench test:
+// 	bombardier -c 125 -n 1000000 http://localhost:3000
+// 	bombardier -c 125 -n 1000000 http://localhost:3000/user/42
 func main() {
 	gin.SetMode(gin.ReleaseMode)
 
