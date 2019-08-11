@@ -86,6 +86,19 @@ func TestContext_Post(t *testing.T) {
 	ris.Equal("application/x-www-form-urlencoded", c.ContentType())
 }
 
+func TestContext_FormParams(t *testing.T) {
+	art := assert.New(t)
+
+	c1 := mockContext("GET", "/test1?a=1&b=2&c=3", nil, nil)
+	c2 := mockContext("GET", "/test2?a=1&b=2&c=3", nil, nil)
+
+	form1, _ := c1.FormParams()
+	form2, _ := c2.FormParams([]string{"b"})
+
+	art.Equal(form1.Encode(),"a=1&b=2&c=3")
+	art.Equal(form2.Encode(),"a=1&c=3")
+}
+
 func TestContext_SetCookie(t *testing.T) {
 	ris := assert.New(t)
 	c := mockContext("GET", "/?both=v1", nil, m{
