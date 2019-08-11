@@ -92,8 +92,15 @@ func TestContext_FormParams(t *testing.T) {
 	c1 := mockContext("GET", "/test1?a=1&b=2&c=3", nil, nil)
 	c2 := mockContext("GET", "/test2?a=1&b=2&c=3", nil, nil)
 
-	form1, _ := c1.FormParams()
-	form2, _ := c2.FormParams([]string{"b"})
+	var err error
+
+	form1, err := c1.FormParams()
+
+	art.NoError(err)
+
+	form2, err := c2.FormParams([]string{"b"})
+
+	art.NoError(err)
 
 	art.Equal(form1.Encode(),"a=1&b=2&c=3")
 	art.Equal(form2.Encode(),"a=1&c=3")
