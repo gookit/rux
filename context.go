@@ -306,10 +306,8 @@ func (c *Context) FormParams(excepts ...[]string) (url.Values, error) {
 		if err := c.ParseMultipartForm(defaultMaxMemory); err != nil {
 			return nil, err
 		}
-	} else {
-		if err := c.Req.ParseForm(); err != nil {
-			return nil, err
-		}
+	} else if err := c.Req.ParseForm(); err != nil {
+		return nil, err
 	}
 
 	if len(excepts) > 0 {
@@ -363,6 +361,7 @@ func (c *Context) SaveFile(file *multipart.FileHeader, dst string) error {
 		_ = src.Close()
 		return err
 	}
+	//noinspection GoUnhandledErrorResult
 	defer out.Close()
 
 	_, err = io.Copy(out, src)
@@ -699,6 +698,7 @@ func (c *Context) FileContent(file string, names ...string) {
 		http.Error(c.Resp, "Internal Server Error", 500)
 		return
 	}
+	//noinspection GoUnhandledErrorResult
 	defer f.Close()
 
 	c.setRawContentHeader(c.Resp, false)

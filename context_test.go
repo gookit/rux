@@ -74,8 +74,6 @@ func TestContext_Post(t *testing.T) {
 		ContentType: "application/x-www-form-urlencoded",
 	})
 
-	_ = c.ParseMultipartForm(8 << 20)
-
 	val, has := c.PostParam("page")
 	ris.True(has)
 	ris.Equal("11", val)
@@ -84,6 +82,23 @@ func TestContext_Post(t *testing.T) {
 
 	ris.Equal([]string{"application/json"}, c.AcceptedTypes())
 	ris.Equal("application/x-www-form-urlencoded", c.ContentType())
+
+	// test parse multipart/form-data
+	buf := new(bytes.Buffer)
+	mw := multipart.NewWriter(buf)
+	err := mw.WriteField("kay0", "val0")
+	ris.NoError(err)
+	ris.NoError(mw.Close()) // must call Close()
+
+	c3 := mockContext("POST", "/", buf, m{
+		"Content-Type": mw.FormDataContentType(),
+	})
+
+	err = c3.ParseMultipartForm(defaultMaxMemory)
+	ris.NoError(err)
+
+	f0 := c3.Req.Form
+	ris.Equal("kay0=val0", f0.Encode())
 }
 
 func TestContext_FormParams(t *testing.T) {
@@ -102,9 +117,9 @@ func TestContext_FormParams(t *testing.T) {
 
 	art.NoError(err)
 
-	art.Equal(form1.Encode(),"a=1&b=2&c=3")
-	art.Equal(form2.Encode(),"a=1&c=3")
-	
+	art.Equal(form1.Encode(), "a=1&b=2&c=3")
+	art.Equal(form2.Encode(), "a=1&c=3")
+
 	// test parse multipart/form-data
 	buf := new(bytes.Buffer)
 	mw := multipart.NewWriter(buf)
@@ -112,7 +127,7 @@ func TestContext_FormParams(t *testing.T) {
 	art.NoError(err)
 	err = mw.Close()
 	art.NoError(err)
-	
+
 	c3 := mockContext("POST", "/", buf, m{
 		"Content-Type": mw.FormDataContentType(),
 	})
