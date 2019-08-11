@@ -104,6 +104,19 @@ func TestContext_FormParams(t *testing.T) {
 
 	art.Equal(form1.Encode(),"a=1&b=2&c=3")
 	art.Equal(form2.Encode(),"a=1&c=3")
+	
+	// test parse multipart/form-data
+	buf := new(bytes.Buffer)
+	mw := multipart.NewWriter(buf)
+	err = mw.WriteField("kay0", "val0")
+	art.NoError(err)
+	
+	c3 := mockContext("POST", "/", buf, m{
+		"Content-Type": mw.FormDataContentType(),
+	})
+
+	f3, err := c3.FormParams()
+	art.Equal(f3.Encode(),"kay0=val0")
 }
 
 func TestContext_SetCookie(t *testing.T) {
