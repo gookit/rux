@@ -86,6 +86,41 @@ func TestContext_Post(t *testing.T) {
 	ris.Equal("application/x-www-form-urlencoded", c.ContentType())
 }
 
+func TestContext_FormParams(t *testing.T) {
+	art := assert.New(t)
+
+	c1 := mockContext("GET", "/test1?a=1&b=2&c=3", nil, nil)
+	c2 := mockContext("GET", "/test2?a=1&b=2&c=3", nil, nil)
+
+	var err error
+
+	form1, err := c1.FormParams()
+
+	art.NoError(err)
+
+	form2, err := c2.FormParams([]string{"b"})
+
+	art.NoError(err)
+
+	art.Equal(form1.Encode(),"a=1&b=2&c=3")
+	art.Equal(form2.Encode(),"a=1&c=3")
+	
+	// test parse multipart/form-data
+	buf := new(bytes.Buffer)
+	mw := multipart.NewWriter(buf)
+	err = mw.WriteField("kay0", "val0")
+	art.NoError(err)
+	err = mw.Close()
+	art.NoError(err)
+	
+	c3 := mockContext("POST", "/", buf, m{
+		"Content-Type": mw.FormDataContentType(),
+	})
+
+	f3, err := c3.FormParams()
+	art.Equal("kay0=val0", f3.Encode())
+}
+
 func TestContext_SetCookie(t *testing.T) {
 	ris := assert.New(t)
 	c := mockContext("GET", "/?both=v1", nil, m{

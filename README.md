@@ -230,6 +230,11 @@ Examples：
 		c.Redirect("/login", 302)
         c.Abort()
 	})
+
+	r.GET("/", func(c *rux.Context) {
+        c.Back()
+        c.Abort()
+    })
 ```
 
 ### Multi Domains
