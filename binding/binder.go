@@ -1,4 +1,4 @@
-package binder
+package binding
 
 import (
 	"net/http"
@@ -10,17 +10,18 @@ type Binder interface {
 	Bind(i interface{}, r *http.Request) error
 }
 
-// BindFunc bind func
-type BindFunc func(interface{}, *http.Request) error
+// BinderFunc bind func
+type BinderFunc func(interface{}, *http.Request) error
 
-// Bind implements the Binder interface
-func (fn BindFunc) Bind(i interface{}, r *http.Request) error  {
+// BinderFunc implements the Binder interface
+func (fn BinderFunc) Bind(i interface{}, r *http.Request) error  {
 	return fn(i, r)
 }
 
 var binders = map[string]Binder{
 	"xml": XML,
 	"json": JSON,
+	// "form": , TODO
 }
 
 // Add register new binder with name
