@@ -100,6 +100,7 @@ package main
 
 import (
 	"fmt"
+	
 	"github.com/gookit/rux"
 )
 
@@ -228,6 +229,11 @@ rux 中你可以添加命名路由，根据名称可以从路由器里拿到对�
 		c.Redirect("/login", 302)
         c.Abort()
 	})
+
+	r.GET("/", func(c *rux.Context) {
+        c.Back()
+        c.Abort()
+    })
 ```
 
 ### 多个域名
@@ -290,23 +296,23 @@ func main() {
 	router := rux.New()
 	router.GET(`/news/{category_id}/{new_id:\d+}/detail`, func(c *rux.Context) {
 		var u = make(url.Values)
-        u.Add("username", "admin")
-        u.Add("password", "12345")
+	    u.Add("username", "admin")
+	    u.Add("password", "12345")
 		
 		b := rux.NewBuildRequestURL()
-        // b.Scheme("https")
-        // b.Host("www.mytest.com")
-        b.Queries(u)
-        b.Params(rux.M{"{category_id}": "100", "{new_id}": "20"})
+	    // b.Scheme("https")
+	    // b.Host("www.mytest.com")
+	    b.Queries(u)
+	    b.Params(rux.M{"{category_id}": "100", "{new_id}": "20"})
 		// b.Path("/dev")
-        // println(b.Build().String())
-        
-        println(c.Router().BuildRequestURL("new_detail", b).String())
+	    // println(b.Build().String())
+	    
+	    println(c.Router().BuildRequestURL("new_detail", b).String())
 		// result:  /news/100/20/detail?username=admin&password=12345
 		// get current route name
 		if c.MustGet(rux.CTXCurrentRouteName) == "new_detail" {
-            // post data etc....
-        }
+	        // post data etc....
+	    }
 	}).NamedTo("new_detail", router)
 
 	// Use the HostSwitch to listen and serve on port 12345

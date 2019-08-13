@@ -300,6 +300,25 @@ func (c *Context) PostParams(key string) ([]string, bool) {
 	return []string{}, false
 }
 
+// FormParams return body values
+func (c *Context) FormParams(excepts ...[]string) (url.Values, error) {
+	if strings.HasPrefix(c.Req.Header.Get(ContentType), "multipart/form-data") {
+		if err := c.ParseMultipartForm(defaultMaxMemory); err != nil {
+			return nil, err
+		}
+	} else if err := c.Req.ParseForm(); err != nil {
+		return nil, err
+	}
+
+	if len(excepts) > 0 {
+		for _, k := range excepts[0] {
+			c.Req.Form.Del(k)
+		}
+	}
+
+	return c.Req.Form, nil
+}
+
 // ParseMultipartForm parse multipart forms.
 // Tips:
 // 	c.Req.PostForm = POST(PUT,PATCH) body data
@@ -342,6 +361,7 @@ func (c *Context) SaveFile(file *multipart.FileHeader, dst string) error {
 		_ = src.Close()
 		return err
 	}
+	//noinspection GoUnhandledErrorResult
 	defer out.Close()
 
 	_, err = io.Copy(out, src)
@@ -678,6 +698,7 @@ func (c *Context) FileContent(file string, names ...string) {
 		http.Error(c.Resp, "Internal Server Error", 500)
 		return
 	}
+	//noinspection GoUnhandledErrorResult
 	defer f.Close()
 
 	c.setRawContentHeader(c.Resp, false)
