@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"reflect"
+	"regexp"
 	"strings"
 	"sync"
 )
@@ -438,6 +440,49 @@ func (r *Router) Group(prefix string, register func(), middles ...HandlerFunc) {
 func (r *Router) Controller(basePath string, controller ControllerFace, middles ...HandlerFunc) {
 	r.Group(basePath, func() {
 		controller.AddRoutes(r)
+	}, middles...)
+}
+
+// Simple register some routes by a simple controller
+func (r *Router) Simple(basePath string, controller interface{}, middles ...HandlerFunc) {
+	ct := reflect.TypeOf(controller)
+	cv := reflect.ValueOf(controller)
+
+	snake := regexp.MustCompile("(.)([A-Z][a-z]+)")
+
+	if cv.Kind() != reflect.Ptr {
+		panic("controller must type ptr")
+	}
+
+	if cv.Elem().Type().Kind() != reflect.Struct {
+		panic("controller must type struct")
+	}
+
+	var handlerFuncs = make(map[string][]HandlerFunc)
+
+	if m := cv.MethodByName("Uses"); m.IsValid() {
+		if uses, ok := m.Interface().(func() map[string][]HandlerFunc); ok {
+			handlerFuncs = uses()
+		}
+	}
+
+	r.Group(basePath, func() {
+		for i := 0; i < ct.NumMethod(); i++ {
+			for _, method := range AnyMethods() {
+				if strings.HasSuffix(ct.Method(i).Name, method) {
+					if action, ok := cv.Method(i).Interface().(func(*Context)); ok {
+						actionName := strings.TrimSuffix(ct.Method(i).Name, method)
+						path := snake.ReplaceAllString(actionName, "${1}/${2}")
+						path = strings.ToLower(path)
+						route := r.Add(path, action, method)
+
+						if middlewares, ok := handlerFuncs[actionName]; ok {
+							route.Use(middlewares...)
+						}
+					}
+				}
+			}
+		}
 	}, middles...)
 }
 

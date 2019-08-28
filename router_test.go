@@ -1,6 +1,7 @@
 package rux
 
 import (
+	"encoding/base64"
 	"fmt"
 	"strings"
 	"testing"
@@ -51,6 +52,49 @@ func (c *SiteController) Get(ctx *Context) {
 
 func (c *SiteController) Post(ctx *Context) {
 	ctx.WriteString("hello, in " + ctx.URL().Path)
+}
+
+type SimpleController struct {
+}
+
+func (SimpleController) Uses() map[string][]HandlerFunc {
+	// HTTPBasicAuth alias
+	return map[string][]HandlerFunc{
+		"UserData": []HandlerFunc{
+			func(users map[string]string) HandlerFunc {
+				return func(c *Context) {
+					user, pwd, ok := c.Req.BasicAuth()
+					if !ok {
+						c.SetHeader("WWW-Authenticate", `Basic realm="THE REALM"`)
+						c.AbortWithStatus(401, "Unauthorized")
+						return
+					}
+
+					if len(users) > 0 {
+						srcPwd, ok := users[user]
+						if !ok || srcPwd != pwd {
+							c.AbortWithStatus(403)
+						}
+					}
+
+					c.Set("username", user)
+					c.Set("password", pwd)
+				}
+			}(map[string]string{"test": "123"}),
+		},
+	}
+}
+
+func (c *SimpleController) IndexGET(ctx *Context) {
+	ctx.WriteString("hello," + ctx.URL().Path)
+}
+
+func (c *SimpleController) IndexPOST(ctx *Context) {
+	ctx.WriteString("hello," + ctx.URL().Path)
+}
+
+func (c *SimpleController) UserDataGET(ctx *Context) {
+	ctx.WriteString("user data")
 }
 
 func namedHandler(c *Context) {
@@ -561,4 +605,38 @@ func TestAccessStaticAssets(t *testing.T) {
 	is.Equal(200, w.Code)
 	is.Equal("text/plain; charset=UTF-8", w.Header().Get("Content-Type"))
 	is.Contains(w.Body.String(), "content")
+}
+
+func TestSimple(t *testing.T) {
+	simpleController := &SimpleController{}
+
+	Debug(true)
+	r := New()
+	is := assert.New(t)
+
+	r.Simple("/simple", simpleController)
+
+	w := mockRequest(r, "GET", "/simple/index", nil)
+	is.Equal(200, w.Code)
+	is.Contains(w.Body.String(), "hello,/simple/index")
+	w = mockRequest(r, "POST", "/simple/index", nil)
+	is.Contains(w.Body.String(), "hello,/simple/index")
+	w = mockRequest(r, "GET", "/simple/user/data", &md{
+		H: m{"Authorization": fmt.Sprintf("Basic %s", base64.StdEncoding.EncodeToString([]byte("test:123")))},
+	})
+	is.Contains(w.Body.String(), "user data")
+
+	resPaincPtr := SimpleController{}
+	r = New()
+
+	is.PanicsWithValue("controller must type ptr", func() {
+		r.Simple("/simple", resPaincPtr)
+	})
+
+	resPaincString := "test"
+	r = New()
+
+	is.PanicsWithValue("controller must type struct", func() {
+		r.Simple("/simple", &resPaincString)
+	})
 }
