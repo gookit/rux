@@ -448,8 +448,6 @@ func (r *Router) Simple(basePath string, controller interface{}, middles ...Hand
 	ct := reflect.TypeOf(controller)
 	cv := reflect.ValueOf(controller)
 
-	snake := regexp.MustCompile("(.)([A-Z][a-z]+)")
-
 	if cv.Kind() != reflect.Ptr {
 		panic("controller must type ptr")
 	}
@@ -458,6 +456,7 @@ func (r *Router) Simple(basePath string, controller interface{}, middles ...Hand
 		panic("controller must type struct")
 	}
 
+	var snake = regexp.MustCompile("(.)([A-Z][a-z]+)")
 	var handlerFuncs = make(map[string][]HandlerFunc)
 
 	if m := cv.MethodByName("Uses"); m.IsValid() {
@@ -476,8 +475,8 @@ func (r *Router) Simple(basePath string, controller interface{}, middles ...Hand
 						path = strings.ToLower(path)
 						route := r.Add(path, action, method)
 
-						if middlewares, ok := handlerFuncs[actionName]; ok {
-							route.Use(middlewares...)
+						if handlers, ok := handlerFuncs[actionName]; ok {
+							route.Use(handlers...)
 						}
 					}
 				}
