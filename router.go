@@ -5,9 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/http/pprof"
 	"reflect"
-	"regexp"
 	"strings"
 	"sync"
 )
@@ -248,23 +246,6 @@ func HandleMethodNotAllowed(r *Router) {
 	r.handleMethodNotAllowed = true
 }
 
-// UsePProf enable for the router
-func UsePProf(r *Router) {
-	r.GET("/debug/pprof/", func(c *Context) {
-		c.Resp.Header().Set(ContentType, "text/html; charset=utf-8")
-
-		pprof.Index(c.Resp, c.Req)
-	})
-	r.GET("/debug/pprof/heap", WrapHTTPHandler(pprof.Handler("heap")))
-	r.GET("/debug/pprof/goroutine", WrapHTTPHandler(pprof.Handler("goroutine")))
-	r.GET("/debug/pprof/block", WrapHTTPHandler(pprof.Handler("block")))
-	r.GET("/debug/pprof/threadcreate", WrapHTTPHandler(pprof.Handler("threadcreate")))
-	r.GET("/debug/pprof/cmdline", WrapHTTPHandlerFunc(pprof.Cmdline))
-	r.GET("/debug/pprof/profile", WrapHTTPHandlerFunc(pprof.Profile))
-	r.GET("/debug/pprof/symbol", WrapHTTPHandlerFunc(pprof.Symbol))
-	r.GET("/debug/pprof/mutex", WrapHTTPHandler(pprof.Handler("mutex")))
-}
-
 // WithOptions for the router
 func (r *Router) WithOptions(options ...func(*Router)) {
 	if r.counter > 0 {
@@ -461,8 +442,37 @@ func (r *Router) Controller(basePath string, controller ControllerFace, middles 
 	}, middles...)
 }
 
-// Simple register some routes by a simple controller
-func (r *Router) Simple(basePath string, controller interface{}, middles ...HandlerFunc) {
+// methods	Path	Action	Route Name
+// GET	/resource	index	resource_index
+// GET	/resource/create	create	resource_create
+// POST	/resource	store	resource_store
+// GET	/resource/{resource}	show	resource_show
+// GET	/resource/{resource}/edit	edit	resource_edit
+// PUT/PATCH	/resource/{resource}	update	resource_update
+// DELETE	/resource/{resource}	destroy	resource_delete
+
+// Resource register some routes by a controller
+func (r *Router) Resource(basePath string, controller interface{}, middles ...HandlerFunc) {
+	const (
+		INDEX  = "Index"
+		CREATE = "Create"
+		STORE  = "Store"
+		SHOW   = "Show"
+		EDIT   = "Edit"
+		UPDATE = "Update"
+		DELETE = "Delete"
+	)
+
+	actions := map[string][]string{
+		INDEX:  []string{GET},
+		CREATE: []string{GET},
+		STORE:  []string{POST},
+		SHOW:   []string{GET},
+		EDIT:   []string{GET},
+		UPDATE: []string{PUT, PATCH},
+		DELETE: []string{DELETE},
+	}
+
 	ct := reflect.TypeOf(controller)
 	cv := reflect.ValueOf(controller)
 
@@ -474,7 +484,6 @@ func (r *Router) Simple(basePath string, controller interface{}, middles ...Hand
 		panic("controller must type struct")
 	}
 
-	var snake = regexp.MustCompile("(.)([A-Z][a-z]+)")
 	var handlerFuncs = make(map[string][]HandlerFunc)
 
 	if m := cv.MethodByName("Uses"); m.IsValid() {
@@ -483,19 +492,34 @@ func (r *Router) Simple(basePath string, controller interface{}, middles ...Hand
 		}
 	}
 
-	r.Group(basePath, func() {
-		for i := 0; i < ct.NumMethod(); i++ {
-			for _, method := range AnyMethods() {
-				if strings.HasSuffix(ct.Method(i).Name, method) {
-					if action, ok := cv.Method(i).Interface().(func(*Context)); ok {
-						actionName := strings.TrimSuffix(ct.Method(i).Name, method)
-						path := snake.ReplaceAllString(actionName, "${1}/${2}")
-						path = strings.ToLower(path)
-						route := r.Add(path, action, method)
+	controllerName := strings.ToLower(ct.Elem().Name())
+	basePath += controllerName
 
-						if handlers, ok := handlerFuncs[actionName]; ok {
-							route.Use(handlers...)
-						}
+	r.Group(basePath, func() {
+		for name, methods := range actions {
+			if m := cv.MethodByName(name); m.IsValid() {
+				if action, ok := m.Interface().(func(*Context)); ok {
+					var route *Route
+					var routeName = controllerName + "_" + strings.ToLower(name)
+
+					if name == INDEX || name == STORE {
+						route = r.AddNamed(routeName, "/", action, methods...)
+					}
+
+					if name == CREATE {
+						route = r.AddNamed(routeName, "/"+strings.ToLower(name)+"/", action, methods...)
+					}
+
+					if name == SHOW || name == UPDATE || name == DELETE {
+						route = r.AddNamed(routeName, "{id}/", action, methods...)
+					}
+
+					if name == EDIT {
+						route = r.AddNamed(routeName, "{id}/"+strings.ToLower(name)+"/", action, methods...)
+					}
+
+					if handlers, ok := handlerFuncs[name]; ok {
+						route.Use(handlers...)
 					}
 				}
 			}
