@@ -558,6 +558,30 @@ func TestRouter_WithOptions(t *testing.T) {
 	// Option: MaxMultipisMemory 8M
 	// r = New(MaxMultipisMemory(8 << 20))
 	// is.Equal(8 << 20, r.maxMultipisMemory)
+
+	// Option: UsePProf
+	r = New(UsePProf)
+
+	w = mockRequest(r, "GET", "/debug/pprof/", nil)
+	is.Equal(200, w.Code)
+	// w = mockRequest(r, "GET", "/debug/pprof/heap", nil)
+	// is.Equal(200, w.Code)
+	// w = mockRequest(r, "GET", "/debug/pprof/goroutine", nil)
+	// is.Equal(200, w.Code)
+	// w = mockRequest(r, "GET", "/debug/pprof/block", nil)
+	// is.Equal(200, w.Code)
+	// w = mockRequest(r, "GET", "/debug/pprof/threadcreate", nil)
+	// is.Equal(200, w.Code)
+	// w = mockRequest(r, "GET", "/debug/pprof/cmdline", nil)
+	// is.Equal(200, w.Code)
+	// w = mockRequest(r, "GET", "/debug/pprof/profile", nil)
+	// is.Equal(200, w.Code)
+	// w = mockRequest(r, "GET", "/debug/pprof/symbol", nil)
+	// is.Equal(200, w.Code)
+	// w = mockRequest(r, "GET", "/debug/pprof/mutex", nil)
+	// is.Equal(200, w.Code)
+	w = mockRequest(r, "GET", "/debug/pprof/404", nil)
+	is.Equal(404, w.Code)
 }
 
 func TestAccessStaticAssets(t *testing.T) {

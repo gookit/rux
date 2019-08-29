@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/pprof"
 	"reflect"
 	"regexp"
 	"strings"
@@ -245,6 +246,23 @@ func StrictLastSlash(r *Router) {
 // HandleMethodNotAllowed enable for the router
 func HandleMethodNotAllowed(r *Router) {
 	r.handleMethodNotAllowed = true
+}
+
+// UsePProf enable for the router
+func UsePProf(r *Router) {
+	r.GET("/debug/pprof/", func(c *Context) {
+		c.Resp.Header().Set(ContentType, "text/html; charset=utf-8")
+
+		pprof.Index(c.Resp, c.Req)
+	})
+	r.GET("/debug/pprof/heap", WrapHTTPHandler(pprof.Handler("heap")))
+	r.GET("/debug/pprof/goroutine", WrapHTTPHandler(pprof.Handler("goroutine")))
+	r.GET("/debug/pprof/block", WrapHTTPHandler(pprof.Handler("block")))
+	r.GET("/debug/pprof/threadcreate", WrapHTTPHandler(pprof.Handler("threadcreate")))
+	r.GET("/debug/pprof/cmdline", WrapHTTPHandlerFunc(pprof.Cmdline))
+	r.GET("/debug/pprof/profile", WrapHTTPHandlerFunc(pprof.Profile))
+	r.GET("/debug/pprof/symbol", WrapHTTPHandlerFunc(pprof.Symbol))
+	r.GET("/debug/pprof/mutex", WrapHTTPHandler(pprof.Handler("mutex")))
 }
 
 // WithOptions for the router
