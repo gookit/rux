@@ -1,7 +1,6 @@
 package rux
 
 import (
-	"context"
 	"encoding/base64"
 	"fmt"
 	"net/http"
@@ -641,7 +640,6 @@ func TestResetful(t *testing.T) {
 				// only allow: PUT, PATCH or DELETE.
 				if om == "PUT" || om == "PATCH" || om == "DELETE" {
 					r.Method = om
-					r = r.WithContext(context.WithValue(r.Context(), "originalMethod", "POST"))
 				}
 			}
 
