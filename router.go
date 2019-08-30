@@ -449,7 +449,7 @@ func (r *Router) Controller(basePath string, controller ControllerFace, middles 
 // GET	/resource/{resource}	show	resource_show
 // GET	/resource/{resource}/edit	edit	resource_edit
 // PUT/PATCH	/resource/{resource}	update	resource_update
-// DELETE	/resource/{resource}	destroy	resource_delete
+// DELETE	/resource/{resource}	delete	resource_delete
 
 // Resource register some routes by a controller
 func (r *Router) Resource(basePath string, controller interface{}, middles ...HandlerFunc) {

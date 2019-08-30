@@ -32,6 +32,8 @@ func TestRouter_PProf(t *testing.T) {
 	is.Equal(200, w.Code)
 	w = mockRequest(r, "GET", "/debug/pprof/mutex", nil)
 	is.Equal(200, w.Code)
+	w = mockRequest(r, "GET", "/debug/pprof/trace", nil)
+	is.Equal(200, w.Code)
 	w = mockRequest(r, "GET", "/debug/pprof/404", nil)
 	is.Equal(404, w.Code)
 }
