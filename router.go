@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"reflect"
 	"strings"
 	"sync"
 )
@@ -438,6 +439,91 @@ func (r *Router) Group(prefix string, register func(), middles ...HandlerFunc) {
 func (r *Router) Controller(basePath string, controller ControllerFace, middles ...HandlerFunc) {
 	r.Group(basePath, func() {
 		controller.AddRoutes(r)
+	}, middles...)
+}
+
+// methods	Path	Action	Route Name
+// GET	/resource	index	resource_index
+// GET	/resource/create	create	resource_create
+// POST	/resource	store	resource_store
+// GET	/resource/{resource}	show	resource_show
+// GET	/resource/{resource}/edit	edit	resource_edit
+// PUT/PATCH	/resource/{resource}	update	resource_update
+// DELETE	/resource/{resource}	destroy	resource_delete
+
+// Resource register some routes by a controller
+func (r *Router) Resource(basePath string, controller interface{}, middles ...HandlerFunc) {
+	const (
+		INDEX  = "Index"
+		CREATE = "Create"
+		STORE  = "Store"
+		SHOW   = "Show"
+		EDIT   = "Edit"
+		UPDATE = "Update"
+		DELETE = "Delete"
+	)
+
+	actions := map[string][]string{
+		INDEX:  []string{GET},
+		CREATE: []string{GET},
+		STORE:  []string{POST},
+		SHOW:   []string{GET},
+		EDIT:   []string{GET},
+		UPDATE: []string{PUT, PATCH},
+		DELETE: []string{DELETE},
+	}
+
+	ct := reflect.TypeOf(controller)
+	cv := reflect.ValueOf(controller)
+
+	if cv.Kind() != reflect.Ptr {
+		panic("controller must type ptr")
+	}
+
+	if cv.Elem().Type().Kind() != reflect.Struct {
+		panic("controller must type struct")
+	}
+
+	var handlerFuncs = make(map[string][]HandlerFunc)
+
+	if m := cv.MethodByName("Uses"); m.IsValid() {
+		if uses, ok := m.Interface().(func() map[string][]HandlerFunc); ok {
+			handlerFuncs = uses()
+		}
+	}
+
+	controllerName := strings.ToLower(ct.Elem().Name())
+	basePath += controllerName
+
+	r.Group(basePath, func() {
+		for name, methods := range actions {
+			if m := cv.MethodByName(name); m.IsValid() {
+				if action, ok := m.Interface().(func(*Context)); ok {
+					var route *Route
+					var routeName = controllerName + "_" + strings.ToLower(name)
+
+					if name == INDEX || name == STORE {
+						route = r.AddNamed(routeName, "/", action, methods...)
+					}
+
+					if name == CREATE {
+						route = r.AddNamed(routeName, "/"+strings.ToLower(name)+"/", action, methods...)
+					}
+
+					if name == SHOW || name == UPDATE || name == DELETE {
+						route = r.AddNamed(routeName, "{id}/", action, methods...)
+					}
+
+					if name == EDIT {
+						route = r.AddNamed(routeName, "{id}/"+strings.ToLower(name)+"/", action, methods...)
+					}
+
+					if handlers, ok := handlerFuncs[name]; ok {
+						route.Use(handlers...)
+					}
+				}
+			}
+		}
 	}, middles...)
 }
 
