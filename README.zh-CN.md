@@ -278,6 +278,98 @@ func main() {
 }
 ```
 
+### RESETful 风格 & Controller 风格
+
+```go
+package main
+
+import (
+	"github.com/gookit/rux"
+	"log"
+	"net/http"
+)
+
+type Product struct {
+}
+
+// middlewares [optional]
+func (Product) Uses() map[string][]rux.HandlerFunc {
+	return map[string][]rux.HandlerFunc{
+		// function name: handlers
+		"Delete": []rux.HandlerFunc{
+			handlers.HTTPBasicAuth(map[string]string{"test": "123"}),
+			handlers.GenRequestID(),
+		},
+	}
+}
+
+// all products [optional]
+func (p *Product) Index(c *rux.Context) {
+	// balabala
+}
+
+// create product [optional]
+func (p *Product) Create(c *rux.Context) {
+	// balabala
+}
+
+// save new product [optional]
+func (p *Product) Store(c *rux.Context) {
+	// balabala
+}
+
+// show product with {id} [optional]
+func (p *Product) Show(c *rux.Context) {
+	// balabala
+}
+
+// edit product [optional]
+func (p *Product) Edit(c *rux.Context) {
+	// balabala
+}
+
+// save edited product [optional]
+func (p *Product) Update(c *rux.Context) {
+	// balabala
+}
+
+// delete product [optional]
+func (p *Product) Delete(c *rux.Context) {
+	// balabala
+}
+
+type News struct {
+}
+
+func (n *News) AddRoutes(g *rux.Router) {
+	g.GET("/", n.Index)
+}
+
+func (n *News) Index(c *rux.Context) {
+	// balabala
+}
+
+func main() {
+	router := rux.New()
+
+	// methods	Path	Action	Route Name
+    // GET	/product	index	product_index
+    // GET	/product/create	create	product_create
+    // POST	/product	store	product_store
+    // GET	/product/{id}	show	product_show
+    // GET	/product/{id}/edit	edit	product_edit
+    // PUT/PATCH	/product/{id}	update	product_update
+    // DELETE	/product/{id}	delete	product_delete
+    // resetful style
+	router.Resource("/", new(Product))
+
+	// controller style
+	router.Controller("/news", new(News))
+
+	log.Fatal(http.ListenAndServe(":12345", router))
+}
+```
+
 ### 获取路由名字 与 生成请求URL
 
 ```go
