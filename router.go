@@ -510,14 +510,13 @@ func (r *Router) Resource(basePath string, controller interface{}, middles ...Ha
 					route = r.AddNamed(routeName, "/", action, methods...)
 				} else if name == CREATE {
 					route = r.AddNamed(routeName, "/"+strings.ToLower(name)+"/", action, methods...)
-				} else if name == SHOW || name == UPDATE || name == DELETE {
-					route = r.AddNamed(routeName, "{id}/", action, methods...)
 				} else if name == EDIT {
 					route = r.AddNamed(routeName, "{id}/"+strings.ToLower(name)+"/", action, methods...)
+				} else { // if name == SHOW || name == UPDATE || name == DELETE
+					route = r.AddNamed(routeName, "{id}/", action, methods...)
 				}
 
-				handlers, ok := handlerFuncs[name]
-				if ok && route != nil{
+				if handlers, ok := handlerFuncs[name]; ok {
 					route.Use(handlers...)
 				}
 			}

@@ -52,7 +52,7 @@ func TestRouterListen(t *testing.T) {
 		r.Listen(":8080", "9090")
 	})
 
-	if runtime.GOOS != "darwin" {
+	if runtime.GOOS == "windows" {
 		return
 	}
 
@@ -63,6 +63,7 @@ func TestRouterListen(t *testing.T) {
 	r.Listen("127.0.0.1:invalid]")
 	r.ListenTLS("invalid]", "", "")
 	r.ListenUnix("")
+	r.ListenUnix("/not-exit-file")
 
 	mockEnvValue("PORT", "invalid]", func() {
 		r.Listen()
