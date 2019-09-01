@@ -1,8 +1,9 @@
 package pprof
 
 import (
-	"github.com/gookit/rux"
 	"net/http/pprof"
+
+	"github.com/gookit/rux"
 )
 
 // UsePProf enable for the router

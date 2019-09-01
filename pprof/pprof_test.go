@@ -1,13 +1,14 @@
 package pprof
 
 import (
-	"github.com/gookit/rux"
-	"github.com/stretchr/testify/assert"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/gookit/rux"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRouter_PProf(t *testing.T) {

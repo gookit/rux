@@ -61,7 +61,7 @@ type Product struct {
 func (Product) Uses() map[string][]HandlerFunc {
 	// HTTPBasicAuth alias
 	return map[string][]HandlerFunc{
-		"Edit": []HandlerFunc{
+		"Edit": {
 			func(users map[string]string) HandlerFunc {
 				return func(c *Context) {
 					user, pwd, ok := c.Req.BasicAuth()
@@ -119,6 +119,14 @@ func (c *Product) Update(ctx *Context) {
 // delete:delete record /resetful/{id}
 func (c *Product) Delete(ctx *Context) {
 	ctx.WriteString(ctx.Req.Method + " Delete " + ctx.Param("id"))
+}
+
+// cannot exported method
+func (c *Product) invaid() {
+}
+
+// cannot exported method
+func (c *Product) invaid2(*Context) {
 }
 
 func namedHandler(c *Context) {
