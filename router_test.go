@@ -157,6 +157,8 @@ func TestRouter(t *testing.T) {
 func TestAddRoute(t *testing.T) {
 	is := assert.New(t)
 
+	Debug(true)
+
 	r := New()
 	is.NotEmpty(r)
 
@@ -239,6 +241,8 @@ func TestAddRoute(t *testing.T) {
 		ret = r.Match(m, "/not-exist")
 		is.Equal(Found, ret.Status)
 	}
+
+	Debug(false)
 }
 
 func TestNameRoute(t *testing.T) {

@@ -53,6 +53,7 @@ func TestRouterListen(t *testing.T) {
 	})
 
 	if runtime.GOOS == "windows" {
+		Debug(false)
 		return
 	}
 

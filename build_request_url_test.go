@@ -107,7 +107,8 @@ func TestBuildRequestUrl_WithMutilArgs(t *testing.T) {
 
 	r.AddRoute(homepage)
 
-	is.Equal(r.BuildRequestURL("homepage", "{name}", "test", "{id}", 20, "username", "demo").String(), `/build-test/test/20?username=demo`)
+	str := r.BuildRequestURL("homepage", "{name}", "test", "{id}", 20, "username", "demo").String()
+	is.Equal(`/build-test/test/20?username=demo`, str)
 }
 
 func TestBuildRequestUrl_WithMutilArgs2(t *testing.T) {
@@ -118,7 +119,11 @@ func TestBuildRequestUrl_WithMutilArgs2(t *testing.T) {
 
 	r.AddRoute(homepage)
 
-	is.Equal(r.BuildRequestURL("homepage", "{name}", "test", "{id}", 20, "username", "demo").String(), `/build-test?username=demo`)
+	str := r.BuildRequestURL("homepage", "{name}", "test", "{id}", 20, "username", "demo").String()
+	is.Equal(`/build-test?username=demo`, str)
+
+	str = r.BuildURL("homepage", "{name}", "test", "{id}", 20).String()
+	is.Equal(`/build-test`, str)
 }
 
 func TestBuildRequestUrl_WithMutilArgs3(t *testing.T) {
@@ -129,7 +134,11 @@ func TestBuildRequestUrl_WithMutilArgs3(t *testing.T) {
 
 	r.AddRoute(homepage)
 
-	is.Equal(r.BuildRequestURL("homepage", "{name}", "test", "{id}", 20, "username", "demo").String(), `/build-test/20?username=demo`)
+	str := r.BuildRequestURL("homepage", "{name}", "test", "{id}", 20, "username", "demo").String()
+	is.Equal(`/build-test/20?username=demo`, str)
+
+	str = r.BuildURL("homepage", "{name}", "test", "{id}", 23).String()
+	is.Equal(`/build-test/23`, str)
 }
 
 func TestBuildRequestUrl_EmptyRoute(t *testing.T) {
@@ -149,9 +158,12 @@ func TestBuildRequestUrl_ErrorArgs(t *testing.T) {
 	r := New()
 	is := assert.New(t)
 
-	homepage := NewNamedRoute("homepage", `/build-test/{name}/{id:\d+}`, emptyHandler, GET)
-
+	homepage := NamedRoute("homepage", `/build-test/{name}/{id:\d+}`, emptyHandler, GET)
 	r.AddRoute(homepage)
+
+	is.PanicsWithValue("buildRequestURLs odd argument count", func() {
+		r.BuildRequestURL("homepage", "one")
+	})
 
 	is.PanicsWithValue("buildRequestURLs odd argument count", func() {
 		r.BuildRequestURL("homepage", "{name}", "test", "{id}")
