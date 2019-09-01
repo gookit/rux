@@ -444,14 +444,14 @@ func (r *Router) Controller(basePath string, controller ControllerFace, middles 
 
 // Resource register RESTFul style routes by a controller
 //
-// 	Methods		Path				Action	Route Name
-// 	GET			/resource			index	resource_index
-// 	GET			/resource/create	create	resource_create
-// 	POST		/resource			store	resource_store
-// 	GET			/resource/{id}		show	resource_show
-// 	GET			/resource/{id}/edit	edit	resource_edit
-// 	PUT/PATCH	/resource/{id}		update	resource_update
-// 	DELETE		/resource/{id}		delete	resource_delete
+// 	Methods     Path                Action    Route Name
+// 	GET        /resource            index    resource_index
+// 	GET        /resource/create     create   resource_create
+// 	POST       /resource            store    resource_store
+// 	GET        /resource/{id}       show     resource_show
+// 	GET        /resource/{id}/edit  edit     resource_edit
+// 	PUT/PATCH  /resource/{id}       update   resource_update
+// 	DELETE     /resource/{id}       delete   resource_delete
 //
 func (r *Router) Resource(basePath string, controller interface{}, middles ...HandlerFunc) {
 	const (
