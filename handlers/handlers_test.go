@@ -4,9 +4,8 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/gookit/rux"
+	"github.com/stretchr/testify/assert"
 )
 
 func ExampleHTTPMethodOverrideHandler() {
