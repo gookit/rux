@@ -59,3 +59,17 @@ func HTTPMethodOverrideHandler(h http.Handler) http.Handler {
 		h.ServeHTTP(w, r)
 	})
 }
+
+type (
+	// Skipper defines a function to skip middleware. Returning true skips processing
+	// the middleware.
+	Skipper func(*rux.Context) bool
+
+	// BeforeFunc defines a function which is executed just before the middleware.
+	BeforeFunc func(*rux.Context)
+)
+
+// DefaultSkipper returns false which processes the middleware.
+func DefaultSkipper(*rux.Context) bool {
+	return false
+}
