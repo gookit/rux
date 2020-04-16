@@ -208,7 +208,7 @@ func toString(i interface{}) string {
 	case []byte:
 		return string(value)
 	default:
-		// 默认使用json进行字符串转换
+		// String conversion using JSON by default
 		jsonContent, _ := json.Marshal(value)
 		return string(jsonContent)
 	}

@@ -168,10 +168,16 @@ func (r *Route) HandlerName() string {
 
 // String route info to string
 func (r *Route) String() string {
-	return fmt.Sprintf(
-		"%-20s %-32s --> %s (%d middleware)",
-		r.MethodString(","), r.path, r.HandlerName(), len(r.handlers),
-	)
+	method := r.MethodString(",")
+	template := "%-15s %-38s --> %s (%d middleware)"
+
+	// will print two line
+	if len(method) > 14 {
+		method = method + "\n" + strings.Repeat(" ", 27)
+		template = "%s %-38s --> %s (%d middleware)"
+	}
+
+	return fmt.Sprintf(template, method, r.path, r.HandlerName(), len(r.handlers))
 }
 
 // Info get basic info of the route
@@ -179,35 +185,41 @@ func (r *Route) Info() RouteInfo {
 	return RouteInfo{r.name, r.path, r.HandlerName(), r.methods}
 }
 
-// BuildRequestURL build RequestURL one arg can be set buildRequestURL or rux.M
+// BuildURL alias of the method BuildRequestURL()
+func (r *Router) BuildURL(name string, buildArgs ...interface{}) *url.URL {
+	return r.BuildRequestURL(name, buildArgs...)
+}
+
+// BuildRequestURL build Request URL one arg can be set buildRequestURL or rux.M
 func (r *Router) BuildRequestURL(name string, buildRequestURLs ...interface{}) *url.URL {
 	var buildRequestURL *BuildRequestURL
 	var withParams = make(M)
 
 	route := r.GetRoute(name)
-
 	if route == nil {
 		panicf("BuildRequestURL get route (name: %s) is nil", name)
 	}
 
+	// TODO need optimize ...
 	path := route.path
+	varln := len(buildRequestURLs)
 
-	if len(buildRequestURLs) == 0 {
+	if varln == 0 {
 		return NewBuildRequestURL().Path(path).Build()
 	}
 
-	if len(buildRequestURLs) == 1 {
+	if varln == 1 {
 		switch buildRequestURLs[0].(type) {
 		case *BuildRequestURL:
 			buildRequestURL = buildRequestURLs[0].(*BuildRequestURL)
 		case M:
 			buildRequestURL = NewBuildRequestURL()
 			withParams = buildRequestURLs[0].(M)
+		default:
+			panic("buildRequestURLs odd argument count")
 		}
-	}
-
-	if len(buildRequestURLs) > 1 {
-		if len(buildRequestURLs)%2 == 1 {
+	} else { // varln > 1
+		if varln%2 == 1 {
 			panic("buildRequestURLs odd argument count")
 		}
 

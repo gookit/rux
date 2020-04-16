@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"reflect"
 	"strings"
 	"sync"
 )
@@ -438,6 +439,88 @@ func (r *Router) Group(prefix string, register func(), middles ...HandlerFunc) {
 func (r *Router) Controller(basePath string, controller ControllerFace, middles ...HandlerFunc) {
 	r.Group(basePath, func() {
 		controller.AddRoutes(r)
+	}, middles...)
+}
+
+// Resource register RESTFul style routes by a controller
+//
+// 	Methods     Path                Action    Route Name
+// 	GET        /resource            index    resource_index
+// 	GET        /resource/create     create   resource_create
+// 	POST       /resource            store    resource_store
+// 	GET        /resource/{id}       show     resource_show
+// 	GET        /resource/{id}/edit  edit     resource_edit
+// 	PUT/PATCH  /resource/{id}       update   resource_update
+// 	DELETE     /resource/{id}       delete   resource_delete
+//
+func (r *Router) Resource(basePath string, controller interface{}, middles ...HandlerFunc) {
+	const (
+		INDEX  = "Index"
+		CREATE = "Create"
+		STORE  = "Store"
+		SHOW   = "Show"
+		EDIT   = "Edit"
+		UPDATE = "Update"
+		DELETE = "Delete"
+	)
+
+	actions := map[string][]string{
+		INDEX:  {GET},
+		CREATE: {GET},
+		STORE:  {POST},
+		SHOW:   {GET},
+		EDIT:   {GET},
+		UPDATE: {PUT, PATCH},
+		DELETE: {DELETE},
+	}
+
+	cv := reflect.ValueOf(controller)
+	ct := cv.Type()
+
+	if cv.Kind() != reflect.Ptr {
+		panic("controller must type ptr")
+	}
+
+	if cv.Elem().Type().Kind() != reflect.Struct {
+		panic("controller must type struct")
+	}
+
+	var handlerFuncs = make(map[string][]HandlerFunc)
+	if m := cv.MethodByName("Uses"); m.IsValid() {
+		if uses, ok := m.Interface().(func() map[string][]HandlerFunc); ok {
+			handlerFuncs = uses()
+		}
+	}
+
+	controllerName := strings.ToLower(ct.Elem().Name())
+	basePath += controllerName
+
+	r.Group(basePath, func() {
+		for name, methods := range actions {
+			if m := cv.MethodByName(name); m.IsValid() {
+				action, ok := m.Interface().(func(*Context))
+				if !ok {
+					continue
+				}
+
+				var route *Route
+				routeName := controllerName + "_" + strings.ToLower(name)
+
+				if name == INDEX || name == STORE {
+					route = r.AddNamed(routeName, "/", action, methods...)
+				} else if name == CREATE {
+					route = r.AddNamed(routeName, "/"+strings.ToLower(name)+"/", action, methods...)
+				} else if name == EDIT {
+					route = r.AddNamed(routeName, "{id}/"+strings.ToLower(name)+"/", action, methods...)
+				} else { // if name == SHOW || name == UPDATE || name == DELETE
+					route = r.AddNamed(routeName, "{id}/", action, methods...)
+				}
+
+				if handlers, ok := handlerFuncs[name]; ok {
+					route.Use(handlers...)
+				}
+			}
+		}
 	}, middles...)
 }
 

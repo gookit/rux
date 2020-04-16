@@ -1,7 +1,9 @@
 package rux
 
 import (
+	"encoding/base64"
 	"fmt"
+	"net/http"
 	"strings"
 	"testing"
 
@@ -53,6 +55,80 @@ func (c *SiteController) Post(ctx *Context) {
 	ctx.WriteString("hello, in " + ctx.URL().Path)
 }
 
+type Product struct {
+}
+
+func (Product) Uses() map[string][]HandlerFunc {
+	// HTTPBasicAuth alias
+	return map[string][]HandlerFunc{
+		"Edit": {
+			func(users map[string]string) HandlerFunc {
+				return func(c *Context) {
+					user, pwd, ok := c.Req.BasicAuth()
+					if !ok {
+						c.SetHeader("WWW-Authenticate", `Basic realm="THE REALM"`)
+						c.AbortWithStatus(401, "Unauthorized")
+						return
+					}
+
+					if len(users) > 0 {
+						srcPwd, ok := users[user]
+						if !ok || srcPwd != pwd {
+							c.AbortWithStatus(403)
+						}
+					}
+
+					c.Set("username", user)
+					c.Set("password", pwd)
+				}
+			}(map[string]string{"test": "123"}),
+		},
+	}
+}
+
+// get:all /restful/
+func (c *Product) Index(ctx *Context) {
+	ctx.WriteString(ctx.Req.Method + " Index")
+}
+
+// get:create new record /restful/create
+func (c *Product) Create(ctx *Context) {
+	ctx.WriteString(ctx.Req.Method + " Create")
+}
+
+// post:save record for create /restful
+func (c *Product) Store(ctx *Context) {
+	ctx.WriteString(ctx.Req.Method + " Store")
+}
+
+// get:show record /restful/{id}
+func (c *Product) Show(ctx *Context) {
+	ctx.WriteString(ctx.Req.Method + " Show " + ctx.Param("id"))
+}
+
+// get:edit record /resetful/{id}/edit
+func (c *Product) Edit(ctx *Context) {
+	ctx.WriteString(ctx.Req.Method + " Edit " + ctx.Param("id"))
+}
+
+// put|patch:update record /resetful/{id}
+func (c *Product) Update(ctx *Context) {
+	ctx.WriteString(ctx.Req.Method + " Update " + ctx.Param("id"))
+}
+
+// delete:delete record /resetful/{id}
+func (c *Product) Delete(ctx *Context) {
+	ctx.WriteString(ctx.Req.Method + " Delete " + ctx.Param("id"))
+}
+
+// cannot exported method
+func (c *Product) invaid() {
+}
+
+// cannot exported method
+func (c *Product) invaid2(*Context) {
+}
+
 func namedHandler(c *Context) {
 	c.Set("name", "namedHandler")
 }
@@ -80,6 +156,8 @@ func TestRouter(t *testing.T) {
 
 func TestAddRoute(t *testing.T) {
 	is := assert.New(t)
+
+	Debug(true)
 
 	r := New()
 	is.NotEmpty(r)
@@ -163,6 +241,8 @@ func TestAddRoute(t *testing.T) {
 		ret = r.Match(m, "/not-exist")
 		is.Equal(Found, ret.Status)
 	}
+
+	Debug(false)
 }
 
 func TestNameRoute(t *testing.T) {
@@ -561,4 +641,63 @@ func TestAccessStaticAssets(t *testing.T) {
 	is.Equal(200, w.Code)
 	is.Equal("text/plain; charset=UTF-8", w.Header().Get("Content-Type"))
 	is.Contains(w.Body.String(), "content")
+}
+
+func TestResetful(t *testing.T) {
+	var methodOverride = func(h http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == "POST" {
+				om := r.Header.Get("X-HTTP-Method-Override")
+
+				// only allow: PUT, PATCH or DELETE.
+				if om == "PUT" || om == "PATCH" || om == "DELETE" {
+					r.Method = om
+				}
+			}
+
+			h.ServeHTTP(w, r)
+		})
+	}
+
+	product := &Product{}
+
+	// Debug(true)
+	r := New()
+	// test StrictLastSlash option
+	// r := New(StrictLastSlash)
+	is := assert.New(t)
+
+	h := methodOverride(r)
+
+	r.Resource("/", product)
+	w := mockRequest(r, "GET", "/product", nil)
+	is.Equal(w.Body.String(), "GET Index")
+	w = mockRequest(r, "GET", "/product/create", nil)
+	is.Equal(w.Body.String(), "GET Create")
+	w = mockRequest(r, "GET", "/product/123456", nil)
+	is.Equal(w.Body.String(), "GET Show 123456")
+	w = mockRequest(r, "GET", "/product/123456/edit", &md{H: m{"Authorization": fmt.Sprintf("Basic %s", base64.StdEncoding.EncodeToString([]byte("test:123")))}})
+	is.Equal(w.Body.String(), "GET Edit 123456")
+	w = mockRequest(r, "POST", "/product", nil)
+	is.Equal(w.Body.String(), "POST Store")
+	w = mockRequest(h, "POST", "/product/123456", &md{H: m{"X-HTTP-Method-Override": "PUT"}})
+	is.Equal(w.Body.String(), "PUT Update 123456")
+	w = mockRequest(h, "POST", "/product/123456", &md{H: m{"X-HTTP-Method-Override": "PATCH"}})
+	is.Equal(w.Body.String(), "PATCH Update 123456")
+	w = mockRequest(h, "POST", "/product/123456", &md{H: m{"X-HTTP-Method-Override": "DELETE"}})
+	is.Equal(w.Body.String(), "DELETE Delete 123456")
+
+	resPaincPtr := Product{}
+	r = New()
+
+	is.PanicsWithValue("controller must type ptr", func() {
+		r.Resource("/", resPaincPtr)
+	})
+
+	resPaincString := "test"
+	r = New()
+
+	is.PanicsWithValue("controller must type struct", func() {
+		r.Resource("/", &resPaincString)
+	})
 }
