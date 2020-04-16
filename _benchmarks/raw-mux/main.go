@@ -8,7 +8,6 @@ import (
 
 func main() {
 	r := http.NewServeMux()
-
 	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			http.NotFound(w, r)
