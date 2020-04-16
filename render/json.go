@@ -1,6 +1,10 @@
 package render
 
-import "encoding/json"
+import (
+	"encoding/json"
+
+	"github.com/gookit/rux"
+)
 
 // JSON response rendering
 func JSON() {
@@ -8,22 +12,21 @@ func JSON() {
 }
 
 // JSONP response rendering
-func JSONP(status int, callback string, i interface{}) {
+func JSONP(status int, callback string, ptr interface{}, c *rux.Context) error {
 	enc := json.NewEncoder(c.Resp)
 
 	c.Resp.WriteHeader(status)
-	c.Resp.Header().Set(ContentType, "application/javascript; charset=UTF-8")
+	c.Resp.Header().Set(rux.ContentType, "application/javascript; charset=UTF-8")
 
 	var err error
 	if _, err = c.Resp.Write([]byte(callback + "(")); err != nil {
-		panic(err)
+		return err
 	}
 
-	if err = enc.Encode(i); err != nil {
-		panic(err)
+	if err = enc.Encode(ptr); err != nil {
+		return err
 	}
 
-	if _, err = c.Resp.Write([]byte(");")); err != nil {
-		panic(err)
-	}
+	_, err = c.Resp.Write([]byte(");"))
+	return err
 }
