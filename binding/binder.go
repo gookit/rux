@@ -7,20 +7,20 @@ import (
 
 // Binder interface
 type Binder interface {
-	Bind(i interface{}, r *http.Request) error
+	Bind(ptr interface{}, r *http.Request) error
 }
 
 // BinderFunc bind func
 type BinderFunc func(interface{}, *http.Request) error
 
 // BinderFunc implements the Binder interface
-func (fn BinderFunc) Bind(i interface{}, r *http.Request) error  {
-	return fn(i, r)
+func (fn BinderFunc) Bind(ptr interface{}, r *http.Request) error  {
+	return fn(ptr, r)
 }
 
 var binders = map[string]Binder{
-	"xml": XML,
-	"json": JSON,
+	"xml": BinderFunc(XML),
+	"json": JSONBinder,
 	// "form": , TODO
 }
 
@@ -48,12 +48,12 @@ func Remove(name string) {
 //		// fix: can not read request body multiple times
 //		c.Request().Body = ioutil.NopCloser(bytes.NewReader(body))
 //
-func Auto(i interface{}, r *http.Request) (err error) {
+func Auto(ptr interface{}, r *http.Request) (err error) {
 	method := r.Method
 
 	// no body. like GET DELETE OPTION ....
 	if method != "POST" && method != "PUT" && method != "PATCH" {
-
+		return
 	}
 
 	cType := r.Header.Get("Content-Type")
@@ -70,16 +70,17 @@ func Auto(i interface{}, r *http.Request) (err error) {
 			return err
 		}
 
+		// TODO
 	}
 
 	// JSON body request: application/json
 	if strings.Contains(cType, "/json") {
-		return JSON.Bind(i, r)
+		return JSON(ptr, r)
 	}
 
 	// XML body request: text/xml
 	if strings.Contains(cType, "/xml") {
-		return XML.Bind(i, r)
+		return XML(ptr, r)
 	}
 	return
 }

@@ -1,6 +1,6 @@
 POST http://127.0.0.1:3000
 Content-Type: application/json
-Target-Url: http://127.0.0.1:10103
+Target-Url: http://127.0.0.1:10103/index/index
 
 {
   "name": "inhere"

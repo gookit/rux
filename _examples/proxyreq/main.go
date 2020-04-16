@@ -11,10 +11,12 @@ import (
 	"time"
 )
 
-// var client *http.Client
+var client *http.Client
 var debug bool
 
 func main() {
+	client = createHttpClient()
+
 	fmt.Println("Listen on http://127.0.0.1:3000")
 
 	// create server
@@ -35,31 +37,6 @@ func doHandle(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-
-	proxy := func(_ *http.Request) (*url.URL, error) {
-		return url.Parse(apiUrl) // 127.0.0.1:8099
-	}
-
-	dialCtx := (&net.Dialer{
-		Timeout:   30 * time.Second,
-		KeepAlive: 30 * time.Second,
-		// DualStack: true,
-		// FallbackDelay: 5 * time.Second,
-	}).DialContext
-	transport := &http.Transport{
-		Proxy: proxy,
-
-		DialContext:  dialCtx,
-		MaxIdleConns: 100,
-
-		IdleConnTimeout:       90 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ExpectContinueTimeout: 1 * time.Second,
-		MaxIdleConnsPerHost:   20,
-	}
-
-	// create client
-	client := &http.Client{Transport: transport}
 
 	log.Println("request target url", apiUrl)
 
@@ -105,7 +82,33 @@ func doHandle(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-func newHttpClient()  {
+func createHttpClient() *http.Client {
+	proxy := func(r *http.Request) (*url.URL, error) {
+		apiUrl := r.Header.Get("Target-Url")
+		log.Println("proxy url", apiUrl)
+		return url.Parse(apiUrl) // 127.0.0.1:8099
+	}
+
+	dialCtx := (&net.Dialer{
+		Timeout:   30 * time.Second,
+		KeepAlive: 30 * time.Second,
+		// DualStack: true,
+		// FallbackDelay: 5 * time.Second,
+	}).DialContext
+	transport := &http.Transport{
+		Proxy: proxy,
+
+		DialContext:  dialCtx,
+		MaxIdleConns: 100,
+
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+		MaxIdleConnsPerHost:   20,
+	}
+
+	// create client
+	return &http.Client{Transport: transport}
 }
 
 func responseJSON(w http.ResponseWriter, status int, data interface{}) {
