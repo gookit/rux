@@ -285,9 +285,10 @@ func main() {
 package main
 
 import (
-	"github.com/gookit/rux"
 	"log"
 	"net/http"
+
+	"github.com/gookit/rux"
 )
 
 type Product struct {

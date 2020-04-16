@@ -6,9 +6,9 @@ import (
 	"github.com/gookit/rux"
 )
 
-// UsePProf enable for the router
+// UsePProf enable PProf for the rux serve
 func UsePProf(r *rux.Router) {
-	routers := []struct {
+	routes := []struct {
 		Method  string
 		Path    string
 		Handler rux.HandlerFunc
@@ -28,7 +28,7 @@ func UsePProf(r *rux.Router) {
 	}
 
 	r.Group("/debug/pprof", func() {
-		for _, route := range routers {
+		for _, route := range routes {
 			r.Add(route.Path, route.Handler, route.Method)
 		}
 	})
