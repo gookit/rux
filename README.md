@@ -1,7 +1,7 @@
 # Rux
 
 [![GitHub tag (latest SemVer)](https://img.shields.io/github/tag/gookit/rux)](https://github.com/gookit/rux)
-[![GoDoc](https://godoc.org/github.com/gookit/rux?status.svg)](https://godoc.org/github.com/gookit/rux)
+[![GoDoc](https://godoc.org/github.com/gookit/rux?status.svg)](https://pkg.go.dev/github.com/gookit/rux?tab=doc)
 [![Build Status](https://travis-ci.org/gookit/rux.svg?branch=master)](https://travis-ci.org/gookit/rux)
 [![Coverage Status](https://coveralls.io/repos/github/gookit/rux/badge.svg?branch=master)](https://coveralls.io/github/gookit/rux?branch=master)
 [![Go Report Card](https://goreportcard.com/badge/github.com/gookit/rux)](https://goreportcard.com/report/github.com/gookit/rux)
@@ -18,9 +18,9 @@ Simple and fast web framework for build golang HTTP applications.
 - Support static file access handle
 - Support add handlers for handle `NotFound` and `NotAllowed`
 
-## Godoc
+## GoDoc
 
-- [godoc for github](https://godoc.org/github.com/gookit/rux)
+- [godoc for github](https://pkg.go.dev/github.com/gookit/rux?tab=doc)
 
 ## Quick start
 
