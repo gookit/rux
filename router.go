@@ -3,7 +3,6 @@ package rux
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"net/http"
 	"reflect"
 	"strings"
@@ -67,21 +66,6 @@ func AnyMethods() []string {
 /*************************************************************
  * Router definition
  *************************************************************/
-
-// Binder interface
-type Binder interface {
-	Bind(i interface{}, c *Context) error
-}
-
-// Renderer interface
-type Renderer interface {
-	Render(io.Writer, string, interface{}, *Context) error
-}
-
-// Validator interface
-type Validator interface {
-	Validate(i interface{}) error
-}
 
 type routes []*Route
 
@@ -163,11 +147,15 @@ type Router struct {
 	// maxMultipartMemory int64
 	// whether checks if another method is allowed for the current route. default is False
 	handleMethodNotAllowed bool
-	// bind form,params,json body,query value to struct interface
+
+	//
+	// Extends tools
+	//
+	// Binder bind form,params,json body,query value to struct interface
 	Binder Binder
-	// template(view) interface
+	// Renderer template(view) interface
 	Renderer Renderer
-	// validator interface
+	// Validator validator interface
 	Validator Validator
 }
 
@@ -492,33 +480,36 @@ func (r *Router) Resource(basePath string, controller interface{}, middles ...Ha
 		}
 	}
 
-	controllerName := strings.ToLower(ct.Elem().Name())
-	basePath += controllerName
+	resName := strings.ToLower(ct.Elem().Name())
+	basePath += resName
 
 	r.Group(basePath, func() {
 		for name, methods := range actions {
-			if m := cv.MethodByName(name); m.IsValid() {
-				action, ok := m.Interface().(func(*Context))
-				if !ok {
-					continue
-				}
+			m := cv.MethodByName(name)
+			if !m.IsValid() {
+				continue
+			}
 
-				var route *Route
-				routeName := controllerName + "_" + strings.ToLower(name)
+			action, ok := m.Interface().(func(*Context))
+			if !ok {
+				continue
+			}
 
-				if name == INDEX || name == STORE {
-					route = r.AddNamed(routeName, "/", action, methods...)
-				} else if name == CREATE {
-					route = r.AddNamed(routeName, "/"+strings.ToLower(name)+"/", action, methods...)
-				} else if name == EDIT {
-					route = r.AddNamed(routeName, "{id}/"+strings.ToLower(name)+"/", action, methods...)
-				} else { // if name == SHOW || name == UPDATE || name == DELETE
-					route = r.AddNamed(routeName, "{id}/", action, methods...)
-				}
+			var route *Route
 
-				if handlers, ok := handlerFuncs[name]; ok {
-					route.Use(handlers...)
-				}
+			routeName := resName + "_" + strings.ToLower(name)
+			if name == INDEX || name == STORE {
+				route = r.AddNamed(routeName, "/", action, methods...)
+			} else if name == CREATE {
+				route = r.AddNamed(routeName, "/"+strings.ToLower(name)+"/", action, methods...)
+			} else if name == EDIT {
+				route = r.AddNamed(routeName, "{id}/"+strings.ToLower(name)+"/", action, methods...)
+			} else { // if name == SHOW || name == UPDATE || name == DELETE
+				route = r.AddNamed(routeName, "{id}/", action, methods...)
+			}
+
+			if handlers, ok := handlerFuncs[name]; ok {
+				route.Use(handlers...)
 			}
 		}
 	}, middles...)

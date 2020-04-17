@@ -12,7 +12,7 @@ import (
 )
 
 var client *http.Client
-var debug bool
+// var debug bool
 
 func main() {
 	client = createHttpClient()
@@ -79,7 +79,7 @@ func doHandle(w http.ResponseWriter, r *http.Request) {
 	// w.(io.ReaderFrom).ReadFrom(r.Body)  // fail
 	// 3. direct read
 	data, _ := ioutil.ReadAll(resp.Body)  // ok
-	w.Write(data)
+	_,_ = w.Write(data)
 }
 
 func createHttpClient() *http.Client {
@@ -120,5 +120,5 @@ func responseJSON(w http.ResponseWriter, status int, data interface{}) {
 		panic(err)
 	}
 
-	w.Write(bs)
+	_,_ =w.Write(bs)
 }

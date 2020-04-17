@@ -1,11 +1,9 @@
 package rux
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"encoding/xml"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -726,7 +724,7 @@ func (c *Context) Inline(srcFile, outName string) {
 // 	in, _ := os.Open("./README.md")
 // 	r.Binary(http.StatusOK, in, "readme.md", true)
 func (c *Context) Binary(status int, in io.ReadSeeker, outName string, inline bool) {
-	c.dispositionContent(c.Resp, http.StatusOK, outName, true)
+	c.dispositionContent(c.Resp, status, outName, inline)
 
 	// _, err := io.Copy(c.Resp, in)
 	http.ServeContent(c.Resp, c.Req, outName, time.Now(), in)
@@ -813,41 +811,4 @@ func (c *Context) Value(key interface{}) interface{} {
 		return c.MustGet(keyAsString)
 	}
 	return nil
-}
-
-/*************************************************************
- * Context function extends
- *************************************************************/
-
-// Bind context bind struct
-func (c *Context) Bind(i interface{}) error {
-	if c.router.Binder == nil {
-		return errors.New("binder not registered")
-	}
-
-	return c.router.Binder.Bind(i, c)
-}
-
-// Render context template
-func (c *Context) Render(status int, name string, data interface{}) (err error) {
-	if c.router.Renderer == nil {
-		return errors.New("renderer not registered")
-	}
-
-	var buf = new(bytes.Buffer)
-	if err = c.router.Renderer.Render(buf, name, data, c); err != nil {
-		return err
-	}
-
-	c.HTML(status, buf.Bytes())
-	return
-}
-
-// Validate context validator
-func (c *Context) Validate(i interface{}) error {
-	if c.Router().Validator == nil {
-		return errors.New("validator not registered")
-	}
-
-	return c.Router().Validator.Validate(i)
 }
