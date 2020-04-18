@@ -8,6 +8,11 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// run serve:
+// 	go run ./gorilla-mux
+// bench test:
+// 	bombardier -c 125 -n 1000000 http://localhost:3000
+// 	bombardier -c 125 -n 1000000 http://localhost:3000/user/42
 func main() {
 	r := mux.NewRouter()
 

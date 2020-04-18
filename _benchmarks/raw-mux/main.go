@@ -6,6 +6,11 @@ import (
 	"net/http"
 )
 
+// run serve:
+// 	go run ./raw-mux
+// bench test:
+// 	bombardier -c 125 -n 1000000 http://localhost:3000
+// 	bombardier -c 125 -n 1000000 http://localhost:3000/user/42
 func main() {
 	r := http.NewServeMux()
 	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
