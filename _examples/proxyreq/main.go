@@ -12,6 +12,7 @@ import (
 )
 
 var client *http.Client
+
 // var debug bool
 
 func main() {
@@ -32,7 +33,7 @@ func doHandle(w http.ResponseWriter, r *http.Request) {
 	if apiUrl == "" {
 		responseJSON(w, 200, map[string]interface{}{
 			"code": 400,
-			"msg": "remote target url cannot be empty",
+			"msg":  "remote target url cannot be empty",
 			"data": map[string]string{},
 		})
 		return
@@ -45,7 +46,7 @@ func doHandle(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		responseJSON(w, 200, map[string]interface{}{
 			"code": 400,
-			"msg": "create request fail, error: " + err.Error(),
+			"msg":  "create request fail, error: " + err.Error(),
 			"data": map[string]string{},
 		})
 		return
@@ -78,8 +79,8 @@ func doHandle(w http.ResponseWriter, r *http.Request) {
 	// 2. use io.copy
 	// w.(io.ReaderFrom).ReadFrom(r.Body)  // fail
 	// 3. direct read
-	data, _ := ioutil.ReadAll(resp.Body)  // ok
-	_,_ = w.Write(data)
+	data, _ := ioutil.ReadAll(resp.Body) // ok
+	_, _ = w.Write(data)
 }
 
 func createHttpClient() *http.Client {
@@ -120,5 +121,5 @@ func responseJSON(w http.ResponseWriter, status int, data interface{}) {
 		panic(err)
 	}
 
-	_,_ =w.Write(bs)
+	_, _ = w.Write(bs)
 }
