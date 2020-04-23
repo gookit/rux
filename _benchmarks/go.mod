@@ -10,5 +10,6 @@ require (
 	github.com/kataras/muxie v1.0.8
 	github.com/labstack/echo v3.3.10+incompatible
 	github.com/labstack/gommon v0.3.0 // indirect
+	github.com/valyala/fasthttp v1.10.0
 	golang.org/x/crypto v0.0.0-20200414173820-0848c9571904 // indirect
 )

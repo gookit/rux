@@ -7,6 +7,8 @@ import (
 	"reflect"
 	"strings"
 	"sync"
+
+	"github.com/gookit/color"
 )
 
 // All supported HTTP verb methods name
@@ -51,6 +53,10 @@ var (
 // Debug switch debug mode
 func Debug(val bool) {
 	debug = val
+	if debug {
+		color.Info.Println(" NOTICE, rux DEBUG mode is opened by rux.Debug(true)")
+		color.Info.Println("======================================================")
+	}
 }
 
 // IsDebug return rux is debug mode.
@@ -83,26 +89,26 @@ type Router struct {
 
 	// Static/stable/fixed routes, no path params.
 	// {
-	// 	"GET /users": Route,
-	// 	"POST /users/register": Route,
+	// 	"GET/users": Route,
+	// 	"POST/users/register": Route,
 	// }
 	stableRoutes map[string]*Route
 
 	// Cached dynamic routes
 	// {
-	// 	"GET /users/12": Route,
+	// 	"GET/users/12": Route,
 	// }
 	// cachedRoutes map[string]*Route
 	cachedRoutes *CachedRoutes
 
 	// Regular dynamic routing
-	// - key is "METHOD first-node":
+	// - key is METHOD + "first-node":
 	// - first node string in the route path. "/users/{id}" -> "user"
 	// Data example:
 	// {
-	// 	"GET blog": [ Route{path:"/blog/{id}"}, ...],
-	// 	"POST blog": [ Route{path:"/blog/{user}/add"}, ...],
-	// 	"GET users": [ Route{path:"/users/{id}"}, ...],
+	// 	"GETblog": [ Route{path:"/blog/{id}"}, ...],
+	// 	"POSTblog": [ Route{path:"/blog/{user}/add"}, ...],
+	// 	"GETusers": [ Route{path:"/users/{id}"}, ...],
 	// 	...
 	// }
 	regularRoutes methodRoutes
@@ -346,7 +352,7 @@ func (r *Router) appendRoute(route *Route) {
 	if isFixedPath(route.path) {
 		path := route.path
 		for _, method := range route.methods {
-			key := method + " " + path
+			key := method + path
 
 			r.counter++
 			r.stableRoutes[key] = route
@@ -357,7 +363,7 @@ func (r *Router) appendRoute(route *Route) {
 	// parsing route path with parameters
 	if first := r.parseParamRoute(route); first != "" {
 		for _, method := range route.methods {
-			key := method + " " + first
+			key := method + first
 			rs, has := r.regularRoutes[key]
 			if !has {
 				rs = routes{}

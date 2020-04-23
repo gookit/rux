@@ -7,8 +7,20 @@ import (
 )
 
 // JSON response rendering
-func JSON() {
+func JSON(status int, ptr interface{}, c *rux.Context) error {
+	bs, err := json.Marshal(ptr)
+	if err != nil {
+		return err
+	}
 
+	c.Resp.WriteHeader(status)
+	c.Resp.Header().Set(rux.ContentType, "application/json; charset=UTF-8")
+
+	if len(bs) > 0 {
+		c.WriteBytes(bs)
+	}
+
+	return nil
 }
 
 // JSONP response rendering

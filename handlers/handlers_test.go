@@ -2,8 +2,10 @@ package handlers
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 
+	"github.com/gookit/goutil/testutil"
 	"github.com/gookit/rux"
 	"github.com/stretchr/testify/assert"
 )
@@ -25,7 +27,7 @@ func TestDumpRoutesHandler(t *testing.T) {
 
 	r.GET("/routes", DumpRoutesHandler())
 
-	w := mockRequest(r, "GET", "/routes", nil)
+	w := testutil.MockRequest(r, "GET", "/routes", nil)
 	art.Contains(w.Body.String(), "Routes Count: 1")
 }
 
@@ -42,15 +44,15 @@ func TestHTTPMethodOverrideHandler(t *testing.T) {
 	})
 
 	// send POST as PUT
-	w := mockRequest(h, "POST", "/put", &md{
-		H: m{"X-HTTP-Method-Override": "PUT"},
+	w := testutil.MockRequest(h, "POST", "/put", &testutil.MD{
+		Headers: testutil.M{"X-HTTP-Method-Override": "PUT"},
 	})
 	art.Equal(200, w.Code)
 	art.Equal("put", w.Body.String())
 
-	w = mockRequest(h, "POST", "/put", &md{
-		H: m{"Content-Type": "application/x-www-form-urlencoded"},
-		B: "_method=put",
+	w = testutil.MockRequest(h, "POST", "/put", &testutil.MD{
+		Headers: testutil.M{"Content-Type": "application/x-www-form-urlencoded"},
+		Body:    strings.NewReader("_method=put"),
 	})
 	art.Equal(200, w.Code)
 	art.Equal("put", w.Body.String())
@@ -91,10 +93,10 @@ func TestSkiperHandler(t *testing.T) {
 	r.GET("/test3", DumpRoutesHandler(), allowURL.Check())
 	r.GET("/test4", DumpRoutesHandler(), allowURL.Check())
 
-	w1 := mockRequest(r, "GET", "/test1", nil)
-	w2 := mockRequest(r, "GET", "/test2", nil)
-	w3 := mockRequest(r, "GET", "/test3", nil)
-	w4 := mockRequest(r, "GET", "/test4", nil)
+	w1 := testutil.MockRequest(r, "GET", "/test1", nil)
+	w2 := testutil.MockRequest(r, "GET", "/test2", nil)
+	w3 := testutil.MockRequest(r, "GET", "/test3", nil)
+	w4 := testutil.MockRequest(r, "GET", "/test4", nil)
 
 	art.Equal(403, w1.Code)
 	art.Equal(403, w2.Code)

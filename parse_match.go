@@ -157,7 +157,7 @@ func (r *Router) Match(method, path string) (result *MatchResult) {
 	}
 
 	// if has fallback route. router->Any("/*", handler)
-	key := method + " /*"
+	key := method + "/*"
 	if route, ok := r.stableRoutes[key]; ok {
 		return newFoundResult(route, nil)
 	}
@@ -176,7 +176,7 @@ func (r *Router) Match(method, path string) (result *MatchResult) {
 
 func (r *Router) match(method, path string) (ret *MatchResult) {
 	// find in stable routes
-	key := method + " " + path
+	key := method + path
 	if route, ok := r.stableRoutes[key]; ok {
 		return newFoundResult(route, nil)
 	}
@@ -191,7 +191,7 @@ func (r *Router) match(method, path string) (ret *MatchResult) {
 
 	// find in regular routes
 	if pos := strings.IndexByte(path[1:], '/'); pos > 0 {
-		key = method + " " + path[1:pos+1]
+		key = method + path[1:pos+1]
 
 		if rs, ok := r.regularRoutes[key]; ok {
 			for _, route := range rs {
@@ -243,7 +243,7 @@ func (r *Router) cacheDynamicRoute(method, path string, ps Params, route *Route)
 		}
 	}
 
-	key := method + " " + path
+	key := method + path
 	// copy new route instance. Notice: cache matched Params
 	r.cachedRoutes.Set(key, route.copyWithParams(ps))
 }

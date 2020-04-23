@@ -6,6 +6,24 @@ import (
 	"io"
 )
 
+const (
+	// ContentType header key
+	ContentType = "Content-Type"
+	// ContentBinary represents content type application/octet-stream
+	ContentBinary = "application/octet-stream"
+
+	// ContentDisposition describes contentDisposition
+	ContentDisposition = "Content-Disposition"
+	// describes content disposition type
+	dispositionInline = "inline"
+	// describes content disposition type
+	dispositionAttachment = "attachment"
+)
+
+/*************************************************************
+ * Extends interfaces definition
+ *************************************************************/
+
 // Binder interface
 type Binder interface {
 	Bind(i interface{}, c *Context) error

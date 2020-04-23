@@ -192,7 +192,7 @@ func (r *Router) BuildURL(name string, buildArgs ...interface{}) *url.URL {
 
 // BuildRequestURL build Request URL one arg can be set buildRequestURL or rux.M
 func (r *Router) BuildRequestURL(name string, buildRequestURLs ...interface{}) *url.URL {
-	var buildRequestURL *BuildRequestURL
+	var URLBuilder *BuildRequestURL
 	var withParams = make(M)
 
 	route := r.GetRoute(name)
@@ -200,7 +200,7 @@ func (r *Router) BuildRequestURL(name string, buildRequestURLs ...interface{}) *
 		panicf("BuildRequestURL get route (name: %s) is nil", name)
 	}
 
-	// TODO need optimize ...
+	//noinspection GoNilness
 	path := route.path
 	varln := len(buildRequestURLs)
 
@@ -211,9 +211,9 @@ func (r *Router) BuildRequestURL(name string, buildRequestURLs ...interface{}) *
 	if varln == 1 {
 		switch buildRequestURLs[0].(type) {
 		case *BuildRequestURL:
-			buildRequestURL = buildRequestURLs[0].(*BuildRequestURL)
+			URLBuilder = buildRequestURLs[0].(*BuildRequestURL)
 		case M:
-			buildRequestURL = NewBuildRequestURL()
+			URLBuilder = NewBuildRequestURL()
 			withParams = buildRequestURLs[0].(M)
 		default:
 			panic("buildRequestURLs odd argument count")
@@ -227,10 +227,10 @@ func (r *Router) BuildRequestURL(name string, buildRequestURLs ...interface{}) *
 			withParams[toString(buildRequestURLs[i])] = buildRequestURLs[i+1]
 		}
 
-		buildRequestURL = NewBuildRequestURL()
+		URLBuilder = NewBuildRequestURL()
 	}
 
-	return buildRequestURL.Path(path).Build(withParams)
+	return URLBuilder.Path(path).Build(withParams)
 }
 
 // check route info

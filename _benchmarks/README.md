@@ -14,12 +14,14 @@ go get -u github.com/codesenberg/bombardier
 
 ```bash
 bombardier -c 125 -n 1000000 http://localhost:3000
+bombardier -c 200 -n 1000000 http://localhost:3000
 ```
 
 ### Parameterized (dynamic) Path
 
 ```bash
 bombardier -c 125 -n 1000000 http://localhost:3000/user/42
+bombardier -c 200 -n 1000000 http://localhost:3000/user/42
 ```
 
 ### Details
@@ -44,6 +46,28 @@ Statistics        Avg      Stdev        Max
 
 ```
 
+### fasthttp
+
+> 2020.04.18
+
+- static path
+
+```text
+Bombarding http://localhost:3000 with 1000000 request(s) using 125 connection(s)
+ 1000000 / 1000000 [================================================================================================================================================================] 100.00% 62769/s 15s
+Done!
+Statistics        Avg      Stdev        Max
+  Reqs/sec     63391.52    5806.82   76139.45
+  Latency        1.97ms   679.23us    57.51ms
+  HTTP codes:
+    1xx - 0, 2xx - 1000000, 3xx - 0, 4xx - 0, 5xx - 0
+    others - 0
+  Throughput:    12.38MB/s
+
+```
+
+### gin
+
 > 2020.04.18
 
 - static path
@@ -59,6 +83,26 @@ Statistics        Avg      Stdev        Max
     1xx - 0, 2xx - 1000000, 3xx - 0, 4xx - 0, 5xx - 0
     others - 0
   Throughput:     9.22MB/s
+
+```
+
+#### gorilla-mux
+
+> 2020.04.18
+
+- static path
+
+```text
+Bombarding http://localhost:3000 with 1000000 request(s) using 125 connection(s)
+ 1000000 / 1000000 [================================================================================================================================================================] 100.00% 49093/s 20s
+Done!
+Statistics        Avg      Stdev        Max
+  Reqs/sec     49596.82    4578.00   57997.43
+  Latency        2.52ms   609.98us    49.80ms
+  HTTP codes:
+    1xx - 0, 2xx - 1000000, 3xx - 0, 4xx - 0, 5xx - 0
+    others - 0
+  Throughput:     8.84MB/s
 
 ```
 

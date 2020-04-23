@@ -14,12 +14,12 @@ type Binder interface {
 type BinderFunc func(interface{}, *http.Request) error
 
 // BinderFunc implements the Binder interface
-func (fn BinderFunc) Bind(ptr interface{}, r *http.Request) error  {
+func (fn BinderFunc) Bind(ptr interface{}, r *http.Request) error {
 	return fn(ptr, r)
 }
 
 var binders = map[string]Binder{
-	"xml": BinderFunc(XML),
+	"xml":  BinderFunc(XML),
 	"json": JSONBinder,
 	// "form": , TODO
 }

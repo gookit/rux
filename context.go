@@ -27,28 +27,8 @@ const (
 	abortIndex int8 = 63
 )
 
-const (
-	// ContentType header key
-	ContentType = "Content-Type"
-	// ContentBinary represents content type application/octet-stream
-	ContentBinary = "application/octet-stream"
-
-	// ContentDisposition describes contentDisposition
-	ContentDisposition = "Content-Disposition"
-	// describes content disposition type
-	dispositionInline = "inline"
-	// describes content disposition type
-	dispositionAttachment = "attachment"
-)
-
 // M a short name for `map[string]interface{}`
 type M map[string]interface{}
-
-// type responseWriter struct {
-// 	http.ResponseWriter
-// 	size   int
-// 	status int
-// }
 
 // Context for http server
 type Context struct {
@@ -545,7 +525,7 @@ func (c *Context) SetHeader(key, value string) {
 func (c *Context) WriteBytes(bt []byte) {
 	_, err := c.Resp.Write(bt)
 	if err != nil {
-		panic(err)
+		c.AddError(err)
 	}
 }
 

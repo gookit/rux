@@ -15,7 +15,6 @@ import (
 // 	bombardier -c 125 -n 1000000 http://localhost:3000/user/42
 func main() {
 	// close debug
-	rux.Debug(false)
 	// r := rux.New()
 	r := rux.New(rux.EnableCaching)
 
