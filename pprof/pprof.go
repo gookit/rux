@@ -12,7 +12,7 @@ func UsePProf(r *rux.Router) {
 		Path    string
 		Handler rux.HandlerFunc
 	}{
-		{rux.GET, "/", rux.WrapHTTPHandlerFunc(pprof.Index)},
+		{rux.GET, "/pprof", rux.WrapHTTPHandlerFunc(pprof.Index)},
 		{rux.GET, "/heap", rux.WrapHTTPHandler(pprof.Handler("heap"))},
 		{rux.GET, "/goroutine", rux.WrapHTTPHandler(pprof.Handler("goroutine"))},
 		{rux.GET, "/allocs", rux.WrapHTTPHandler(pprof.Handler("allocs"))},
@@ -26,7 +26,7 @@ func UsePProf(r *rux.Router) {
 		{rux.GET, "/mutex", rux.WrapHTTPHandler(pprof.Handler("mutex"))},
 	}
 
-	r.Group("/debug/pprof", func() {
+	r.Group("/debug", func() {
 		for _, route := range routers {
 			r.Add(route.Path, route.Handler, route.Method)
 		}
