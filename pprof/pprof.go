@@ -1,13 +1,14 @@
 package pprof
 
 import (
-	"github.com/gookit/rux"
 	"net/http/pprof"
+
+	"github.com/gookit/rux"
 )
 
-// UsePProf enable for the router
+// UsePProf enable PProf for the rux serve
 func UsePProf(r *rux.Router) {
-	routers := []struct {
+	routes := []struct {
 		Method  string
 		Path    string
 		Handler rux.HandlerFunc

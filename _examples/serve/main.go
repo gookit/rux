@@ -24,10 +24,29 @@ func main() {
 	r.StaticFile("/site.js", "testdata/site.js")
 	// allow any files in the dir.
 	r.StaticDir("/static", "testdata")
-	// add file type limit
+	// add file ext limit
 	// r.StaticFiles("", "testdata", "css|js")
 	r.StaticFiles("/assets", "testdata", "css|js")
 
+	// fmt.Println(r)
+	// register routes
+	addRoutes(r)
+
+	// handle error
+	r.OnError = func(c *rux.Context) {
+		if err := c.FirstError(); err != nil {
+			c.HTTPError(err.Error(), 400)
+			return
+		}
+	}
+
+	// quick start
+	r.Listen(":18080")
+	// apply global pre-handlers
+	// http.ListenAndServe(":18080", handlers.HTTPMethodOverrideHandler(r))
+}
+
+func addRoutes(r *rux.Router) {
 	gh := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("new-key", "val")
 	})
@@ -80,8 +99,23 @@ func main() {
 
 	// a simple proxy
 	// proxy := proxy("http://yzone.net/page/about-me")
-	pxy := newProxy("https://inhere.github.io/")
+	// pxy := newProxy("https://inhere.github.io/")
 	r.GET("/pxy", func(c *rux.Context) {
+		targetUrl := c.Req.Header.Get("Target-Url")
+		if targetUrl == "" {
+			c.AbortWithStatus(400, "target url is empty")
+			return
+		}
+
+		target, err := url.Parse(targetUrl)
+		if err != nil {
+			c.AddError(err)
+			c.Abort()
+			return
+		}
+
+		pxy := httputil.NewSingleHostReverseProxy(target)
+		// pxy.Transport = &urlfetch.Transport{Context: appengine.NewContext(r)}
 		pxy.ServeHTTP(c.Resp, c.Req)
 	})
 
@@ -104,13 +138,10 @@ func main() {
 
 	r.Controller("/blog", &BlogController{})
 	r.Controller("/site", &SiteController{})
+}
 
-	// fmt.Println(r)
-
-	// quick start
-	r.Listen(":18080")
-	// apply pre-handlers
-	// http.ListenAndServe(":18080", handlers.HTTPMethodOverrideHandler(r))
+func defHandle(ctx *rux.Context) {
+	ctx.WriteString("hello, in " + ctx.URL().Path)
 }
 
 func customServer() {
@@ -131,19 +162,4 @@ func customServer() {
 	}
 
 	log.Fatal(s.ListenAndServe())
-}
-
-func newProxy(targetUrl string) *httputil.ReverseProxy {
-	target, _ := url.Parse(targetUrl)
-	// target, _ := url.Parse(playgroundURL)
-
-	p := httputil.NewSingleHostReverseProxy(target)
-	// p.Transport = &urlfetch.Transport{Context: appengine.NewContext(r)}
-	// p.ServeHTTP(w, r)
-
-	return p
-}
-
-func defHandle(ctx *rux.Context) {
-	ctx.WriteString("hello, in " + ctx.URL().Path)
 }

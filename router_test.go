@@ -61,7 +61,7 @@ type Product struct {
 func (Product) Uses() map[string][]HandlerFunc {
 	// HTTPBasicAuth alias
 	return map[string][]HandlerFunc{
-		"Edit": []HandlerFunc{
+		"Edit": {
 			func(users map[string]string) HandlerFunc {
 				return func(c *Context) {
 					user, pwd, ok := c.Req.BasicAuth()
@@ -121,6 +121,14 @@ func (c *Product) Delete(ctx *Context) {
 	ctx.WriteString(ctx.Req.Method + " Delete " + ctx.Param("id"))
 }
 
+// cannot exported method
+func (c *Product) invaid() {
+}
+
+// cannot exported method
+func (c *Product) invaid2(*Context) {
+}
+
 func namedHandler(c *Context) {
 	c.Set("name", "namedHandler")
 }
@@ -148,6 +156,8 @@ func TestRouter(t *testing.T) {
 
 func TestAddRoute(t *testing.T) {
 	is := assert.New(t)
+
+	Debug(true)
 
 	r := New()
 	is.NotEmpty(r)
@@ -231,6 +241,8 @@ func TestAddRoute(t *testing.T) {
 		ret = r.Match(m, "/not-exist")
 		is.Equal(Found, ret.Status)
 	}
+
+	Debug(false)
 }
 
 func TestNameRoute(t *testing.T) {

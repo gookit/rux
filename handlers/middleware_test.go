@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/gookit/goutil/testutil"
 	"github.com/gookit/rux"
 	"github.com/stretchr/testify/assert"
 )
@@ -110,7 +111,7 @@ func TestRequestLogger(t *testing.T) {
 		c.WriteString("hello")
 	}, RequestLogger())
 
-	w := mockRequest(r, "GET", "/status", nil)
+	w := testutil.MockRequest(r, "GET", "/status", nil)
 	ris.Equal(200, w.Code)
 	ris.Equal("hello", w.Body.String())
 

@@ -30,7 +30,7 @@ func main() {
 	// http.ListenAndServe()
 	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
 		// Error starting or closing listener:
-		log.Printf("HTTP server ListenAndServe: %v", err)
+		log.Printf("HTTP server closed, error: %v", err)
 	}
 
 	<-idleConnsClosed

@@ -196,7 +196,7 @@ func toString(i interface{}) string {
 	case uint32:
 		return strconv.FormatUint(uint64(value), 10)
 	case uint64:
-		return strconv.FormatUint(uint64(value), 10)
+		return strconv.FormatUint(value, 10)
 	case float32:
 		return strconv.FormatFloat(float64(value), 'f', -1, 32)
 	case float64:
@@ -208,7 +208,7 @@ func toString(i interface{}) string {
 	case []byte:
 		return string(value)
 	default:
-		// 默认使用json进行字符串转换
+		// String conversion using JSON by default
 		jsonContent, _ := json.Marshal(value)
 		return string(jsonContent)
 	}

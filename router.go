@@ -3,11 +3,12 @@ package rux
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"net/http"
 	"reflect"
 	"strings"
 	"sync"
+
+	"github.com/gookit/color"
 )
 
 // All supported HTTP verb methods name
@@ -52,6 +53,10 @@ var (
 // Debug switch debug mode
 func Debug(val bool) {
 	debug = val
+	if debug {
+		color.Info.Println(" NOTICE, rux DEBUG mode is opened by rux.Debug(true)")
+		color.Info.Println("======================================================")
+	}
 }
 
 // IsDebug return rux is debug mode.
@@ -67,21 +72,6 @@ func AnyMethods() []string {
 /*************************************************************
  * Router definition
  *************************************************************/
-
-// Binder interface
-type Binder interface {
-	Bind(i interface{}, c *Context) error
-}
-
-// Renderer interface
-type Renderer interface {
-	Render(io.Writer, string, interface{}, *Context) error
-}
-
-// Validator interface
-type Validator interface {
-	Validate(i interface{}) error
-}
 
 type routes []*Route
 
@@ -99,26 +89,26 @@ type Router struct {
 
 	// Static/stable/fixed routes, no path params.
 	// {
-	// 	"GET /users": Route,
-	// 	"POST /users/register": Route,
+	// 	"GET/users": Route,
+	// 	"POST/users/register": Route,
 	// }
 	stableRoutes map[string]*Route
 
 	// Cached dynamic routes
 	// {
-	// 	"GET /users/12": Route,
+	// 	"GET/users/12": Route,
 	// }
 	// cachedRoutes map[string]*Route
 	cachedRoutes *CachedRoutes
 
 	// Regular dynamic routing
-	// - key is "METHOD first-node":
+	// - key is METHOD + "first-node":
 	// - first node string in the route path. "/users/{id}" -> "user"
 	// Data example:
 	// {
-	// 	"GET blog": [ Route{path:"/blog/{id}"}, ...],
-	// 	"POST blog": [ Route{path:"/blog/{user}/add"}, ...],
-	// 	"GET users": [ Route{path:"/users/{id}"}, ...],
+	// 	"GETblog": [ Route{path:"/blog/{id}"}, ...],
+	// 	"POSTblog": [ Route{path:"/blog/{user}/add"}, ...],
+	// 	"GETusers": [ Route{path:"/users/{id}"}, ...],
 	// 	...
 	// }
 	regularRoutes methodRoutes
@@ -163,11 +153,15 @@ type Router struct {
 	// maxMultipartMemory int64
 	// whether checks if another method is allowed for the current route. default is False
 	handleMethodNotAllowed bool
-	// bind form,params,json body,query value to struct interface
+
+	//
+	// Extends tools
+	//
+	// Binder bind form,params,json body,query value to struct interface
 	Binder Binder
-	// template(view) interface
+	// Renderer template(view) interface
 	Renderer Renderer
-	// validator interface
+	// Validator validator interface
 	Validator Validator
 }
 
@@ -358,7 +352,7 @@ func (r *Router) appendRoute(route *Route) {
 	if isFixedPath(route.path) {
 		path := route.path
 		for _, method := range route.methods {
-			key := method + " " + path
+			key := method + path
 
 			r.counter++
 			r.stableRoutes[key] = route
@@ -369,7 +363,7 @@ func (r *Router) appendRoute(route *Route) {
 	// parsing route path with parameters
 	if first := r.parseParamRoute(route); first != "" {
 		for _, method := range route.methods {
-			key := method + " " + first
+			key := method + first
 			rs, has := r.regularRoutes[key]
 			if !has {
 				rs = routes{}
@@ -442,16 +436,17 @@ func (r *Router) Controller(basePath string, controller ControllerFace, middles 
 	}, middles...)
 }
 
-// methods	Path	Action	Route Name
-// GET	/resource	index	resource_index
-// GET	/resource/create	create	resource_create
-// POST	/resource	store	resource_store
-// GET	/resource/{resource}	show	resource_show
-// GET	/resource/{resource}/edit	edit	resource_edit
-// PUT/PATCH	/resource/{resource}	update	resource_update
-// DELETE	/resource/{resource}	delete	resource_delete
-
-// Resource register some routes by a controller
+// Resource register RESTFul style routes by a controller
+//
+// 	Methods     Path                Action    Route Name
+// 	GET        /resource            index    resource_index
+// 	GET        /resource/create     create   resource_create
+// 	POST       /resource            store    resource_store
+// 	GET        /resource/{id}       show     resource_show
+// 	GET        /resource/{id}/edit  edit     resource_edit
+// 	PUT/PATCH  /resource/{id}       update   resource_update
+// 	DELETE     /resource/{id}       delete   resource_delete
+//
 func (r *Router) Resource(basePath string, controller interface{}, middles ...HandlerFunc) {
 	const (
 		INDEX  = "Index"
@@ -464,17 +459,17 @@ func (r *Router) Resource(basePath string, controller interface{}, middles ...Ha
 	)
 
 	actions := map[string][]string{
-		INDEX:  []string{GET},
-		CREATE: []string{GET},
-		STORE:  []string{POST},
-		SHOW:   []string{GET},
-		EDIT:   []string{GET},
-		UPDATE: []string{PUT, PATCH},
-		DELETE: []string{DELETE},
+		INDEX:  {GET},
+		CREATE: {GET},
+		STORE:  {POST},
+		SHOW:   {GET},
+		EDIT:   {GET},
+		UPDATE: {PUT, PATCH},
+		DELETE: {DELETE},
 	}
 
-	ct := reflect.TypeOf(controller)
 	cv := reflect.ValueOf(controller)
+	ct := cv.Type()
 
 	if cv.Kind() != reflect.Ptr {
 		panic("controller must type ptr")
@@ -485,43 +480,42 @@ func (r *Router) Resource(basePath string, controller interface{}, middles ...Ha
 	}
 
 	var handlerFuncs = make(map[string][]HandlerFunc)
-
 	if m := cv.MethodByName("Uses"); m.IsValid() {
 		if uses, ok := m.Interface().(func() map[string][]HandlerFunc); ok {
 			handlerFuncs = uses()
 		}
 	}
 
-	controllerName := strings.ToLower(ct.Elem().Name())
-	basePath += controllerName
+	resName := strings.ToLower(ct.Elem().Name())
+	basePath += resName
 
 	r.Group(basePath, func() {
 		for name, methods := range actions {
-			if m := cv.MethodByName(name); m.IsValid() {
-				if action, ok := m.Interface().(func(*Context)); ok {
-					var route *Route
-					var routeName = controllerName + "_" + strings.ToLower(name)
+			m := cv.MethodByName(name)
+			if !m.IsValid() {
+				continue
+			}
 
-					if name == INDEX || name == STORE {
-						route = r.AddNamed(routeName, "/", action, methods...)
-					}
+			action, ok := m.Interface().(func(*Context))
+			if !ok {
+				continue
+			}
 
-					if name == CREATE {
-						route = r.AddNamed(routeName, "/"+strings.ToLower(name)+"/", action, methods...)
-					}
+			var route *Route
 
-					if name == SHOW || name == UPDATE || name == DELETE {
-						route = r.AddNamed(routeName, "{id}/", action, methods...)
-					}
+			routeName := resName + "_" + strings.ToLower(name)
+			if name == INDEX || name == STORE {
+				route = r.AddNamed(routeName, "/", action, methods...)
+			} else if name == CREATE {
+				route = r.AddNamed(routeName, "/"+strings.ToLower(name)+"/", action, methods...)
+			} else if name == EDIT {
+				route = r.AddNamed(routeName, "{id}/"+strings.ToLower(name)+"/", action, methods...)
+			} else { // if name == SHOW || name == UPDATE || name == DELETE
+				route = r.AddNamed(routeName, "{id}/", action, methods...)
+			}
 
-					if name == EDIT {
-						route = r.AddNamed(routeName, "{id}/"+strings.ToLower(name)+"/", action, methods...)
-					}
-
-					if handlers, ok := handlerFuncs[name]; ok {
-						route.Use(handlers...)
-					}
-				}
+			if handlers, ok := handlerFuncs[name]; ok {
+				route.Use(handlers...)
 			}
 		}
 	}, middles...)

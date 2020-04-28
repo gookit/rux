@@ -6,17 +6,19 @@ import (
 	"net/http"
 
 	"github.com/gookit/rux"
+	"github.com/gookit/rux/pprof"
 )
 
 // run serve:
-// 	go run ./rux
-// bench test:
-// 	bombardier -c 125 -n 1000000 http://localhost:3000
-// 	bombardier -c 125 -n 1000000 http://localhost:3000/user/42
+// 	go run ./_examples/pprof.go
+// access page:
+// 	http://localhost:3000/debug/pprof
 func main() {
-	// close debug
-	// r := rux.New()
-	r := rux.New(rux.EnableCaching)
+	// debug
+	rux.Debug(true)
+	r := rux.New()
+
+	pprof.UsePProf(r)
 
 	r.GET("/", func(c *rux.Context) {
 		_, _ = c.Resp.Write([]byte("Welcome!\n"))

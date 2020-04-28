@@ -8,6 +8,11 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
+// run serve:
+// 	go run ./httprouter
+// bench test:
+// 	bombardier -c 125 -n 1000000 http://localhost:3000
+// 	bombardier -c 125 -n 1000000 http://localhost:3000/user/42
 func main() {
 	r := httprouter.New()
 

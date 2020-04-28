@@ -1,11 +1,9 @@
 package rux
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"encoding/xml"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -29,28 +27,8 @@ const (
 	abortIndex int8 = 63
 )
 
-const (
-	// ContentType header key
-	ContentType = "Content-Type"
-	// ContentBinary represents content type application/octet-stream
-	ContentBinary = "application/octet-stream"
-
-	// ContentDisposition describes contentDisposition
-	ContentDisposition = "Content-Disposition"
-	// describes content disposition type
-	dispositionInline = "inline"
-	// describes content disposition type
-	dispositionAttachment = "attachment"
-)
-
 // M a short name for `map[string]interface{}`
 type M map[string]interface{}
-
-// type responseWriter struct {
-// 	http.ResponseWriter
-// 	size   int
-// 	status int
-// }
 
 // Context for http server
 type Context struct {
@@ -306,10 +284,8 @@ func (c *Context) FormParams(excepts ...[]string) (url.Values, error) {
 		if err := c.ParseMultipartForm(defaultMaxMemory); err != nil {
 			return nil, err
 		}
-	} else {
-		if err := c.Req.ParseForm(); err != nil {
-			return nil, err
-		}
+	} else if err := c.Req.ParseForm(); err != nil {
+		return nil, err
 	}
 
 	if len(excepts) > 0 {
@@ -363,6 +339,7 @@ func (c *Context) SaveFile(file *multipart.FileHeader, dst string) error {
 		_ = src.Close()
 		return err
 	}
+	//noinspection GoUnhandledErrorResult
 	defer out.Close()
 
 	_, err = io.Copy(out, src)
@@ -548,7 +525,7 @@ func (c *Context) SetHeader(key, value string) {
 func (c *Context) WriteBytes(bt []byte) {
 	_, err := c.Resp.Write(bt)
 	if err != nil {
-		panic(err)
+		c.AddError(err)
 	}
 }
 
@@ -699,6 +676,7 @@ func (c *Context) FileContent(file string, names ...string) {
 		http.Error(c.Resp, "Internal Server Error", 500)
 		return
 	}
+	//noinspection GoUnhandledErrorResult
 	defer f.Close()
 
 	c.setRawContentHeader(c.Resp, false)
@@ -726,7 +704,7 @@ func (c *Context) Inline(srcFile, outName string) {
 // 	in, _ := os.Open("./README.md")
 // 	r.Binary(http.StatusOK, in, "readme.md", true)
 func (c *Context) Binary(status int, in io.ReadSeeker, outName string, inline bool) {
-	c.dispositionContent(c.Resp, http.StatusOK, outName, true)
+	c.dispositionContent(c.Resp, status, outName, inline)
 
 	// _, err := io.Copy(c.Resp, in)
 	http.ServeContent(c.Resp, c.Req, outName, time.Now(), in)
@@ -813,41 +791,4 @@ func (c *Context) Value(key interface{}) interface{} {
 		return c.MustGet(keyAsString)
 	}
 	return nil
-}
-
-/*************************************************************
- * Context function extends
- *************************************************************/
-
-// Bind context bind struct
-func (c *Context) Bind(i interface{}) error {
-	if c.router.Binder == nil {
-		return errors.New("binder not registered")
-	}
-
-	return c.router.Binder.Bind(i, c)
-}
-
-// Render context template
-func (c *Context) Render(status int, name string, data interface{}) (err error) {
-	if c.router.Renderer == nil {
-		return errors.New("renderer not registered")
-	}
-
-	var buf = new(bytes.Buffer)
-	if err = c.router.Renderer.Render(buf, name, data, c); err != nil {
-		return err
-	}
-
-	c.HTML(status, buf.Bytes())
-	return
-}
-
-// Validate context validator
-func (c *Context) Validate(i interface{}) error {
-	if c.Router().Validator == nil {
-		return errors.New("validator not registered")
-	}
-
-	return c.Router().Validator.Validate(i)
 }
