@@ -28,7 +28,7 @@ func UsePProf(r *rux.Router) {
 	}
 
 	r.Group("/debug", func() {
-		for _, route := range routers {
+		for _, route := range routes {
 			r.Add(route.Path, route.Handler, route.Method)
 		}
 	})
