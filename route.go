@@ -81,7 +81,8 @@ type Route struct {
 type RouteInfo struct {
 	Name, Path, HandlerName string
 	// supported method of the route
-	Methods []string
+	Methods  []string
+	Handlers int
 }
 
 // NewRoute create a new route
@@ -182,7 +183,7 @@ func (r *Route) String() string {
 
 // Info get basic info of the route
 func (r *Route) Info() RouteInfo {
-	return RouteInfo{r.name, r.path, r.HandlerName(), r.methods}
+	return RouteInfo{r.name, r.path, r.HandlerName(), r.methods, len(r.handlers)}
 }
 
 // BuildURL alias of the method BuildRequestURL()

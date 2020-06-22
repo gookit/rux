@@ -598,6 +598,11 @@ func (r *Router) GetRoute(name string) *Route {
 	return r.namedRoutes[name]
 }
 
+// GetRoutes get name of routes.
+func (r *Router) GetRoutes() map[string]*Route {
+	return r.namedRoutes
+}
+
 // Routes get all route basic info
 func (r *Router) Routes() (rs []RouteInfo) {
 	r.IterateRoutes(func(route *Route) {
