@@ -701,3 +701,24 @@ func TestResetful(t *testing.T) {
 		r.Resource("/", &resPaincString)
 	})
 }
+
+func TestGetRoutes(t *testing.T) {
+	r := New()
+	is := assert.New(t)
+
+	r.GET("/homepage", func(c *Context) {}).NamedTo("homepage", r)
+	r.GET("/users/{id}", func(c *Context) {}, func(c *Context) {
+		c.Next()
+	}, func(c *Context) {
+		c.Next()
+	}).NamedTo("users_id", r)
+	r.GET("/news/{id}", func(c *Context) {}, func(c *Context) {
+		c.Next()
+	}).NamedTo("news_id", r)
+
+	is.Len(r.NamedRoutes(), 3)
+
+	//for _, r := range r.Routes() {
+	//	fmt.Printf("%#v\n\n", r)
+	//}
+}
