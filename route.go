@@ -81,8 +81,8 @@ type Route struct {
 type RouteInfo struct {
 	Name, Path, HandlerName string
 	// supported method of the route
-	Methods  []string
-	Handlers int
+	Methods    []string
+	HandlerNum int
 }
 
 // NewRoute create a new route

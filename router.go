@@ -598,8 +598,8 @@ func (r *Router) GetRoute(name string) *Route {
 	return r.namedRoutes[name]
 }
 
-// GetRoutes get name of routes.
-func (r *Router) GetRoutes() map[string]*Route {
+// NamedRoutes get name of routes.
+func (r *Router) NamedRoutes() map[string]*Route {
 	return r.namedRoutes
 }
 
