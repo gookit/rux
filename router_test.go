@@ -716,7 +716,7 @@ func TestGetRoutes(t *testing.T) {
 		c.Next()
 	}).NamedTo("news_id", r)
 
-	is.Len(r.GetRoutes(), 3)
+	is.Len(r.NamedRoutes(), 3)
 
 	//for _, r := range r.Routes() {
 	//	fmt.Printf("%#v\n\n", r)
