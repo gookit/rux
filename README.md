@@ -192,6 +192,31 @@ func main() {
 
 ## More Usage
 
+### Static Assets
+
+```go
+package main
+
+import (
+	"net/http"
+	
+	"github.com/gookit/rux"
+)
+
+func main() {
+	r := rux.New()
+
+	// one file
+	r.StaticFile("/site.js", "testdata/site.js")
+
+	// allow any files in the directory.
+	r.StaticDir("/static", "testdata")
+
+	// file type limit in the directory
+	r.StaticFiles("/assets", "testdata", "css|js")
+}
+```
+
 ### Name Route
 
 In `rux`, you can add a named route, and you can get the corresponding route instance(`rux.Route`) from the router according to the name.
@@ -246,9 +271,10 @@ Examples：
 package main
 
 import (
-	"github.com/gookit/rux"
 	"log"
 	"net/http"
+
+	"github.com/gookit/rux"
 )
 
 type HostSwitch map[string]http.Handler
@@ -281,21 +307,22 @@ func main() {
 }
 ```
 
-### RESETful style & Controller style
+### RESETFul Style
 
 ```go
 package main
 
 import (
-	"github.com/gookit/rux"
 	"log"
 	"net/http"
+
+	"github.com/gookit/rux"
 )
 
 type Product struct {
 }
 
-// middlewares [optional]
+// Uses middlewares [optional]
 func (Product) Uses() map[string][]rux.HandlerFunc {
 	return map[string][]rux.HandlerFunc{
 		// function name: handlers
@@ -341,17 +368,6 @@ func (p *Product) Delete(c *rux.Context) {
 	// balabala
 }
 
-type News struct {
-}
-
-func (n *News) AddRoutes(g *rux.Router) {
-	g.GET("/", n.Index)
-}
-
-func (n *News) Index(c *rux.Context) {
-	// balabala
-}
-
 func main() {
 	router := rux.New()
 
@@ -366,6 +382,46 @@ func main() {
     // resetful style
 	router.Resource("/", new(Product))
 
+	log.Fatal(http.ListenAndServe(":12345", router))
+}
+```
+
+### Controller Style
+
+```go
+package main
+
+import (
+	"log"
+	"net/http"
+
+	"github.com/gookit/rux"
+)
+
+type News struct {
+}
+
+func (n *News) AddRoutes(g *rux.Router) {
+	g.GET("/", n.Index)
+	g.POST("/", n.Create)
+	g.PUT("/", n.Edit)
+}
+
+func (n *News) Index(c *rux.Context) {
+	// Do something
+}
+
+func (n *News) Create(c *rux.Context) {
+	// Do something
+}
+
+func (n *News) Edit(c *rux.Context) {
+	// Do something
+}
+
+func main() {
+	router := rux.New()
+
 	// controller style
 	router.Controller("/news", new(News))
 
@@ -373,7 +429,7 @@ func main() {
 }
 ```
 
-### Get route-name and Build url
+### Build URL
 
 ```go
 package main
