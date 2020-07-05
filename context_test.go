@@ -513,3 +513,12 @@ func TestContext_Renderer(t *testing.T) {
 	ris.Equal(200, w.Code)
 	ris.Equal(w.Body.String(), `ADMIN, ID is 100`)
 }
+
+func TestContext_Length(t *testing.T) {
+	ris := assert.New(t)
+
+	c := mockContext("GET", "/", nil, nil)
+	c.WriteString("#length#")
+
+	ris.Equal(8, c.Length())
+}

@@ -516,6 +516,11 @@ func (c *Context) StatusCode() int {
 	return c.writer.Status()
 }
 
+// Length get length from the response
+func (c *Context) Length() int {
+	return c.writer.Length()
+}
+
 // SetHeader for the response
 func (c *Context) SetHeader(key, value string) {
 	c.Resp.Header().Set(key, value)
