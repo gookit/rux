@@ -598,7 +598,7 @@ func (r *Router) GetRoute(name string) *Route {
 	return r.namedRoutes[name]
 }
 
-// NamedRoutes get name of routes.
+// NamedRoutes get all named routes.
 func (r *Router) NamedRoutes() map[string]*Route {
 	return r.namedRoutes
 }
