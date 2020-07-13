@@ -1,91 +1,119 @@
 package rux
 
 import (
+	"container/list"
 	"sync"
 )
 
-// CachedRoutes struct
-type CachedRoutes struct {
-	m    map[string]*Route
-	lock *sync.RWMutex
+type cacheNode struct {
+	Key   string
+	Value *Route
 }
 
-// NewCachedRoutes get CachedRoutes pointer
-func NewCachedRoutes(size int) *CachedRoutes {
-	return &CachedRoutes{
-		lock: new(sync.RWMutex),
-		m:    make(map[string]*Route, size),
+// cachedRoutes struct
+type cachedRoutes struct {
+	size    int
+	list    *list.List
+	hashMap map[string]*list.Element
+	lock    *sync.Mutex
+}
+
+func NewCachedRoutes(size int) *cachedRoutes {
+	return &cachedRoutes{
+		size:    size,
+		list:    list.New(),
+		hashMap: make(map[string]*list.Element),
+		lock: new(sync.Mutex),
 	}
 }
 
-// Get Router pointer
-func (c *CachedRoutes) Get(k string) *Route {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
-
-	if val, ok := c.m[k]; ok {
-		return val
-	}
-
-	return nil
-}
-
-// Set Maps the given key and value. Returns false
-// if the key is already in the map and changes nothing.
-func (c *CachedRoutes) Set(k string, v *Route) bool {
+func (c *cachedRoutes) Len() int {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
-	if val, ok := c.m[k]; !ok {
-		c.m[k] = v
-	} else if val != v {
-		c.m[k] = v
-	} else {
+	return c.list.Len()
+}
+
+func (c *cachedRoutes) Set(k string, v *Route) bool {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	if c.list == nil {
 		return false
+	}
+
+	if element, ok := c.hashMap[k]; ok {
+		c.list.MoveToFront(element)
+		element.Value.(*cacheNode).Value = v
+
+		return true
+	}
+
+	var newElement = c.list.PushFront(&cacheNode{k, v})
+
+	c.hashMap[k] = newElement
+
+	if c.list.Len() > c.size {
+		lastElement := c.list.Back()
+
+		if lastElement == nil {
+			return true
+		}
+
+		cacheNode := lastElement.Value.(*cacheNode)
+
+		delete(c.hashMap, cacheNode.Key)
+
+		c.list.Remove(lastElement)
 	}
 
 	return true
 }
 
-// Has Returns true if k is exist in the map.
-func (c *CachedRoutes) Has(k string) (*Route, bool) {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
-
-	if _, ok := c.m[k]; ok {
-		return c.m[k], true
-	}
-
-	return nil, false
-}
-
-// Len the given m total.
-func (c *CachedRoutes) Len() int {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
-
-	return len(c.m)
-}
-
-// Items the given m.
-func (c *CachedRoutes) Items() map[string]*Route {
-	c.lock.RLock()
-	defer c.lock.RUnlock()
-
-	r := make(map[string]*Route)
-
-	for k, v := range c.m {
-		r[k] = v
-	}
-
-	return r
-}
-
-// Delete the given key and value.
-func (c *CachedRoutes) Delete(k string) {
+func (c *cachedRoutes) Get(k string) *Route {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
-	c.m[k] = nil
-	delete(c.m, k)
+	if c.hashMap == nil {
+		return nil
+	}
+
+	if element, ok := c.hashMap[k]; ok {
+		c.list.MoveToFront(element)
+
+		return element.Value.(*cacheNode).Value
+	}
+
+	return nil
+}
+
+func (c *cachedRoutes) Delete(k string) bool {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	if c.hashMap == nil {
+		return false
+	}
+
+	if element, ok := c.hashMap[k]; ok {
+		cacheNode := element.Value.(*cacheNode)
+
+		delete(c.hashMap, cacheNode.Key)
+
+		c.list.Remove(element)
+
+		return true
+	}
+
+	return false
+}
+
+func (c *cachedRoutes) Has(k string) (*Route, bool) {
+	var r = c.Get(k)
+
+	if r != nil {
+		return r, true
+	}
+
+	return nil, false
 }

@@ -228,20 +228,21 @@ func (r *Router) cacheDynamicRoute(method, path string, ps Params, route *Route)
 		return
 	}
 
-	if r.cachedRoutes.Len() >= int(r.maxNumCaches) {
-		num := 0
-		maxClean := int(r.maxNumCaches / 10)
-
-		for k := range r.cachedRoutes.Items() {
-			if num == maxClean {
-				break
-			}
-
-			num++
-
-			r.cachedRoutes.Delete(k)
-		}
-	}
+	// removed
+	//if r.cachedRoutes.Len() >= int(r.maxNumCaches) {
+	//	num := 0
+	//	maxClean := int(r.maxNumCaches / 10)
+	//
+	//	for k := range r.cachedRoutes.Items() {
+	//		if num == maxClean {
+	//			break
+	//		}
+	//
+	//		num++
+	//
+	//		r.cachedRoutes.Delete(k)
+	//	}
+	//}
 
 	key := method + path
 	// copy new route instance. Notice: cache matched Params

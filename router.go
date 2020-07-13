@@ -99,7 +99,7 @@ type Router struct {
 	// 	"GET/users/12": Route,
 	// }
 	// cachedRoutes map[string]*Route
-	cachedRoutes *CachedRoutes
+	cachedRoutes *cachedRoutes
 
 	// Regular dynamic routing
 	// - key is METHOD + "first-node":
