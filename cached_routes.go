@@ -25,7 +25,7 @@ func NewCachedRoutes(size int) *cachedRoutes {
 		size:    size,
 		list:    list.New(),
 		hashMap: make(map[string]*list.Element),
-		lock: new(sync.Mutex),
+		lock:    new(sync.Mutex),
 	}
 }
 

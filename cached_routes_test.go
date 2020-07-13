@@ -24,7 +24,7 @@ func TestCachedRoutes_SetAndGet(t *testing.T) {
 
 	is.Equal(c.list.Front().Value.(*cacheNode).Key, "cache4")
 
-	c.Get("cache3")
+	is.NotNil(c.Get("cache3"))
 
 	is.Equal(c.list.Front().Value.(*cacheNode).Key, "cache3")
 	is.Equal(3, c.Len())
