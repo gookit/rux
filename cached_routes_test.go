@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewCachedRoutes(t *testing.T) {
+func TestCachedRoutes_SetAndGet(t *testing.T) {
 	is := assert.New(t)
 	c := NewCachedRoutes(3)
 
@@ -21,6 +21,26 @@ func TestNewCachedRoutes(t *testing.T) {
 
 	is.Equal(c.list.Front().Value.(*cacheNode).Key, "cache3")
 	is.Equal(3, c.Len())
+}
+
+func TestCachedRoutes_Delete(t *testing.T) {
+	is := assert.New(t)
+	c := NewCachedRoutes(3)
+
+	c.Set("cache1", NewRoute("/cache1", nil))
+	c.Delete("cache1")
+
+	is.Equal(0, c.Len())
+}
+
+func TestCachedRoutes_Has(t *testing.T) {
+	is := assert.New(t)
+	c := NewCachedRoutes(3)
+
+	c.Set("cache1", NewRoute("/cache1", nil))
+
+	_, ok := c.Has("cache1")
+	is.True(ok)
 }
 
 func TestCacheRoutes(t *testing.T) {

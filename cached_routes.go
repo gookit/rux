@@ -5,6 +5,7 @@ import (
 	"sync"
 )
 
+// cacheNode struct
 type cacheNode struct {
 	Key   string
 	Value *Route
@@ -18,6 +19,7 @@ type cachedRoutes struct {
 	lock    *sync.Mutex
 }
 
+// NewCachedRoutes Get Cache pointer
 func NewCachedRoutes(size int) *cachedRoutes {
 	return &cachedRoutes{
 		size:    size,
@@ -27,6 +29,7 @@ func NewCachedRoutes(size int) *cachedRoutes {
 	}
 }
 
+// Len cache len
 func (c *cachedRoutes) Len() int {
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -34,6 +37,7 @@ func (c *cachedRoutes) Len() int {
 	return c.list.Len()
 }
 
+// Set route key and Route
 func (c *cachedRoutes) Set(k string, v *Route) bool {
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -70,6 +74,7 @@ func (c *cachedRoutes) Set(k string, v *Route) bool {
 	return true
 }
 
+// Get Router by key
 func (c *cachedRoutes) Get(k string) *Route {
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -87,6 +92,7 @@ func (c *cachedRoutes) Get(k string) *Route {
 	return nil
 }
 
+// Delete Router by key
 func (c *cachedRoutes) Delete(k string) bool {
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -108,6 +114,7 @@ func (c *cachedRoutes) Delete(k string) bool {
 	return false
 }
 
+// Has Returns true if k is exist in the hashmap.
 func (c *cachedRoutes) Has(k string) (*Route, bool) {
 	var r = c.Get(k)
 
