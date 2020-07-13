@@ -10,10 +10,17 @@ func TestCachedRoutes_SetAndGet(t *testing.T) {
 	is := assert.New(t)
 	c := NewCachedRoutes(3)
 
-	c.Set("cache1", NewRoute("/cache1", nil))
-	c.Set("cache2", NewRoute("/cache2", nil))
-	c.Set("cache3", NewRoute("/cache3", nil))
-	c.Set("cache4", NewRoute("/cache4", nil))
+	cache1 := c.Set("cache1", NewRoute("/cache1", nil))
+	is.True(cache1)
+
+	cache2 := c.Set("cache2", NewRoute("/cache2", nil))
+	is.True(cache2)
+
+	cache3 := c.Set("cache3", NewRoute("/cache3", nil))
+	is.True(cache3)
+
+	cache4 := c.Set("cache4", NewRoute("/cache4", nil))
+	is.True(cache4)
 
 	is.Equal(c.list.Front().Value.(*cacheNode).Key, "cache4")
 
@@ -21,6 +28,14 @@ func TestCachedRoutes_SetAndGet(t *testing.T) {
 
 	is.Equal(c.list.Front().Value.(*cacheNode).Key, "cache3")
 	is.Equal(3, c.Len())
+
+	c2 := NewCachedRoutes(3)
+	c2.list = nil
+
+	cache5 := c2.Set("cache5", NewRoute("/cache5", nil))
+	is.False(cache5)
+
+	is.Nil(c2.Get("not-found"))
 }
 
 func TestCachedRoutes_Delete(t *testing.T) {
@@ -31,6 +46,10 @@ func TestCachedRoutes_Delete(t *testing.T) {
 	c.Delete("cache1")
 
 	is.Equal(0, c.Len())
+
+	c.hashMap = nil
+
+	is.False(c.Delete("cache1"))
 }
 
 func TestCachedRoutes_Has(t *testing.T) {
