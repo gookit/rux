@@ -1,6 +1,7 @@
 package rux
 
 import (
+	"container/list"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -80,6 +81,12 @@ func TestCachedRoutes_Get(t *testing.T) {
 	}
 
 	is.Nil(c.Get("not-found"))
+
+	c.hashMap["error"] = &list.Element{
+		Value: "error",
+	}
+
+	is.Nil(c.Get("error"))
 
 	c.hashMap = nil
 
