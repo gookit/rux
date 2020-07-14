@@ -6,38 +6,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCachedRoutes_SetAndGet(t *testing.T) {
-	is := assert.New(t)
-	c := NewCachedRoutes(3)
-
-	cache1 := c.Set("cache1", NewRoute("/cache1", nil))
-	is.True(cache1)
-
-	cache2 := c.Set("cache2", NewRoute("/cache2", nil))
-	is.True(cache2)
-
-	cache3 := c.Set("cache3", NewRoute("/cache3", nil))
-	is.True(cache3)
-
-	cache4 := c.Set("cache4", NewRoute("/cache4", nil))
-	is.True(cache4)
-
-	is.Equal(c.list.Front().Value.(*cacheNode).Key, "cache4")
-
-	is.NotNil(c.Get("cache3"))
-
-	is.Equal(c.list.Front().Value.(*cacheNode).Key, "cache3")
-	is.Equal(3, c.Len())
-
-	c2 := NewCachedRoutes(3)
-	c2.list = nil
-
-	cache5 := c2.Set("cache5", NewRoute("/cache5", nil))
-	is.False(cache5)
-
-	is.Nil(c2.Get("not-found"))
-}
-
 func TestCachedRoutes_Delete(t *testing.T) {
 	is := assert.New(t)
 	c := NewCachedRoutes(3)
@@ -46,6 +14,8 @@ func TestCachedRoutes_Delete(t *testing.T) {
 	c.Delete("cache1")
 
 	is.Equal(0, c.Len())
+
+	is.False(c.Delete("cache2"))
 
 	c.hashMap = nil
 
@@ -81,4 +51,37 @@ func TestCacheRoutes(t *testing.T) {
 	is.Equal("cache4", w2.Body.String())
 
 	is.Equal(2, r.cachedRoutes.Len())
+}
+
+func TestCachedRoutes_Set(t *testing.T) {
+	is := assert.New(t)
+	c := NewCachedRoutes(3)
+
+	cache1 := c.Set("cache1", NewRoute("/cache1", nil))
+	is.True(cache1)
+
+	is.Equal(1, c.Len())
+
+	c2 := NewCachedRoutes(3)
+	c2.list = nil
+
+	cache5 := c2.Set("cache5", NewRoute("/cache5", nil))
+	is.False(cache5)
+}
+
+func TestCachedRoutes_Get(t *testing.T) {
+	is := assert.New(t)
+	c := NewCachedRoutes(3)
+
+	cache1 := c.Set("cache1", NewRoute("/cache1", nil))
+
+	if cache1 {
+		is.NotNil(c.Get("cache1"))
+	}
+
+	is.Nil(c.Get("not-found"))
+
+	c.list = nil
+
+	is.Nil(c.Get("cache1"))
 }

@@ -46,9 +46,16 @@ func (c *cachedRoutes) Set(k string, v *Route) bool {
 		return false
 	}
 
-	if element, ok := c.hashMap[k]; ok {
+	if element, isFound := c.hashMap[k]; isFound {
 		c.list.MoveToFront(element)
-		element.Value.(*cacheNode).Value = v
+
+		cacheNode, ok := element.Value.(*cacheNode)
+
+		if !ok {
+			return false
+		}
+
+		cacheNode.Value = v
 
 		return true
 	}
@@ -64,7 +71,11 @@ func (c *cachedRoutes) Set(k string, v *Route) bool {
 			return true
 		}
 
-		cacheNode := lastElement.Value.(*cacheNode)
+		cacheNode, ok := lastElement.Value.(*cacheNode)
+
+		if !ok {
+			return false
+		}
 
 		delete(c.hashMap, cacheNode.Key)
 
@@ -86,7 +97,13 @@ func (c *cachedRoutes) Get(k string) *Route {
 	if element, ok := c.hashMap[k]; ok {
 		c.list.MoveToFront(element)
 
-		return element.Value.(*cacheNode).Value
+		cacheNode, ok := element.Value.(*cacheNode)
+
+		if !ok {
+			return nil
+		}
+
+		return cacheNode.Value
 	}
 
 	return nil
@@ -102,7 +119,11 @@ func (c *cachedRoutes) Delete(k string) bool {
 	}
 
 	if element, ok := c.hashMap[k]; ok {
-		cacheNode := element.Value.(*cacheNode)
+		cacheNode, ok := element.Value.(*cacheNode)
+
+		if !ok {
+			return false
+		}
 
 		delete(c.hashMap, cacheNode.Key)
 
