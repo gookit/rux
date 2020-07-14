@@ -81,7 +81,7 @@ func TestCachedRoutes_Get(t *testing.T) {
 
 	is.Nil(c.Get("not-found"))
 
-	c.list = nil
+	c.hashMap = nil
 
 	is.Nil(c.Get("cache1"))
 }
