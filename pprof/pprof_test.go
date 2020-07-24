@@ -9,7 +9,6 @@ import (
 )
 
 func TestRouter_PProf(t *testing.T) {
-	return
 	r := rux.New(UsePProf)
 	is := assert.New(t)
 
