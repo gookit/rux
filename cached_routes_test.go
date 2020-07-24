@@ -15,7 +15,6 @@ func TestCachedRoutes_Delete(t *testing.T) {
 	c.Delete("cache1")
 
 	is.Equal(0, c.Len())
-
 	is.False(c.Delete("cache2"))
 
 	c.hashMap = nil
