@@ -1,71 +1,94 @@
 package rux
 
 import (
+	"container/list"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCachedRoutes_SetAndGet(t *testing.T) {
-	r := New()
-	is := assert.New(t)
-
-	test := r.GET("/users/{id}", func(c *Context) {
-
-	})
-
-	c := NewCachedRoutes(10)
-	c.Set("test", test)
-
-	is.Equal(test, c.Get("test"))
-	is.Nil(c.Get("not-exist"))
-}
-
 func TestCachedRoutes_Delete(t *testing.T) {
-	r := New()
 	is := assert.New(t)
+	c := NewCachedRoutes(3)
 
-	test := r.GET("/users/{id}", func(c *Context) {
+	c.Set("cache1", NewRoute("/cache1", nil))
+	c.Delete("cache1")
 
-	})
+	is.Equal(0, c.Len())
 
-	c := NewCachedRoutes(10)
-	c.Set("test", test)
-	c.Delete("test")
+	is.False(c.Delete("cache2"))
 
-	is.Equal(c.Len(), 0)
+	c.hashMap = nil
+
+	is.False(c.Delete("cache1"))
 }
 
 func TestCachedRoutes_Has(t *testing.T) {
-	r := New()
 	is := assert.New(t)
+	c := NewCachedRoutes(3)
 
-	test := r.GET("/users/{id}", func(c *Context) {
+	c.Set("cache1", NewRoute("/cache1", nil))
 
-	})
-
-	c := NewCachedRoutes(10)
-	c.Set("test", test)
-
-	_, ok := c.Has("test")
+	_, ok := c.Has("cache1")
 	is.True(ok)
 }
 
-func TestCachedRoutes_Items(t *testing.T) {
-	r := New()
+func TestCacheRoutes(t *testing.T) {
 	is := assert.New(t)
+	r := New(EnableCaching, MaxNumCaches(3))
 
-	test := r.GET("/users/{id}", func(c *Context) {})
-	test1 := r.GET("/news/{id}", func(c *Context) {})
+	r.GET("/cache1/{id}", func(c *Context) {})
+	r.GET("/cache2/{id}", func(c *Context) {})
+	r.GET("/cache3/{id}", func(c *Context) {
+		c.WriteString("cache3")
+	})
+	r.GET("/cache4/{id}", func(c *Context) {
+		c.WriteString("cache4")
+	})
 
-	c := NewCachedRoutes(10)
-	c.Set("test", test)
+	w1 := mockRequest(r, "GET", "/cache3/1234", nil)
+	is.Equal("cache3", w1.Body.String())
+	w2 := mockRequest(r, "GET", "/cache4/1234", nil)
+	is.Equal("cache4", w2.Body.String())
 
-	for _, r := range c.Items() {
-		is.Equal(r, test)
+	is.Equal(2, r.cachedRoutes.Len())
+}
+
+func TestCachedRoutes_Set(t *testing.T) {
+	is := assert.New(t)
+	c := NewCachedRoutes(3)
+
+	cache1 := c.Set("cache1", NewRoute("/cache1", nil))
+	is.True(cache1)
+
+	is.Equal(1, c.Len())
+
+	c2 := NewCachedRoutes(3)
+	c2.list = nil
+
+	cache5 := c2.Set("cache5", NewRoute("/cache5", nil))
+	is.False(cache5)
+}
+
+func TestCachedRoutes_Get(t *testing.T) {
+	is := assert.New(t)
+	c := NewCachedRoutes(3)
+
+	cache1 := c.Set("cache1", NewRoute("/cache1", nil))
+
+	if cache1 {
+		is.NotNil(c.Get("cache1"))
 	}
 
-	is.False(c.Set("test", test))
-	is.True(c.Set("test", test1))
-	is.Equal(1, c.Len())
+	is.Nil(c.Get("not-found"))
+
+	c.hashMap["error"] = &list.Element{
+		Value: "error",
+	}
+
+	is.Nil(c.Get("error"))
+
+	c.hashMap = nil
+
+	is.Nil(c.Get("cache1"))
 }
