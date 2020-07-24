@@ -183,7 +183,7 @@ func (r *Router) match(method, path string) (ret *MatchResult) {
 
 	// find in cached routes
 	if r.enableCaching {
-		route, ok := r.cachedRoutes.Has(key)
+		route, ok := r.cachedRoutes.Get(key)
 		if ok {
 			return newFoundResult(route, route.params)
 		}
@@ -229,7 +229,7 @@ func (r *Router) cacheDynamicRoute(method, path string, ps Params, route *Route)
 	}
 
 	// removed
-	//if r.cachedRoutes.Len() >= int(r.maxNumCaches) {
+	// if r.cachedRoutes.Len() >= int(r.maxNumCaches) {
 	//	num := 0
 	//	maxClean := int(r.maxNumCaches / 10)
 	//
@@ -242,7 +242,7 @@ func (r *Router) cacheDynamicRoute(method, path string, ps Params, route *Route)
 	//
 	//		r.cachedRoutes.Delete(k)
 	//	}
-	//}
+	// }
 
 	key := method + path
 	// copy new route instance. Notice: cache matched Params

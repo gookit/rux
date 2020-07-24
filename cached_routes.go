@@ -15,8 +15,8 @@ type cacheNode struct {
 type cachedRoutes struct {
 	size    int
 	list    *list.List
-	hashMap map[string]*list.Element
 	lock    *sync.Mutex
+	hashMap map[string]*list.Element
 }
 
 // NewCachedRoutes Get Cache pointer
@@ -24,8 +24,8 @@ func NewCachedRoutes(size int) *cachedRoutes {
 	return &cachedRoutes{
 		size:    size,
 		list:    list.New(),
-		hashMap: make(map[string]*list.Element),
 		lock:    new(sync.Mutex),
+		hashMap: make(map[string]*list.Element),
 	}
 }
 
@@ -42,71 +42,47 @@ func (c *cachedRoutes) Set(k string, v *Route) bool {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
-	if c.list == nil {
-		return false
-	}
-
+	// key has been exists, update value
 	if element, isFound := c.hashMap[k]; isFound {
 		c.list.MoveToFront(element)
 
-		cacheNode, ok := element.Value.(*cacheNode)
-
-		if !ok {
-			return false
-		}
-
+		cacheNode := element.Value.(*cacheNode)
+		// update value
 		cacheNode.Value = v
-
 		return true
 	}
 
-	var newElement = c.list.PushFront(&cacheNode{k, v})
-
+	newElement := c.list.PushFront(&cacheNode{k, v})
 	c.hashMap[k] = newElement
 
 	if c.list.Len() > c.size {
 		lastElement := c.list.Back()
-
 		if lastElement == nil {
 			return true
 		}
 
-		cacheNode, ok := lastElement.Value.(*cacheNode)
-
-		if !ok {
-			return false
-		}
+		cacheNode := lastElement.Value.(*cacheNode)
 
 		delete(c.hashMap, cacheNode.Key)
-
 		c.list.Remove(lastElement)
 	}
 
 	return true
 }
 
-// Get Router by key
-func (c *cachedRoutes) Get(k string) *Route {
+// Get cached Route by key
+func (c *cachedRoutes) Get(k string) (*Route, bool) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-
-	if c.hashMap == nil {
-		return nil
-	}
 
 	if element, ok := c.hashMap[k]; ok {
 		c.list.MoveToFront(element)
 
-		cacheNode, ok := element.Value.(*cacheNode)
-
-		if !ok {
-			return nil
-		}
-
-		return cacheNode.Value
+		cacheNode := element.Value.(*cacheNode)
+		return cacheNode.Value, true
 	}
 
-	return nil
+	return nil, false
 }
 
 // Delete Router by key
@@ -114,34 +90,19 @@ func (c *cachedRoutes) Delete(k string) bool {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
-	if c.hashMap == nil {
-		return false
-	}
-
 	if element, ok := c.hashMap[k]; ok {
-		cacheNode, ok := element.Value.(*cacheNode)
-
-		if !ok {
-			return false
-		}
+		cacheNode := element.Value.(*cacheNode)
 
 		delete(c.hashMap, cacheNode.Key)
-
 		c.list.Remove(element)
-
 		return true
 	}
 
 	return false
 }
 
-// Has Returns true if k is exist in the hashmap.
-func (c *cachedRoutes) Has(k string) (*Route, bool) {
-	var r = c.Get(k)
-
-	if r != nil {
-		return r, true
-	}
-
-	return nil, false
+// Has returns true if k is exist in the hashmap.
+func (c *cachedRoutes) Has(k string) bool {
+	_, ok := c.Get(k)
+	return ok
 }

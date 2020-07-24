@@ -1,7 +1,7 @@
 package rux
 
 import (
-	"container/list"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -27,14 +27,13 @@ func TestCachedRoutes_Has(t *testing.T) {
 	c := NewCachedRoutes(3)
 
 	c.Set("cache1", NewRoute("/cache1", nil))
-
-	_, ok := c.Has("cache1")
-	is.True(ok)
+	is.True(c.Has("cache1"))
+	is.False(c.Has("not-exists"))
 }
 
 func TestCacheRoutes(t *testing.T) {
 	is := assert.New(t)
-	r := New(EnableCaching, MaxNumCaches(3))
+	r := New(CachingWithNum(3))
 
 	r.GET("/cache1/{id}", func(c *Context) {})
 	r.GET("/cache2/{id}", func(c *Context) {})
@@ -57,37 +56,37 @@ func TestCachedRoutes_Set(t *testing.T) {
 	is := assert.New(t)
 	c := NewCachedRoutes(3)
 
-	cache1 := c.Set("cache1", NewRoute("/cache1", nil))
-	is.True(cache1)
-
+	ok := c.Set("cache1", NewRoute("/cache1", nil))
+	is.True(ok)
 	is.Equal(1, c.Len())
 
-	c2 := NewCachedRoutes(3)
-	c2.list = nil
+	// repeat set same key
+	ok = c.Set("cache1", NewRoute("/cache1", nil))
+	is.True(ok)
+	is.Equal(1, c.Len())
 
-	cache5 := c2.Set("cache5", NewRoute("/cache5", nil))
-	is.False(cache5)
+	// test delete elements
+	cr := NewCachedRoutes(3)
+	for i := 0; i < 5; i++ {
+		key := fmt.Sprint("key", i)
+		cr.Set(key, NewRoute("/"+key, emptyHandler))
+	}
+
+	is.Equal(3, cr.Len())
 }
 
 func TestCachedRoutes_Get(t *testing.T) {
 	is := assert.New(t)
 	c := NewCachedRoutes(3)
 
-	cache1 := c.Set("cache1", NewRoute("/cache1", nil))
+	ok := c.Set("cache1", NewRoute("/cache1", nil))
 
-	if cache1 {
-		is.NotNil(c.Get("cache1"))
+	if is.True(ok) {
+		is.True(c.Has("cache1"))
+		route, ok := c.Get("cache1")
+		is.True(ok)
+		is.Equal("/cache1", route.Path())
 	}
 
-	is.Nil(c.Get("not-found"))
-
-	c.hashMap["error"] = &list.Element{
-		Value: "error",
-	}
-
-	is.Nil(c.Get("error"))
-
-	c.hashMap = nil
-
-	is.Nil(c.Get("cache1"))
+	is.Nil(c.Get("not-exists"))
 }

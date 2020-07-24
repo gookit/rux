@@ -139,6 +139,7 @@ func TestContext_FormParams(t *testing.T) {
 	})
 
 	f3, err := c3.FormParams()
+	art.NoError(err)
 	art.Equal("kay0=val0", f3.Encode())
 }
 
@@ -214,7 +215,8 @@ func TestContext_FileContent(t *testing.T) {
 	is.Equal(200, w.Code)
 	ss, ok := w.Header()["Content-Type"]
 	is.True(ok)
-	is.Contains(ss[0], "text/plain")
+	// go 1.14.4 "text/markdown; charset=utf-8" does not contain "text/plain"
+	is.Contains(ss[0], "text/")
 	is.Equal("# readme", w.Body.String())
 	is.Equal(8, c.writer.Length())
 

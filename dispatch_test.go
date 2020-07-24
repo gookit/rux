@@ -235,6 +235,7 @@ func TestContext(t *testing.T) {
 		is.Nil(c.Err())
 		is.Equal("val", c.MustGet("newKey").(string))
 		is.Equal("val", c.Value("newKey").(string))
+		is.Nil(c.Value("not-exists"))
 
 		_, ok = c.Value(nil).(*http.Request)
 		is.True(ok)
@@ -518,22 +519,32 @@ func TestHandleXML(t *testing.T) {
 	is := assert.New(t)
 	r := New()
 
+	type User struct {
+		Name string
+	}
+
+	u := &User{
+		Name: "test",
+	}
+
 	r.GET("/test-xml", func(c *Context) {
-		type User struct {
-			Name string
-		}
-
-		u := &User{
-			Name: "test",
-		}
-
 		c.XML(200, u)
+	})
+	r.GET("/test-xml2", func(c *Context) {
+		c.XML(200, u, "  ")
 	})
 
 	w := mockRequest(r, GET, "/test-xml", nil)
 	is.Equal(`application/xml; charset=UTF-8`, w.Header().Get("Content-Type"))
 	is.Equal(`<?xml version="1.0" encoding="UTF-8"?>
 <User><Name>test</Name></User>`, w.Body.String())
+
+	w = mockRequest(r, GET, "/test-xml2", nil)
+	is.Equal(`application/xml; charset=UTF-8`, w.Header().Get("Content-Type"))
+	is.Equal(`<?xml version="1.0" encoding="UTF-8"?>
+<User>
+  <Name>test</Name>
+</User>`, w.Body.String())
 }
 
 func TestHandleJSONP(t *testing.T) {
