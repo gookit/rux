@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/gookit/goutil/envutil"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -600,11 +601,21 @@ func TestAccessStaticAssets(t *testing.T) {
 	r := New()
 	is := assert.New(t)
 
+	checkJsAssetHeader := func(contentType string) {
+		if envutil.IsWin() {
+			is.Equal("text/plain; charset=utf-8", contentType)
+		} else {
+			is.Equal("application/javascript", contentType)
+		}
+	}
+
 	// one file
 	r.StaticFile("/site.js", "testdata/site.js")
 	w := mockRequest(r, "GET", "/site.js", nil)
 	is.Equal(200, w.Code)
-	is.Equal("application/javascript", w.Header().Get("Content-Type"))
+
+	checkJsAssetHeader(w.Header().Get("Content-Type"))
+
 	is.Contains(w.Body.String(), "console.log")
 	// try again
 	w = mockRequest(r, "GET", "/site.js?t=33455", nil)
@@ -618,7 +629,9 @@ func TestAccessStaticAssets(t *testing.T) {
 	is.Contains(w.Body.String(), "max-width")
 	w = mockRequest(r, "GET", "/static/site.js", nil)
 	is.Equal(200, w.Code)
-	is.Equal("application/javascript", w.Header().Get("Content-Type"))
+
+	checkJsAssetHeader(w.Header().Get("Content-Type"))
+
 	is.Contains(w.Body.String(), "console.log")
 	w = mockRequest(r, "GET", "/static/site.md", nil)
 	is.Equal(200, w.Code)
@@ -628,7 +641,9 @@ func TestAccessStaticAssets(t *testing.T) {
 	r.StaticFiles("/assets", "testdata", "css|js")
 	w = mockRequest(r, "GET", "/assets/site.js", nil)
 	is.Equal(200, w.Code)
-	is.Equal("application/javascript", w.Header().Get("Content-Type"))
+
+	checkJsAssetHeader(w.Header().Get("Content-Type"))
+
 	is.Contains(w.Body.String(), "console.log")
 	w = mockRequest(r, "GET", "/assets/site.md", nil)
 	is.Equal(404, w.Code)
