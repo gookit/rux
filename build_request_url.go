@@ -96,6 +96,7 @@ func (b *BuildRequestURL) Build(withParams ...M) *url.URL {
 	var n string
 	var varParams = make(map[string]string)
 
+	// TODO should optimize ...
 	for _, str := range ss {
 		nvStr := str[1 : len(str)-1]
 

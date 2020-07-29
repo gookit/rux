@@ -24,6 +24,12 @@ Simple and fast web framework for build golang HTTP applications.
 
 - [godoc for github](https://pkg.go.dev/github.com/gookit/rux?tab=doc)
 
+## Install
+
+```bash
+go get github.com/gookit/rux
+```
+
 ## Quick start
 
 ```go
@@ -338,37 +344,37 @@ func (Product) Uses() map[string][]rux.HandlerFunc {
 
 // all products [optional]
 func (p *Product) Index(c *rux.Context) {
-	// balabala
+	// do something
 }
 
 // create product [optional]
 func (p *Product) Create(c *rux.Context) {
-	// balabala
+	// do something
 }
 
 // save new product [optional]
 func (p *Product) Store(c *rux.Context) {
-	// balabala
+	// do something
 }
 
 // show product with {id} [optional]
 func (p *Product) Show(c *rux.Context) {
-	// balabala
+	// do something
 }
 
 // edit product [optional]
 func (p *Product) Edit(c *rux.Context) {
-	// balabala
+	// do something
 }
 
 // save edited product [optional]
 func (p *Product) Update(c *rux.Context) {
-	// balabala
+	// do something
 }
 
 // delete product [optional]
 func (p *Product) Delete(c *rux.Context) {
-	// balabala
+	// do something
 }
 
 func main() {
@@ -401,6 +407,7 @@ import (
 	"github.com/gookit/rux"
 )
 
+// News controller
 type News struct {
 }
 

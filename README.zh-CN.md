@@ -23,6 +23,12 @@
 
 - [godoc for github](https://pkg.go.dev/github.com/gookit/rux?tab=doc)
 
+## 安装
+
+```bash
+go get github.com/gookit/rux
+```
+
 ## 快速开始
 
 ```go
@@ -247,9 +253,10 @@ rux 中你可以添加命名路由，根据名称可以从路由器里拿到对�
 package main
 
 import (
-	"github.com/gookit/rux"
 	"log"
 	"net/http"
+
+	"github.com/gookit/rux"
 )
 
 type HostSwitch map[string]http.Handler
@@ -310,37 +317,37 @@ func (Product) Uses() map[string][]rux.HandlerFunc {
 
 // all products [optional]
 func (p *Product) Index(c *rux.Context) {
-	// balabala
+	// do something ...
 }
 
 // create product [optional]
 func (p *Product) Create(c *rux.Context) {
-	// balabala
+	// do something ...
 }
 
 // save new product [optional]
 func (p *Product) Store(c *rux.Context) {
-	// balabala
+	// do something ...
 }
 
 // show product with {id} [optional]
 func (p *Product) Show(c *rux.Context) {
-	// balabala
+	// do something ...
 }
 
 // edit product [optional]
 func (p *Product) Edit(c *rux.Context) {
-	// balabala
+	// do something ...
 }
 
 // save edited product [optional]
 func (p *Product) Update(c *rux.Context) {
-	// balabala
+	// do something ...
 }
 
 // delete product [optional]
 func (p *Product) Delete(c *rux.Context) {
-	// balabala
+	// do something ...
 }
 
 type News struct {
@@ -351,7 +358,7 @@ func (n *News) AddRoutes(g *rux.Router) {
 }
 
 func (n *News) Index(c *rux.Context) {
-	// balabala
+	// do something ...
 }
 
 func main() {
@@ -374,6 +381,50 @@ func main() {
 	log.Fatal(http.ListenAndServe(":12345", router))
 }
 ```
+
+### Controller 风格
+
+```go
+package main
+
+import (
+	"log"
+	"net/http"
+
+	"github.com/gookit/rux"
+)
+
+// News controller
+type News struct {
+}
+
+func (n *News) AddRoutes(g *rux.Router) {
+	g.GET("/", n.Index)
+	g.POST("/", n.Create)
+	g.PUT("/", n.Edit)
+}
+
+func (n *News) Index(c *rux.Context) {
+	// Do something
+}
+
+func (n *News) Create(c *rux.Context) {
+	// Do something
+}
+
+func (n *News) Edit(c *rux.Context) {
+	// Do something
+}
+
+
+func main() {
+	router := rux.New()
+
+	// controller style
+	router.Controller("/news", new(News))
+
+	log.Fatal(http.ListenAndServe(":12345", router))
+}
 
 ### 获取路由名字 与 生成请求URL
 

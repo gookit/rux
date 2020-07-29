@@ -198,7 +198,7 @@ func (r *Router) BuildRequestURL(name string, buildRequestURLs ...interface{}) *
 
 	route := r.GetRoute(name)
 	if route == nil {
-		panicf("BuildRequestURL get route (name: %s) is nil", name)
+		panicf("BuildRequestURL get route is nil(name: %s)", name)
 	}
 
 	//noinspection GoNilness
