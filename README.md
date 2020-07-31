@@ -42,16 +42,7 @@ import (
 func main() {
 	r := rux.New()
 	
-	// Static Assets
-	// one file
-	r.StaticFile("/site.js", "testdata/site.js")
-	// allow any files in the dir.
-	r.StaticDir("/static", "testdata")
-	// file type limit
-	r.StaticFiles("/assets", "testdata", "css|js")
-
 	// Add Routes:
-	
 	r.GET("/", func(c *rux.Context) {
 		c.Text(200, "hello")
 	})
@@ -61,18 +52,6 @@ func main() {
 	r.POST("/post", func(c *rux.Context) {
 		c.Text(200, "hello")
 	})
-	r.Group("/articles", func() {
-		r.GET("", func(c *rux.Context) {
-			c.Text(200, "view list")
-		})
-		r.POST("", func(c *rux.Context) {
-			c.Text(200, "create ok")
-		})
-		r.GET(`/{id:\d+}`, func(c *rux.Context) {
-			c.Text(200, "view detail, id: " + c.Param("id"))
-		})
-	})
-	
 	// add multi method support for an route path
 	r.Add("/post[/{id}]", func(c *rux.Context) {
 		if c.Param("id") == "" {
@@ -80,20 +59,58 @@ func main() {
 			c.Text(200, "created")
 			return
 		}
-		
+
 		id := c.Params.Int("id")
 		// do update post
 		c.Text(200, "updated " + fmt.Sprint(id))
 	}, rux.POST, rux.PUT)
 
-	// quick start
+	// Start server
 	r.Listen(":8080")
 	// can also
 	// http.ListenAndServe(":8080", r)
 }
 ```
 
-## Use Middleware
+## Route Group
+
+```go
+r.Group("/articles", func() {
+    r.GET("", func(c *rux.Context) {
+        c.Text(200, "view list")
+    })
+    r.POST("", func(c *rux.Context) {
+        c.Text(200, "create ok")
+    })
+    r.GET(`/{id:\d+}`, func(c *rux.Context) {
+        c.Text(200, "view detail, id: " + c.Param("id"))
+    })
+})
+```
+
+## With Path Params
+
+You can add path params like: `{id}` Or `{id:\d+}`
+
+```go
+r.GET(`/blog/{id:\d+}`, func(c *rux.Context) {
+    c.Text(200, "view detail, id: " + c.Param("id"))
+})
+
+r.Add("/post[/{id}]", func(c *rux.Context) {
+    if c.Param("id") == "" {
+        // do create post
+        c.Text(200, "created")
+        return
+    }
+
+    id := c.Params.Int("id")
+    // do update post
+    c.Text(200, "updated " + fmt.Sprint(id))
+}, rux.POST, rux.PUT)
+```
+
+## Route Middleware
 
 rux support use middleware, allow:
 
@@ -103,7 +120,7 @@ rux support use middleware, allow:
 
 **Call priority**: `global middleware -> group middleware -> route middleware`
 
-### Example
+### Use Middleware
 
 ```go
 package main

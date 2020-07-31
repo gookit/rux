@@ -149,7 +149,7 @@ func TestBuildRequestUrl_EmptyRoute(t *testing.T) {
 
 	r.AddRoute(homepage)
 
-	is.PanicsWithValue("BuildRequestURL get route (name: homepage-empty) is nil", func() {
+	is.PanicsWithValue("BuildRequestURL get route is nil(name: homepage-empty)", func() {
 		r.BuildRequestURL("homepage-empty", "{name}", "test", "{id}", "20", "username", "demo")
 	})
 }

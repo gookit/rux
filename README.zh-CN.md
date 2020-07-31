@@ -289,7 +289,7 @@ func main() {
 }
 ```
 
-### RESETful 风格 & Controller 风格
+### RESETful 风格
 
 ```go
 package main
@@ -350,17 +350,6 @@ func (p *Product) Delete(c *rux.Context) {
 	// do something ...
 }
 
-type News struct {
-}
-
-func (n *News) AddRoutes(g *rux.Router) {
-	g.GET("/", n.Index)
-}
-
-func (n *News) Index(c *rux.Context) {
-	// do something ...
-}
-
 func main() {
 	router := rux.New()
 
@@ -374,9 +363,6 @@ func main() {
     // DELETE	/product/{id}	delete	product_delete
     // resetful style
 	router.Resource("/", new(Product))
-
-	// controller style
-	router.Controller("/news", new(News))
 
 	log.Fatal(http.ListenAndServe(":12345", router))
 }
@@ -425,8 +411,9 @@ func main() {
 
 	log.Fatal(http.ListenAndServe(":12345", router))
 }
+```
 
-### 获取路由名字 与 生成请求URL
+### 获取路由与生成请求URL
 
 ```go
 package main
@@ -434,6 +421,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"net/url"
 
 	"github.com/gookit/rux"
 )
