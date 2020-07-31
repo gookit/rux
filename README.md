@@ -110,7 +110,7 @@ r.Add("/post[/{id}]", func(c *rux.Context) {
 }, rux.POST, rux.PUT)
 ```
 
-## Route Middleware
+## Use Middleware
 
 rux support use middleware, allow:
 
@@ -120,7 +120,7 @@ rux support use middleware, allow:
 
 **Call priority**: `global middleware -> group middleware -> route middleware`
 
-### Use Middleware
+Examples:
 
 ```go
 package main
