@@ -478,6 +478,13 @@ func TestOptionalRoute(t *testing.T) {
 	is.Equal(Found, ret.Status)
 	ret = r.Match(GET, "/blog/golang")
 	is.Equal(Found, ret.Status)
+
+	r = New()
+	r.GET("/[{invite_name}]", emptyHandler)
+	ret = r.Match(GET, "/")
+	is.Equal(Found, ret.Status)
+	ret = r.Match(GET, "/blog")
+	is.Equal(Found, ret.Status)
 }
 
 func TestMethodNotAllowed(t *testing.T) {
