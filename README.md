@@ -90,14 +90,24 @@ r.Group("/articles", func() {
 
 ## With Path Params
 
-You can add path params like: `{id}` Or `{id:\d+}`
+You can add the path params like: `{id}` Or `{id:\d+}`
 
 ```go
+// can access by: "/blog/123"
 r.GET(`/blog/{id:\d+}`, func(c *rux.Context) {
     c.Text(200, "view detail, id: " + c.Param("id"))
 })
+```
 
-r.Add("/post[/{id}]", func(c *rux.Context) {
+optional params, like `/about[.html]` or `/posts[/{id}]`:
+
+```go
+// can access by: "/blog/my-article" "/blog/my-article.html"
+r.GET(`/blog/{title:\w+}[.html]`, func(c *rux.Context) {
+    c.Text(200, "view detail, id: " + c.Param("id"))
+})
+
+r.Add("/posts[/{id}]", func(c *rux.Context) {
     if c.Param("id") == "" {
         // do create post
         c.Text(200, "created")
