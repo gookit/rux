@@ -189,10 +189,11 @@ func (r *Router) handleHTTPRequest(ctx *Context) {
 	result = nil
 	ctx.SetHandlers(handlers)
 	ctx.Next() // handle processing
-	ctx.writer.ensureWriteHeader()
 
 	// has errors and has error handler
 	if r.OnError != nil && len(ctx.Errors) > 0 {
 		r.OnError(ctx)
 	}
+
+	ctx.writer.ensureWriteHeader()
 }

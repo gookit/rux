@@ -233,9 +233,7 @@ func main() {
 ```go
 package main
 
-import (
-	"net/http"
-	
+import (	
 	"github.com/gookit/rux"
 )
 
