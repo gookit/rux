@@ -58,11 +58,11 @@ func TestHTTPMethodOverrideHandler(t *testing.T) {
 	art.Equal("put", w.Body.String())
 }
 
-type SkiperAllowURLConfig struct {
+type SkipperAllowURLConfig struct {
 	Skipper Skipper
 }
 
-func (au *SkiperAllowURLConfig) Check() rux.HandlerFunc {
+func (au *SkipperAllowURLConfig) Check() rux.HandlerFunc {
 	return func(c *rux.Context) {
 		if au.Skipper != nil {
 			if !au.Skipper(c) {
@@ -74,11 +74,11 @@ func (au *SkiperAllowURLConfig) Check() rux.HandlerFunc {
 	}
 }
 
-func TestSkiperHandler(t *testing.T) {
+func TestSkipperHandler(t *testing.T) {
 	art := assert.New(t)
 	r := rux.New()
 
-	var allowURL = &SkiperAllowURLConfig{}
+	var allowURL = &SkipperAllowURLConfig{}
 
 	allowURL.Skipper = func(c *rux.Context) bool {
 		if c.URL().Path == "/test4" {
