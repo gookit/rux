@@ -483,9 +483,11 @@ func (c *Context) FastSetCookie(name, value string, maxAge int) {
 	c.SetCookie(name, value, maxAge, "/", c.Req.URL.Host, !isHttp, isHttp)
 }
 
-// DelCookie from request
+// DelCookie by given names
 func (c *Context) DelCookie(names ...string) {
-
+	for _, name := range names {
+		c.FastSetCookie(name, "", 0)
+	}
 }
 
 // Cookie returns the named cookie provided in the request or

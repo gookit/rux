@@ -43,8 +43,7 @@ func (c *SiteController) SetCookie(ctx *rux.Context) {
 // DelCookie action
 func (c *SiteController) DelCookie(ctx *rux.Context) {
 	ctx.WriteString("hello, in " + ctx.URL().Path)
-	ctx.SetCookie("rux_cookie", "", 0, "/", ctx.Req.URL.Host, true, true)
-	ctx.FastSetCookie("rux_cookie2", "", 0)
+	ctx.DelCookie("rux_cookie", "rux_cookie2")
 }
 
 // GetCookie action

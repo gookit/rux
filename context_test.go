@@ -326,7 +326,7 @@ func TestContext_Cookie(t *testing.T) {
 	ris.Equal(200, w.Code)
 
 	resCke := w.Header().Get("Set-Cookie")
-	ris.Equal("res-cke=val1; Path=/; Max-Age=300; Secure", resCke)
+	ris.Equal("res-cke=val1; Path=/; Max-Age=300; HttpOnly", resCke)
 }
 
 func TestContext_Redirect(t *testing.T) {
