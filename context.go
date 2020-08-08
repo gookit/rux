@@ -486,7 +486,7 @@ func (c *Context) FastSetCookie(name, value string, maxAge int) {
 // DelCookie by given names
 func (c *Context) DelCookie(names ...string) {
 	for _, name := range names {
-		c.FastSetCookie(name, "", 0)
+		c.FastSetCookie(name, "", -1)
 	}
 }
 

@@ -35,15 +35,15 @@ func (c *SiteController) SetCookie(ctx *rux.Context) {
 	// NOTICE: if you write body before set headers or cookies, the set headers/cookies will invalid.
 	// ctx.WriteString("hello, in " + ctx.URL().Path)
 	ctx.SetHeader("rux-header", "header-value")
-	ctx.SetCookie("rux_cookie", "test value", 3600, "/", ctx.Req.URL.Host, false, true)
-	ctx.FastSetCookie("rux_cookie2", "test value", 3600)
+	ctx.SetCookie("rux_cookie", "test-value1", 3600, "/", ctx.Req.URL.Host, false, true)
+	ctx.FastSetCookie("rux_cookie2", "test-value2", 3600)
 	ctx.WriteString("hello, in " + ctx.URL().Path)
 }
 
 // DelCookie action
 func (c *SiteController) DelCookie(ctx *rux.Context) {
-	ctx.WriteString("hello, in " + ctx.URL().Path)
 	ctx.DelCookie("rux_cookie", "rux_cookie2")
+	ctx.WriteString("hello, in " + ctx.URL().Path)
 }
 
 // GetCookie action
@@ -52,7 +52,7 @@ func (c *SiteController) GetCookie(ctx *rux.Context) {
 
 	key := "rux_cookie"
 	val := ctx.Cookie(key)
-	ctx.WriteString(key + "=" + val)
+	ctx.WriteString(key + "=" + val + " ")
 
 	key = "rux_cookie2"
 	val = ctx.Cookie(key)
