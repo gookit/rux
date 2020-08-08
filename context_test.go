@@ -318,6 +318,9 @@ func TestContext_Cookie(t *testing.T) {
 
 		c.FastSetCookie("res-cke", "val1", 300)
 	})
+	r.GET("/delcookie", func(c *Context) {
+		c.DelCookie("req-cke")
+	})
 
 	w := mockRequest(r, GET, "/test", nil, func(req *http.Request) {
 		req.AddCookie(&http.Cookie{Name: "req-cke", Value: "req-val"})
@@ -327,6 +330,15 @@ func TestContext_Cookie(t *testing.T) {
 
 	resCke := w.Header().Get("Set-Cookie")
 	ris.Equal("res-cke=val1; Path=/; Max-Age=300; HttpOnly", resCke)
+
+	w = mockRequest(r, GET, "/delcookie", nil, func(req *http.Request) {
+		req.AddCookie(&http.Cookie{Name: "req-cke", Value: "req-val"})
+	})
+
+	ris.Equal(200, w.Code)
+
+	resCke = w.Header().Get("Set-Cookie")
+	ris.Equal("req-cke=; Path=/; Max-Age=0; HttpOnly", resCke)
 }
 
 func TestContext_Redirect(t *testing.T) {
