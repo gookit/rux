@@ -2,6 +2,14 @@
 
 Higher is better.
 
+install all:
+
+```bash
+go get ./...
+# update all
+go get -u -v ./...
+```
+
 ## Results
 
 - install bombardier: 
@@ -25,6 +33,8 @@ bombardier -c 200 -n 1000000 http://localhost:3000/user/42
 ```
 
 ### Details
+
+run serve: `go run ./rux`
 
 #### echo
 

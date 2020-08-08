@@ -477,10 +477,15 @@ func (c *Context) SetCookie(name, value string, maxAge int, path, domain string,
 
 // FastSetCookie Quick Set Cookie
 func (c *Context) FastSetCookie(name, value string, maxAge int) {
-	req := c.Req
-	httpOnly := req.URL.Scheme == "http"
+	scheme := c.Req.URL.Scheme
+	isHttp := scheme == "" || scheme == "http"
 
-	c.SetCookie(name, value, maxAge, "/", req.URL.Host, true, httpOnly)
+	c.SetCookie(name, value, maxAge, "/", c.Req.URL.Host, !isHttp, isHttp)
+}
+
+// DelCookie from request
+func (c *Context) DelCookie(names ...string) {
+
 }
 
 // Cookie returns the named cookie provided in the request or

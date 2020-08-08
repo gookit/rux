@@ -13,7 +13,7 @@ import (
 func main() {
 	var srv http.Server
 
-	idleConnsClosed := make(chan struct{})
+	idleConnClosed := make(chan struct{})
 	go func() {
 		sigint := make(chan os.Signal, 1)
 		signal.Notify(sigint, os.Interrupt)
@@ -24,7 +24,7 @@ func main() {
 			// Error from closing listeners, or context timeout:
 			log.Printf("HTTP server Shutdown: %v", err)
 		}
-		close(idleConnsClosed)
+		close(idleConnClosed)
 	}()
 
 	// http.ListenAndServe()
@@ -33,7 +33,7 @@ func main() {
 		log.Printf("HTTP server closed, error: %v", err)
 	}
 
-	<-idleConnsClosed
+	<-idleConnClosed
 }
 
 func grace2() {
