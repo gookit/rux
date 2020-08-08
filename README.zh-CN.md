@@ -229,20 +229,39 @@ rux 中你可以添加命名路由，根据名称可以从路由器里拿到对�
 ### 重定向跳转
 
 ```go
-	r.GET("/", func(c *rux.Context) {
-		c.AbortThen().Redirect("/login", 302)
-	})
-    
-	// Or
-	r.GET("/", func(c *rux.Context) {
-		c.Redirect("/login", 302)
-        c.Abort()
-	})
+r.GET("/", func(c *rux.Context) {
+    c.AbortThen().Redirect("/login", 302)
+})
 
-	r.GET("/", func(c *rux.Context) {
-        c.Back()
-        c.Abort()
-    })
+// Or
+r.GET("/", func(c *rux.Context) {
+    c.Redirect("/login", 302)
+    c.Abort()
+})
+
+r.GET("/", func(c *rux.Context) {
+    c.Back()
+    c.Abort()
+})
+```
+
+### 操作Cookies
+
+您可以通过以下方式快速操作Cookies `FastSetCookie()` `DelCookie()`
+
+> 注意：您必须先设置或删除Cookies，然后再调用写入BODY内容的相关方法
+
+```go
+r.GET("/setcookie", func(c *rux.Context) {
+    c.FastSetCookie("rux_cookie2", "test-value2", 3600)
+    c.SetCookie("rux_cookie", "test-value1", 3600, "/", c.Req.URL.Host, false, true)
+	c.WriteString("hello, in " + c.URL().Path)
+})
+
+r.GET("/delcookie", func(c *rux.Context) {
+	val := ctx.Cookie("rux_cookie") // "test-value1"
+	c.DelCookie("rux_cookie", "rux_cookie2")
+})
 ```
 
 ### 多个域名
