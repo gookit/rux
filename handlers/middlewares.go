@@ -1,9 +1,11 @@
 package handlers
 
 import (
+	"context"
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/gookit/rux"
@@ -66,6 +68,45 @@ func PanicsHandler() rux.HandlerFunc {
 			}
 		}()
 
+		c.Next()
+	}
+}
+
+// Timeout is a middleware for handle logic.
+// method is refer from "github.com/go-chi/chi/middleware"
+//
+// It's required that you select the ctx.Done() channel to check for the signal
+// if the context has reached its deadline and return, otherwise the timeout
+// signal will be just ignored.
+//
+// ie. a route/handler may look like:
+//
+//  r.GET("/long", func(c *rux.Context) {
+// 	 ctx := c.Req.Context()
+// 	 processTime := time.Duration(rand.Intn(4)+1) * time.Second
+//
+// 	 select {
+// 	 case <-ctx.Done():
+// 	 	return
+//
+// 	 case <-time.After(processTime):
+// 	 	 // The above channel simulates some hard work.
+// 	 }
+//
+// 	 c.WriteBytes([]byte("done"))
+//  })
+func Timeout(timeout time.Duration) rux.HandlerFunc  {
+	return func(c *rux.Context) {
+		ctx, cancel := context.WithTimeout(c.Req.Context(), timeout)
+		defer func() {
+			cancel()
+			if ctx.Err() == context.DeadlineExceeded {
+				c.Resp.WriteHeader(http.StatusGatewayTimeout)
+			}
+		}()
+
+		// override Request
+		c.Req = c.Req.WithContext(ctx)
 		c.Next()
 	}
 }

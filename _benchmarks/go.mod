@@ -4,9 +4,10 @@ go 1.12
 
 require (
 	github.com/gin-gonic/gin v1.6.3
+	github.com/go-chi/chi v4.1.2+incompatible
 	github.com/go-playground/validator/v10 v10.3.0 // indirect
 	github.com/golang/protobuf v1.4.2 // indirect
-	github.com/gookit/rux v1.2.8
+	github.com/gookit/rux v1.2.9
 	github.com/gorilla/mux v1.7.4
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/kataras/muxie v1.1.1
