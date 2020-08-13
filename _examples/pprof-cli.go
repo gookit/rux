@@ -10,7 +10,7 @@ import (
 )
 
 // run serve:
-// 	go run ./_examples/pprof.go
+// 	go run ./_examples/pprof-cli.go
 // see prof on cli:
 // 	go tool pprof rux_prof_data.prof
 // see prof on web:
@@ -48,4 +48,6 @@ func main() {
 		// r.Match("get", "/users/23")
 		// fmt.Println(ret)
 	}
+
+	fmt.Println("see prof on web:\n  go tool pprof -http=:8080 rux_prof_data.prof")
 }
