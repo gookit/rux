@@ -156,10 +156,12 @@ func (r *Router) Match(method, path string) (result *MatchResult) {
 		}
 	}
 
-	// if has fallback route. router->Any("/*", handler)
-	key := method + "/*"
-	if route, ok := r.stableRoutes[key]; ok {
-		return newFoundResult(route, nil)
+	// handle fallback route. add by: router->Any("/*", handler)
+	if r.handleFallbackRoute {
+		key := method + "/*"
+		if route, ok := r.stableRoutes[key]; ok {
+			return newFoundResult(route, nil)
+		}
 	}
 
 	// handle method not allowed. will find allowed methods
@@ -170,7 +172,7 @@ func (r *Router) Match(method, path string) (result *MatchResult) {
 		}
 	}
 
-	// don't handle method not allowed, return not found
+	// don't handle method not allowed, will return not found
 	return
 }
 

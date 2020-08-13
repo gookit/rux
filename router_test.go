@@ -236,14 +236,22 @@ func TestAddRoute(t *testing.T) {
 	ret = r.Match(POST, "/site")
 	is.Equal(Found, ret.Status)
 
+	// fallback route(Need enable option: r.handleFallbackRoute)
+	r.Any("/*", emptyHandler)
+	for _, m := range anyMethods {
+		ret = r.Match(m, "/not-exist")
+		is.Equal(NotFound, ret.Status)
+	}
+
+	Debug(false)
+
+	r = New(HandleFallbackRoute)
 	// add fallback route
 	r.Any("/*", emptyHandler)
 	for _, m := range anyMethods {
 		ret = r.Match(m, "/not-exist")
 		is.Equal(Found, ret.Status)
 	}
-
-	Debug(false)
 }
 
 func TestNameRoute(t *testing.T) {

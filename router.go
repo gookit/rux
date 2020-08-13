@@ -82,10 +82,10 @@ type methodRoutes map[string]routes
 type Router struct {
 	// router name
 	Name string
-	// context pool
-	pool sync.Pool
 	// count routes
 	counter int
+	// context pool
+	ctxPool sync.Pool
 
 	// Static/stable/fixed routes, no path params.
 	// {
@@ -123,7 +123,7 @@ type Router struct {
 	// storage named routes. {"name": Route}
 	namedRoutes map[string]*Route
 	// TODO pool for storage MatchResult
-	// matchResultPool sync.Pool
+	matchResultPool sync.Pool
 
 	// some data for group
 	currentGroupPrefix   string
@@ -155,6 +155,9 @@ type Router struct {
 	// maxMultipartMemory int64
 	// whether checks if another method is allowed for the current route. default is False
 	handleMethodNotAllowed bool
+	// whether handle the fallback route "/*"
+	// add by router->Any("/*", handler)
+	handleFallbackRoute bool
 
 	//
 	// Extends tools
@@ -190,14 +193,14 @@ func New(options ...func(*Router)) *Router {
 
 	// with some options
 	router.WithOptions(options...)
-	router.pool.New = func() interface{} {
+	router.ctxPool.New = func() interface{} {
 		return &Context{index: -1, router: router}
 	}
 
 	// match result pool
-	// router.matchResultPool.New = func() interface{} {
-	// 	return &MatchResult{Status: Found}
-	// }
+	router.matchResultPool.New = func() interface{} {
+		return &MatchResult{Status: Found}
+	}
 
 	return router
 }
@@ -249,6 +252,11 @@ func StrictLastSlash(r *Router) {
 // 		r.maxMultipartMemory = max
 // 	}
 // }
+
+// HandleFallbackRoute enable for the router
+func HandleFallbackRoute(r *Router) {
+	r.handleFallbackRoute = true
+}
 
 // HandleMethodNotAllowed enable for the router
 func HandleMethodNotAllowed(r *Router) {
@@ -348,76 +356,6 @@ func (r *Router) AddRoute(route *Route) *Route {
 	}
 
 	return route
-}
-
-func (r *Router) appendRoute(route *Route) {
-	// route check: methods, handler
-	route.goodInfo()
-	// format path and append group info
-	r.appendGroupInfo(route)
-	// print debug info
-	debugPrintRoute(route)
-
-	// has route name.
-	if route.name != "" {
-		r.namedRoutes[route.name] = route
-	}
-
-	// path is fixed(no param vars). eg. "/users"
-	if isFixedPath(route.path) {
-		path := route.path
-		for _, method := range route.methods {
-			key := method + path
-
-			r.counter++
-			r.stableRoutes[key] = route
-		}
-		return
-	}
-
-	// parsing route path with parameters
-	if first := r.parseParamRoute(route); first != "" {
-		for _, method := range route.methods {
-			key := method + first
-			rs, has := r.regularRoutes[key]
-			if !has {
-				rs = routes{}
-			}
-
-			r.counter++
-			r.regularRoutes[key] = append(rs, route)
-		}
-		return
-	}
-
-	// it's irregular param route
-	for _, method := range route.methods {
-		rs, has := r.irregularRoutes[method]
-		if has {
-			rs = routes{}
-		}
-
-		r.counter++
-		r.irregularRoutes[method] = append(rs, route)
-	}
-}
-
-func (r *Router) appendGroupInfo(route *Route) {
-	path := r.formatPath(route.path)
-	if r.currentGroupPrefix != "" {
-		path = r.formatPath(r.currentGroupPrefix + path)
-	}
-
-	if len(r.currentGroupHandlers) > 0 {
-		route.handlers = combineHandlers(r.currentGroupHandlers, route.handlers)
-
-		if finalSize := len(route.handlers); finalSize >= int(abortIndex) {
-			panicf("too many handlers(number: %d)", finalSize)
-		}
-	}
-
-	// re-set formatted path
-	route.path = path
 }
 
 // Group add an group routes, can with middleware
@@ -623,7 +561,6 @@ func (r *Router) Routes() (rs []RouteInfo) {
 	r.IterateRoutes(func(route *Route) {
 		rs = append(rs, route.Info())
 	})
-
 	return
 }
 
@@ -690,4 +627,74 @@ func (r *Router) formatPath(path string) string {
 	}
 
 	return path
+}
+
+func (r *Router) appendRoute(route *Route) {
+	// route check: methods, handler
+	route.goodInfo()
+	// format path and append group info
+	r.appendGroupInfo(route)
+	// print debug info
+	debugPrintRoute(route)
+
+	// has route name.
+	if route.name != "" {
+		r.namedRoutes[route.name] = route
+	}
+
+	// path is fixed(no param vars). eg. "/users"
+	if isFixedPath(route.path) {
+		path := route.path
+		for _, method := range route.methods {
+			key := method + path
+
+			r.counter++
+			r.stableRoutes[key] = route
+		}
+		return
+	}
+
+	// parsing route path with parameters
+	if first := r.parseParamRoute(route); first != "" {
+		for _, method := range route.methods {
+			key := method + first
+			rs, has := r.regularRoutes[key]
+			if !has {
+				rs = routes{}
+			}
+
+			r.counter++
+			r.regularRoutes[key] = append(rs, route)
+		}
+		return
+	}
+
+	// it's irregular param route
+	for _, method := range route.methods {
+		rs, has := r.irregularRoutes[method]
+		if has {
+			rs = routes{}
+		}
+
+		r.counter++
+		r.irregularRoutes[method] = append(rs, route)
+	}
+}
+
+func (r *Router) appendGroupInfo(route *Route) {
+	path := r.formatPath(route.path)
+	if r.currentGroupPrefix != "" {
+		path = r.formatPath(r.currentGroupPrefix + path)
+	}
+
+	if len(r.currentGroupHandlers) > 0 {
+		route.handlers = combineHandlers(r.currentGroupHandlers, route.handlers)
+
+		if finalSize := len(route.handlers); finalSize >= int(abortIndex) {
+			panicf("too many handlers(number: %d)", finalSize)
+		}
+	}
+
+	// re-set formatted path
+	route.path = path
 }

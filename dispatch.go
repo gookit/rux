@@ -116,7 +116,7 @@ var internal405Handler HandlerFunc = func(c *Context) {
 // ServeHTTP for handle HTTP request, response data to client.
 func (r *Router) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	// get new context
-	ctx := r.pool.Get().(*Context)
+	ctx := r.ctxPool.Get().(*Context)
 	ctx.Init(res, req)
 
 	// handle HTTP Request
@@ -125,14 +125,14 @@ func (r *Router) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	// reset data
 	ctx.Reset()
 	// release data
-	r.pool.Put(ctx)
+	r.ctxPool.Put(ctx)
 }
 
 // HandleContext handle a given context
 func (r *Router) HandleContext(c *Context) {
 	c.Reset()
 	r.handleHTTPRequest(c)
-	r.pool.Put(c)
+	r.ctxPool.Put(c)
 }
 
 // handle HTTP Request
