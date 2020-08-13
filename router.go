@@ -123,7 +123,7 @@ type Router struct {
 	// storage named routes. {"name": Route}
 	namedRoutes map[string]*Route
 	// TODO pool for storage MatchResult
-	matchResultPool sync.Pool
+	// matchResultPool sync.Pool
 
 	// some data for group
 	currentGroupPrefix   string
@@ -198,9 +198,9 @@ func New(options ...func(*Router)) *Router {
 	}
 
 	// match result pool
-	router.matchResultPool.New = func() interface{} {
-		return &MatchResult{Status: Found}
-	}
+	// router.matchResultPool.New = func() interface{} {
+	// 	return &MatchResult{Status: Found}
+	// }
 
 	return router
 }
