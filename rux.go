@@ -6,7 +6,11 @@
 // Usage please ref examples and README
 package rux
 
-import "github.com/gookit/color"
+import (
+	"strings"
+
+	"github.com/gookit/color"
+)
 
 // All supported HTTP verb methods name
 const (
@@ -20,10 +24,6 @@ const (
 	CONNECT = "CONNECT"
 	OPTIONS = "OPTIONS"
 )
-
-// StringMethods all supported methods string, use for method check
-// more: ,COPY,PURGE,LINK,UNLINK,LOCK,UNLOCK,VIEW,SEARCH
-const StringMethods = "GET,POST,PUT,PATCH,DELETE,OPTIONS,HEAD,CONNECT,TRACE"
 
 // Match status:
 // - 1: found
@@ -44,6 +44,8 @@ type ControllerFace interface {
 var (
 	debug bool
 	// current supported HTTP method
+	// all supported methods string, use for method check
+	// more: ,COPY,PURGE,LINK,UNLINK,LOCK,UNLOCK,VIEW,SEARCH
 	anyMethods = []string{GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD, CONNECT, TRACE}
 )
 
@@ -61,8 +63,17 @@ func IsDebug() bool {
 	return debug
 }
 
-// AnyMethods get
+// AnyMethods get all methods
 func AnyMethods() []string {
 	return anyMethods
 }
 
+// AllMethods get all methods
+func AllMethods() []string {
+	return anyMethods
+}
+
+// MethodsString of all supported methods
+func MethodsString() string {
+	return strings.Join(anyMethods, ",")
+}

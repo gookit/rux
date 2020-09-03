@@ -23,10 +23,10 @@ func Example() {
 		c.Text(200, "hello")
 	})
 
-	ret := r.Match("GET", "/")
-	fmt.Println(ret.Status)
-	ret1 := r.Match("GET", "/users/23")
-	fmt.Print(ret1.Status, ret1.Params)
+	route, _, _ := r.Match("GET", "/")
+	fmt.Println(route.Path())
+	route, params, _ := r.Match("GET", "/users/23")
+	fmt.Print(route.Path(), params)
 
 	// run http server
 	// r.Listen(":8080")
@@ -150,9 +150,9 @@ func TestRouter(t *testing.T) {
 		r.WithOptions(HandleMethodNotAllowed)
 	})
 
-	ret := r.Match("GET", "/get")
-	is.Equal(Found, ret.Status)
-	is.Len(ret.Handlers, 1)
+	route, _, _ = r.Match("GET", "/get")
+	is.NotEmpty(route)
+	is.Len(route.Handlers(), 1)
 }
 
 func TestSimpleMatch(t *testing.T) {
@@ -167,11 +167,11 @@ func TestSimpleMatch(t *testing.T) {
 		c.WriteString(c.Param("id"))
 	})
 
-	ret := r.Match("GET", "/")
-	is.Equal(Found, ret.Status)
+	route, _, _ := r.Match("GET", "/")
+	is.NotEmpty(route)
 
-	ret = r.Match("GET", "/user/42")
-	is.Equal(Found, ret.Status)
+	route, _, _ = r.Match("GET", "/user/42")
+	is.NotEmpty(route)
 }
 
 func TestAddRoute(t *testing.T) {
@@ -188,7 +188,7 @@ func TestAddRoute(t *testing.T) {
 	})
 
 	// invalid method
-	is.PanicsWithValue("invalid method name 'INVALID', must in: "+StringMethods, func() {
+	is.PanicsWithValue("invalid method name 'INVALID', must in: "+MethodsString(), func() {
 		r.Add("/get", emptyHandler, "invalid")
 	})
 
@@ -214,12 +214,12 @@ func TestAddRoute(t *testing.T) {
 	// is.Equal(fmt.Sprint(*namedHandler), route.Handler())
 	is.Equal("github.com/gookit/rux.namedHandler", route.HandlerName())
 
-	ret := r.Match("GET", "/get")
-	is.Equal(Found, ret.Status)
-	is.NotEmpty(ret.Handler)
+	route, _, _ = r.Match("GET", "/get")
+	is.NotEmpty(route)
+	is.NotEmpty(route.Handler())
 
-	ret = r.Match(HEAD, "/get")
-	is.Equal(Found, ret.Status)
+	route, _, _ = r.Match(HEAD, "/get")
+	is.NotEmpty(route)
 
 	// other methods
 	r.HEAD("/head", emptyHandler)
@@ -232,34 +232,33 @@ func TestAddRoute(t *testing.T) {
 	r.CONNECT("/connect", emptyHandler)
 
 	for _, m := range AnyMethods() {
-		ret = r.Match(m, "/"+strings.ToLower(m))
-		is.Equal(Found, ret.Status)
+		route, _, _ = r.Match(m, "/"+strings.ToLower(m))
+		is.NotEmpty(route)
 	}
 
 	r.Any("/any", emptyHandler)
 	for _, m := range anyMethods {
-		ret = r.Match(m, "/any")
-		is.Equal(Found, ret.Status)
+		route, _, _ = r.Match(m, "/any")
+		is.NotEmpty(route)
 	}
 
-	ret = r.Match(GET, "/not-exist")
-	is.Equal(NotFound, ret.Status)
-	is.Nil(ret.Handlers)
-	is.Len(ret.Handlers, 0)
-	is.Nil(ret.Handlers.Last())
+	route, _, _ = r.Match(GET, "/not-exist")
+	is.Nil(route)
 
 	// add a controller
 	r.Controller("/site", &SiteController{})
-	ret = r.Match(GET, "/site/12")
-	is.Equal(Found, ret.Status)
-	ret = r.Match(POST, "/site")
-	is.Equal(Found, ret.Status)
+	route, _, _ = r.Match(GET, "/site/12")
+	is.NotEmpty(route)
+	is.Equal("/site/{id}", route.Path())
+	route, _, _ = r.Match(POST, "/site")
+	is.NotEmpty(route)
+	is.Equal("/site", route.Path())
 
 	// fallback route(Need enable option: r.handleFallbackRoute)
 	r.Any("/*", emptyHandler)
 	for _, m := range anyMethods {
-		ret = r.Match(m, "/not-exist")
-		is.Equal(NotFound, ret.Status)
+		route, _, _ = r.Match(m, "/not-exist")
+		is.NotEmpty(route)
 	}
 
 	Debug(false)
@@ -267,9 +266,9 @@ func TestAddRoute(t *testing.T) {
 	r = New(HandleFallbackRoute)
 	// add fallback route
 	r.Any("/*", emptyHandler)
-	for _, m := range anyMethods {
-		ret = r.Match(m, "/not-exist")
-		is.Equal(Found, ret.Status)
+	for _, m := range AllMethods() {
+		route, _, _ = r.Match(m, "/not-exist")
+		is.NotEmpty(route)
 	}
 }
 
@@ -343,15 +342,13 @@ func TestRouter_Group(t *testing.T) {
 		// ...
 	})
 
-	ret := r.Match(GET, "/users")
-	is.Equal(Found, ret.Status)
-	is.NotEmpty(ret.Handler)
-	is.Len(ret.Handlers, 1)
+	route, _, _ := r.Match(GET, "/users")
+	is.NotEmpty(route)
+	is.Len(route.Handlers(), 1)
 
-	ret = r.Match(GET, "/users/23")
-	is.Equal(Found, ret.Status)
-	is.NotEmpty(ret.Handler)
-	is.Len(ret.Handlers, 1)
+	route, _, _ = r.Match(GET, "/users/23")
+	is.NotEmpty(route)
+	is.Len(route.Handlers(), 1)
 
 	// overflow max num of the route handlers
 	is.PanicsWithValue("too many handlers(number: 65)", func() {
@@ -368,6 +365,10 @@ func TestRouter_Group(t *testing.T) {
 	})
 }
 
+func checkRouteIsFound(route *Route) {
+
+}
+
 func TestDynamicRoute(t *testing.T) {
 	is := assert.New(t)
 
@@ -377,27 +378,27 @@ func TestDynamicRoute(t *testing.T) {
 	r0 := r.GET("/users/{id}", emptyHandler)
 	is.Equal("", r0.start)
 
-	ret := r.Match(GET, "/users/23")
-	is.Equal(Found, ret.Status)
-	is.Len(ret.Params, 1)
-	is.False(ret.Params.Has("no-key"))
-	is.True(ret.Params.Has("id"))
+	route, ps, _ := r.Match(GET, "/users/23")
+	is.NotEmpty(route)
+	is.Len(ps, 1)
+	is.False(ps.Has("no-key"))
+	is.True(ps.Has("id"))
 	// get param
-	is.Equal("23", ret.Params["id"])
-	is.Equal("", ret.Params.String("no-key"))
-	is.Equal("23", ret.Params.String("id"))
-	is.Equal(23, ret.Params.Int("id"))
-	is.Equal(0, ret.Params.Int("no-key"))
+	is.Equal("23", ps["id"])
+	is.Equal("", ps.String("no-key"))
+	is.Equal("23", ps.String("id"))
+	is.Equal(23, ps.Int("id"))
+	is.Equal(0, ps.Int("no-key"))
 
-	ret = r.Match(GET, "/users/str")
-	is.Equal(Found, ret.Status)
-	is.Equal("str", ret.Params["id"])
-	ret = r.Match(GET, "/not/exist")
-	is.Equal(NotFound, ret.Status)
+	route, ps, _ = r.Match(GET, "/users/str")
+	is.NotEmpty(route)
+	is.Equal("str", ps["id"])
+	route, _, _ = r.Match(GET, "/not/exist")
+	is.Nil(route)
 
 	r1 := r.GET("/site/settings/{id}", emptyHandler)
-	ret = r.Match(GET, "/site/exist")
-	is.Equal(NotFound, ret.Status)
+	route, _, _ = r.Match(GET, "/site/exist")
+	is.Nil(route)
 
 	// test start check.
 	is.Equal("/site/settings/", r1.start)
@@ -407,35 +408,35 @@ func TestDynamicRoute(t *testing.T) {
 
 	// add regex for var
 	r.GET(`/path1/{id:[1-9]\d*}`, emptyHandler)
-	ret = r.Match(GET, "/path1/23")
-	is.Equal(Found, ret.Status)
-	ret = r.Match(GET, "/path1/err")
-	is.Equal(NotFound, ret.Status)
+	route, _, _ = r.Match(GET, "/path1/23")
+	is.NotEmpty(route)
+	route, _, _ = r.Match(GET, "/path1/err")
+	is.Nil(route)
 
 	// use internal var
 	r.GET(`/path2/{num}`, emptyHandler)
-	ret = r.Match(GET, "/path2/23")
-	is.Equal(Found, ret.Status)
-	ret = r.Match(GET, "/path2/-23")
-	is.Equal(NotFound, ret.Status)
-	ret = r.Match(GET, "/path2/err")
-	is.Equal(NotFound, ret.Status)
+	route, _, _ = r.Match(GET, "/path2/23")
+	is.NotEmpty(route)
+	route, _, _ = r.Match(GET, "/path2/-23")
+	is.Nil(route)
+	route, _, _ = r.Match(GET, "/path2/err")
+	is.Nil(route)
 
 	r.GET(`/path3/{level:[1-9]{1,2}}`, emptyHandler)
-	ret = r.Match(GET, "/path3/2")
-	is.Equal(Found, ret.Status)
-	is.True(ret.Params.Has("level"))
-	is.Equal("2", ret.Params.String("level"))
-	ret = r.Match(GET, "/path3/123")
-	is.Equal(NotFound, ret.Status)
+	route, ps, _ = r.Match(GET, "/path3/2")
+	is.NotEmpty(route)
+	is.True(ps.Has("level"))
+	is.Equal("2", ps.String("level"))
+	route, _, _ = r.Match(GET, "/path3/123")
+	is.Nil(route)
 
 	r.GET(`/assets/{file:.+\.(?:css|js)}`, emptyHandler)
-	ret = r.Match(GET, "/assets/site.css")
-	is.Equal(Found, ret.Status)
-	ret = r.Match(GET, "/assets/site.js")
-	is.Equal(Found, ret.Status)
-	ret = r.Match(GET, "/assets/site.tx")
-	is.Equal(NotFound, ret.Status)
+	route, _, _ = r.Match(GET, "/assets/site.css")
+	is.NotEmpty(route)
+	route, _, _ = r.Match(GET, "/assets/site.js")
+	is.NotEmpty(route)
+	route, _, _ = r.Match(GET, "/assets/site.tx")
+	is.Nil(route)
 }
 
 func TestFixFirstNodeOnlyOneChar(t *testing.T) {
@@ -444,8 +445,8 @@ func TestFixFirstNodeOnlyOneChar(t *testing.T) {
 	r := New()
 	r.PATCH(`/r/{name}/hq2hah9/dxt/g/hoovln`, emptyHandler)
 
-	ret := r.Match(PATCH, "/r/lnamel/hq2hah9/dxt/g/hoovln")
-	is.Equal(Found, ret.Status)
+	route, _, _ := r.Match(PATCH, "/r/lnamel/hq2hah9/dxt/g/hoovln")
+	is.NotEmpty(route)
 }
 
 func TestMultiPathParam(t *testing.T) {
@@ -454,23 +455,23 @@ func TestMultiPathParam(t *testing.T) {
 	r := New()
 	r.PATCH(`/news/{category_id}/{new_id:\d+}/detail`, emptyHandler)
 
-	ret := r.Match(PATCH, "/news/100/20/detail")
-	ris.Equal(Found, ret.Status)
-	ris.Len(ret.Params, 2)
-	ris.True(ret.Params.Has("category_id"))
-	ris.Equal(100, ret.Params.Int("category_id"))
-	ris.True(ret.Params.Has("new_id"))
-	ris.Equal(20, ret.Params.Int("new_id"))
+	route, ps, _ := r.Match(PATCH, "/news/100/20/detail")
+	ris.NotEmpty(route)
+	ris.Len(ps, 2)
+	ris.True(ps.Has("category_id"))
+	ris.Equal(100, ps.Int("category_id"))
+	ris.True(ps.Has("new_id"))
+	ris.Equal(20, ps.Int("new_id"))
 
 	r2 := r.GET(`/news/{category_id}/{new_id:\d+}/{tid:\d+}/detail`, emptyHandler)
 	ris.Equal("/news/{category_id}/{new_id}/{tid}/detail", r2.spath)
 
-	ret = r.Match(GET, "/news/100/20/10/detail")
-	ris.Equal(Found, ret.Status)
-	ris.Len(ret.Params, 3)
-	ris.True(ret.Params.Has("category_id"))
-	ris.True(ret.Params.Has("new_id"))
-	ris.True(ret.Params.Has("tid"))
+	route, ps, _ = r.Match(GET, "/news/100/20/10/detail")
+	ris.NotEmpty(route)
+	ris.Len(ps, 3)
+	ris.True(ps.Has("category_id"))
+	ris.True(ps.Has("new_id"))
+	ris.True(ps.Has("tid"))
 
 	ris.PanicsWithValue(`invalid path var regex string, dont allow char '('. var: new_id, regex: (\d+)`, func() {
 		r.GET(`/news/{category_id}/{new_id:(\d+)}/{tid:(\d+)}/detail`, emptyHandler)
@@ -491,27 +492,27 @@ func TestOptionalRoute(t *testing.T) {
 	// simple
 	r.Add("/about[.html]", emptyHandler, GET)
 
-	ret := r.Match(GET, "about")
-	is.Equal(Found, ret.Status)
-	ret = r.Match(GET, "/about")
-	is.Equal(Found, ret.Status)
-	ret = r.Match(GET, "/about.html")
-	is.Equal(Found, ret.Status)
+	route, _, _ := r.Match(GET, "about")
+	is.NotEmpty(route)
+	route, _, _ = r.Match(GET, "/about")
+	is.NotEmpty(route)
+	route, _, _ = r.Match(GET, "/about.html")
+	is.NotEmpty(route)
 
 	// with Params
 	r.Add("/blog[/{category}]", emptyHandler, GET)
 
-	ret = r.Match(GET, "/blog")
-	is.Equal(Found, ret.Status)
-	ret = r.Match(GET, "/blog/golang")
-	is.Equal(Found, ret.Status)
+	route, _, _ = r.Match(GET, "/blog")
+	is.NotEmpty(route)
+	route, _, _ = r.Match(GET, "/blog/golang")
+	is.NotEmpty(route)
 
 	r = New()
 	r.GET("/[{invite_name}]", emptyHandler)
-	ret = r.Match(GET, "/")
-	is.Equal(Found, ret.Status)
-	ret = r.Match(GET, "/blog")
-	is.Equal(Found, ret.Status)
+	route, _, _ = r.Match(GET, "/")
+	is.NotEmpty(route)
+	route, _, _ = r.Match(GET, "/blog")
+	is.NotEmpty(route)
 }
 
 func TestMethodNotAllowed(t *testing.T) {
@@ -527,15 +528,13 @@ func TestMethodNotAllowed(t *testing.T) {
 
 	is.Contains(r.String(), "Routes Count: 3")
 
-	ret := r.Match(GET, "/path/some")
-	is.Equal(Found, ret.Status)
+	route, _, _ := r.Match(GET, "/path/some")
+	is.NotEmpty(route)
 
-	ret = r.Match(POST, "/path/some")
-	is.Equal(NotAllowed, ret.Status)
-	is.Len(ret.Handlers, 0)
-	is.Len(ret.AllowedMethods, 3)
+	route, _, allowed := r.Match(POST, "/path/some")
+	is.Nil(route)
+	is.Len(allowed, 3)
 
-	allowed := ret.AllowedMethods
 	is.Contains(allowed, "GET")
 	is.Contains(allowed, "PUT")
 	is.Contains(allowed, "DELETE")
@@ -767,7 +766,7 @@ func TestGetRoutes(t *testing.T) {
 
 	is.Len(r.NamedRoutes(), 3)
 
-	//for _, r := range r.Routes() {
+	// for _, r := range r.Routes() {
 	//	fmt.Printf("%#v\n\n", r)
-	//}
+	// }
 }

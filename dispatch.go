@@ -152,42 +152,38 @@ func (r *Router) handleHTTPRequest(ctx *Context) {
 		path = ctx.Req.URL.EscapedPath()
 	}
 
-	// match route
-	result := r.Match(ctx.Req.Method, path)
+	// matching route
+	route, params, allowed := r.Match(ctx.Req.Method, path)
 
 	var handlers HandlersChain
-	switch result.Status {
-	case Found:
+	if route != nil { // found route
 		// save route params
-		ctx.Params = result.Params
-		ctx.Set(CTXCurrentRouteName, result.Name)
+		ctx.Params = params
+		ctx.Set(CTXCurrentRouteName, route.name)
 		ctx.Set(CTXCurrentRoutePath, path)
 
 		// append main handler to last
-		handlers = append(result.Handlers, result.Handler)
-	case NotFound:
-		if len(r.noRoute) == 0 {
-			r.noRoute = HandlersChain{internal404Handler}
-		}
-
-		handlers = r.noRoute
-	case NotAllowed:
+		handlers = append(route.handlers, route.handler)
+	} else if len(allowed) > 0 { // method not allowed
 		if len(r.noAllowed) == 0 {
 			r.noAllowed = HandlersChain{internal405Handler}
 		}
 
 		// add allowed methods to context
-		ctx.Set(CTXAllowedMethods, result.AllowedMethods)
+		ctx.Set(CTXAllowedMethods, allowed)
 		handlers = r.noAllowed
+	} else { // not found route
+		if len(r.noRoute) == 0 {
+			r.noRoute = HandlersChain{internal404Handler}
+		}
+
+		handlers = r.noRoute
 	}
 
 	// has global middleware handlers
 	if len(r.handlers) > 0 {
 		handlers = append(r.handlers, handlers...)
 	}
-
-	// release result
-	r.matchResultPool.Put(result)
 
 	ctx.SetHandlers(handlers)
 	ctx.Next() // handle processing

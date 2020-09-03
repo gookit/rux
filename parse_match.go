@@ -97,62 +97,9 @@ func (r *Router) parseParamRoute(route *Route) (first string) {
  * route match
  *************************************************************/
 
-// MatchResult for the route match
-type MatchResult struct {
-	// Name current matched route name
-	Name string
-	// Path current matched route path rule
-	Path string
-	// Status match status: 1 found 2 not found 3 method not allowed
-	Status uint8
-	// Params route path Params, when Status = 1 and has path vars.
-	Params Params
-	// Handler the main handler for the route(Status = 1)
-	Handler HandlerFunc
-	// Handlers middleware handlers for the route(Status = 1)
-	Handlers HandlersChain
-	// AllowedMethods allowed request methods(Status = 3)
-	AllowedMethods []string
-}
-
-var notFoundResult = &MatchResult{Status: NotFound}
-
-func newFoundResult(route *Route, ps Params) *MatchResult {
-	return &MatchResult{
-		Name: route.name,
-		Path: route.path,
-
-		Status: Found,
-		Params: ps,
-
-		Handler:  route.handler,
-		Handlers: route.handlers,
-	}
-}
-
-// IsOK check status == Found ?
-func (mr *MatchResult) IsOK() bool {
-	return mr.Status == Found
-}
-
-// create new MatchResult
-func (r *Router) newMatchResult(route *Route, ps Params) *MatchResult {
-	mr := r.matchResultPool.Get().(*MatchResult)
-	// init info
-	mr.Name = route.name
-	mr.Path = route.path
-
-	mr.Params = ps
-	mr.Status = Found
-
-	mr.Handler = route.handler
-	mr.Handlers = route.handlers
-	// reset field
-	mr.AllowedMethods = make([]string, 0)
-	return mr
-}
-
 // Match route by given request METHOD and URI path
+// ps  - route path Params, when has path vars.
+// alm - allowed request methods
 func (r *Router) Match(method, path string) (route *Route, ps Params, alm []string) {
 	if r.interceptAll != "" {
 		path = r.interceptAll
@@ -193,6 +140,9 @@ func (r *Router) Match(method, path string) (route *Route, ps Params, alm []stri
 	// don't handle method not allowed, will return not found
 	return
 }
+
+// func (r *Router) Search(method, path string) *Route {
+// }
 
 func (r *Router) match(method, path string) (rt *Route, ps Params) {
 	// find in stable routes
