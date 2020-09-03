@@ -53,7 +53,6 @@ func TestRouterListen(t *testing.T) {
 	})
 
 	if runtime.GOOS == "windows" {
-		Debug(false)
 		return
 	}
 
@@ -74,6 +73,7 @@ func TestRouterListen(t *testing.T) {
 
 	is.Contains(s, "[ERROR] listen tcp: address 0.0.0.0:invalid]")
 	is.Contains(s, "[ERROR] listen tcp: address 127.0.0.1:invalid]")
+	fmt.Println(s)
 
 	Debug(false)
 }

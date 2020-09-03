@@ -26,14 +26,14 @@ func Example() {
 	route, _, _ := r.Match("GET", "/")
 	fmt.Println(route.Path())
 	route, params, _ := r.Match("GET", "/users/23")
-	fmt.Print(route.Path(), params)
+	fmt.Println(route.Path(), params)
 
 	// run http server
 	// r.Listen(":8080")
 
 	// Output:
-	// 1
-	// 1 map[id:23]
+	// /
+	// /users/{id} map[id:23]
 }
 
 var emptyHandler = func(c *Context) {}
@@ -127,7 +127,7 @@ func (c *Product) invaid() {
 }
 
 // cannot exported method
-func (c *Product) invaid2(*Context) {
+func (c *Product) invaid2(_ *Context) {
 }
 
 func namedHandler(c *Context) {
@@ -254,14 +254,21 @@ func TestAddRoute(t *testing.T) {
 	is.NotEmpty(route)
 	is.Equal("/site", route.Path())
 
+	Debug(false)
+}
+
+func TestHandleFallbackRoute(t *testing.T) {
+	is := assert.New(t)
+	r := New()
+
+	var route *Route
+
 	// fallback route(Need enable option: r.handleFallbackRoute)
 	r.Any("/*", emptyHandler)
-	for _, m := range anyMethods {
+	for _, m := range AllMethods() {
 		route, _, _ = r.Match(m, "/not-exist")
-		is.NotEmpty(route)
+		is.Nil(route)
 	}
-
-	Debug(false)
 
 	r = New(HandleFallbackRoute)
 	// add fallback route
@@ -363,10 +370,6 @@ func TestRouter_Group(t *testing.T) {
 			r.GET("/{id}", emptyHandler)
 		}, hs...)
 	})
-}
-
-func checkRouteIsFound(route *Route) {
-
 }
 
 func TestDynamicRoute(t *testing.T) {
