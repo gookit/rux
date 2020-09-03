@@ -9,7 +9,7 @@ import (
 )
 
 // run serve:
-// 	go run ./rux
+// 	go run ./rux-stable/main.go
 // bench test:
 // 	bombardier -c 125 -n 1000000 http://localhost:3000
 // 	bombardier -c 125 -n 1000000 http://localhost:3000/user/42

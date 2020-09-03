@@ -1,9 +1,3 @@
-// Package rux is a simple and fast request router for golang HTTP applications.
-//
-// Source code and other details for the project are available at GitHub:
-// 		https://github.com/gookit/rux
-//
-// Usage please ref examples and README
 package rux
 
 import (

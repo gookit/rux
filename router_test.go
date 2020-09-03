@@ -155,6 +155,25 @@ func TestRouter(t *testing.T) {
 	is.Len(ret.Handlers, 1)
 }
 
+func TestSimpleMatch(t *testing.T) {
+	is := assert.New(t)
+	r := New()
+
+	r.GET("/", func(c *Context) {
+		_, _ = c.Resp.Write([]byte("Welcome!\n"))
+	})
+
+	r.GET("/user/{id}", func(c *Context) {
+		c.WriteString(c.Param("id"))
+	})
+
+	ret := r.Match("GET", "/")
+	is.Equal(Found, ret.Status)
+
+	ret = r.Match("GET", "/user/42")
+	is.Equal(Found, ret.Status)
+}
+
 func TestAddRoute(t *testing.T) {
 	is := assert.New(t)
 

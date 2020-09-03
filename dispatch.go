@@ -186,7 +186,9 @@ func (r *Router) handleHTTPRequest(ctx *Context) {
 		handlers = append(r.handlers, handlers...)
 	}
 
-	result = nil
+	// release result
+	r.matchResultPool.Put(result)
+
 	ctx.SetHandlers(handlers)
 	ctx.Next() // handle processing
 

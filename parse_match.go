@@ -134,6 +134,23 @@ func (mr *MatchResult) IsOK() bool {
 	return mr.Status == Found
 }
 
+// create new MatchResult
+func (r *Router) newMatchResult(route *Route, ps Params) *MatchResult {
+	mr := r.matchResultPool.Get().(*MatchResult)
+	// init info
+	mr.Name = route.name
+	mr.Path = route.path
+
+	mr.Params = ps
+	mr.Status = Found
+
+	mr.Handler = route.handler
+	mr.Handlers = route.handlers
+	// reset field
+	mr.AllowedMethods = make([]string, 0)
+	return mr
+}
+
 // Match route by given request METHOD and URI path
 func (r *Router) Match(method, path string) (result *MatchResult) {
 	if r.interceptAll != "" {
@@ -160,7 +177,7 @@ func (r *Router) Match(method, path string) (result *MatchResult) {
 	if r.handleFallbackRoute {
 		key := method + "/*"
 		if route, ok := r.stableRoutes[key]; ok {
-			return newFoundResult(route, nil)
+			return r.newMatchResult(route, nil)
 		}
 	}
 
@@ -176,18 +193,19 @@ func (r *Router) Match(method, path string) (result *MatchResult) {
 	return
 }
 
-func (r *Router) match(method, path string) (ret *MatchResult) {
+func (r *Router) match(method, path string) (rt *Route, ps Params) {
 	// find in stable routes
 	key := method + path
 	if route, ok := r.stableRoutes[key]; ok {
-		return newFoundResult(route, nil)
+		// return r.newMatchResult(route, nil)
+		return route, nil
 	}
 
 	// find in cached routes
 	if r.enableCaching {
 		route, ok := r.cachedRoutes.Get(key)
 		if ok {
-			return newFoundResult(route, route.params)
+			return route, route.params
 		}
 	}
 
@@ -202,9 +220,9 @@ func (r *Router) match(method, path string) (ret *MatchResult) {
 				}
 
 				if ps, ok := route.matchRegex(path); ok {
-					ret = newFoundResult(route, ps)
+					// ret = r.newMatchResult(route, ps)
 					r.cacheDynamicRoute(method, path, ps, route)
-					return
+					return route, ps
 				}
 			}
 		}
@@ -214,7 +232,7 @@ func (r *Router) match(method, path string) (ret *MatchResult) {
 	if rs, ok := r.irregularRoutes[method]; ok {
 		for _, route := range rs {
 			if ps, ok := route.matchRegex(path); ok {
-				ret = newFoundResult(route, ps)
+				ret = r.newMatchResult(route, ps)
 				r.cacheDynamicRoute(method, path, ps, route)
 				return
 			}
