@@ -1,6 +1,7 @@
 package rux
 
 import (
+	"net/http"
 	"regexp"
 	"strings"
 )
@@ -152,7 +153,7 @@ func (r *Router) newMatchResult(route *Route, ps Params) *MatchResult {
 }
 
 // Match route by given request METHOD and URI path
-func (r *Router) Match(method, path string) (result *MatchResult) {
+func (r *Router) Match(method, path string) (route *Route, ps Params, alm []string) {
 	if r.interceptAll != "" {
 		path = r.interceptAll
 	}
@@ -161,14 +162,14 @@ func (r *Router) Match(method, path string) (result *MatchResult) {
 	method = strings.ToUpper(method)
 
 	// do match route
-	if result = r.match(method, path); result.IsOK() {
+	if route, ps = r.match(method, path); route != nil {
 		return
 	}
 
 	// for HEAD requests, attempt fallback to GET
 	if method == HEAD {
-		result = r.match(GET, path)
-		if result.Status == Found {
+		route, ps = r.match(http.MethodGet, path)
+		if route != nil {
 			return
 		}
 	}
@@ -177,15 +178,15 @@ func (r *Router) Match(method, path string) (result *MatchResult) {
 	if r.handleFallbackRoute {
 		key := method + "/*"
 		if route, ok := r.stableRoutes[key]; ok {
-			return r.newMatchResult(route, nil)
+			return route, nil, nil
 		}
 	}
 
 	// handle method not allowed. will find allowed methods
 	if r.handleMethodNotAllowed {
-		allowed := r.findAllowedMethods(method, path)
-		if len(allowed) > 0 {
-			result = &MatchResult{Status: NotAllowed, AllowedMethods: allowed}
+		alm = r.findAllowedMethods(method, path)
+		if len(alm) > 0 {
+			return
 		}
 	}
 
@@ -221,7 +222,7 @@ func (r *Router) match(method, path string) (rt *Route, ps Params) {
 
 				if ps, ok := route.matchRegex(path); ok {
 					// ret = r.newMatchResult(route, ps)
-					r.cacheDynamicRoute(method, path, ps, route)
+					r.cacheDynamicRoute(key, ps, route)
 					return route, ps
 				}
 			}
@@ -232,39 +233,20 @@ func (r *Router) match(method, path string) (rt *Route, ps Params) {
 	if rs, ok := r.irregularRoutes[method]; ok {
 		for _, route := range rs {
 			if ps, ok := route.matchRegex(path); ok {
-				ret = r.newMatchResult(route, ps)
-				r.cacheDynamicRoute(method, path, ps, route)
-				return
+				r.cacheDynamicRoute(key, ps, route)
+				return route, ps
 			}
 		}
 	}
-
-	return notFoundResult
+	return
 }
 
 // cache dynamic Params route when EnableRouteCache is true
-func (r *Router) cacheDynamicRoute(method, path string, ps Params, route *Route) {
+func (r *Router) cacheDynamicRoute(key string, ps Params, route *Route) {
 	if !r.enableCaching {
 		return
 	}
 
-	// removed
-	// if r.cachedRoutes.Len() >= int(r.maxNumCaches) {
-	//	num := 0
-	//	maxClean := int(r.maxNumCaches / 10)
-	//
-	//	for k := range r.cachedRoutes.Items() {
-	//		if num == maxClean {
-	//			break
-	//		}
-	//
-	//		num++
-	//
-	//		r.cachedRoutes.Delete(k)
-	//	}
-	// }
-
-	key := method + path
 	// copy new route instance. Notice: cache matched Params
 	r.cachedRoutes.Set(key, route.copyWithParams(ps))
 }
@@ -273,13 +255,12 @@ func (r *Router) cacheDynamicRoute(method, path string, ps Params, route *Route)
 func (r *Router) findAllowedMethods(method, path string) (allowed []string) {
 	// use map for prevent duplication
 	mMap := map[string]int{}
-
 	for _, m := range anyMethods {
 		if m == method { // expected current method
 			continue
 		}
 
-		if r.match(m, path).IsOK() {
+		if rt,_ := r.match(m, path); rt != nil {
 			mMap[m] = 1
 		}
 	}
