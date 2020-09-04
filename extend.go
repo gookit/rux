@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"errors"
 	"io"
+
+	"github.com/gookit/rux/binding"
 )
 
 const (
@@ -75,3 +77,17 @@ func (c *Context) Validate(i interface{}) error {
 
 	return c.Router().Validator.Validate(i)
 }
+
+/*************************************************************
+ * Context function extends v2
+ *************************************************************/
+
+// ShouldBind bind request data to an struct
+func (c *Context) ShouldBind(i interface{}, binder binding.Binder) error {
+	return binder.Bind(i, c.Req)
+}
+
+// Respond render and response to client
+// func (c *Context) Respond(i interface{}, renderer Renderer) error {
+// 	return renderer.Render(i, c.Req)
+// }
