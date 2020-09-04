@@ -7,7 +7,7 @@ import (
 type (
 	// Binder interface
 	Binder interface {
-		Bind(ptr interface{}, r *http.Request) error
+		Bind(r *http.Request, obj interface{}) error
 	}
 
 	// DataValidator interface
@@ -44,7 +44,7 @@ func (fn BinderFunc) Name() string {
 }
 
 // BinderFunc implements the Binder interface
-func (fn BinderFunc) Bind(ptr interface{}, r *http.Request) error {
+func (fn BinderFunc) Bind(r *http.Request, obj interface{}) error {
 	return fn(ptr, r)
 }
 

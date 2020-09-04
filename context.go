@@ -610,7 +610,6 @@ func (c *Context) XML(status int, i interface{}, indents ...string) {
 	}
 
 	var err error
-
 	if _, err = c.Resp.Write([]byte(xml.Header)); err != nil {
 		panic(err)
 	}
@@ -628,7 +627,6 @@ func (c *Context) JSONP(status int, callback string, i interface{}) {
 	c.Resp.Header().Set(ContentType, "application/javascript; charset=UTF-8")
 
 	var err error
-
 	if _, err = c.Resp.Write([]byte(callback + "(")); err != nil {
 		panic(err)
 	}

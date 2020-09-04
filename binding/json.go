@@ -16,8 +16,8 @@ func (JSONBinder) Name() string {
 }
 
 // Bind JSON data from http.Request
-func (JSONBinder) Bind(ptr interface{}, r *http.Request) error {
-	return json.NewDecoder(r.Body).Decode(ptr)
+func (JSONBinder) Bind(r *http.Request, obj interface{}) error {
+	return json.NewDecoder(r.Body).Decode(obj)
 }
 
 // Bind JSON data from raw data

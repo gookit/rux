@@ -15,15 +15,15 @@ func (XMLBinder) Name() string {
 }
 
 // Bind XML data binder
-func (XMLBinder) Bind(ptr interface{}, r *http.Request) error {
-	return decodeXML(r.Body, ptr)
+func (XMLBinder) Bind(r *http.Request, obj interface{}) error {
+	return decodeXML(r.Body, obj)
 }
 
-func decodeXML(r io.Reader, ptr interface{}) error {
-	err := xml.NewDecoder(r).Decode(ptr)
+func decodeXML(r io.Reader, obj interface{}) error {
+	err := xml.NewDecoder(r).Decode(obj)
 	if err != nil {
 		return err
 	}
 
-	return validating(ptr)
+	return validating(obj)
 }

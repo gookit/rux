@@ -8,18 +8,18 @@ var Validator DataValidator = &stdValidator{}
 type stdValidator struct {}
 
 // Validate the struct data, if fail return error
-func (sv *stdValidator) Validate(ptr interface{}) error {
-	v := validate.New(ptr)
+func (sv *stdValidator) Validate(obj interface{}) error {
+	v := validate.New(obj)
 	v.Validate()
 
 	return v.Errors
 }
 
-func validating(ptr interface{}) error {
+func validating(obj interface{}) error {
 	if Validator == nil {
 		return nil
 	}
 
-	return Validator.Validate(ptr)
+	return Validator.Validate(obj)
 }
 

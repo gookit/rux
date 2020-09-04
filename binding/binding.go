@@ -15,7 +15,7 @@ import (
 //		// fix: can not read request body multiple times
 //		c.Request().Body = ioutil.NopCloser(bytes.NewReader(body))
 //
-func Auto(ptr interface{}, r *http.Request) (err error) {
+func Auto(r *http.Request, obj interface{}) (err error) {
 	method := r.Method
 
 	// no body. like GET DELETE OPTION ....

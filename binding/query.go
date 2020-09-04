@@ -16,6 +16,6 @@ func (QueryBinder) Name() string {
 }
 
 // Bind Query data binder
-func (QueryBinder) Bind(ptr interface{}, r *http.Request) error {
-	return json.NewDecoder(r.Body).Decode(ptr)
+func (QueryBinder) Bind(r *http.Request, obj interface{}) error {
+	return json.NewDecoder(r.Body).Decode(obj)
 }

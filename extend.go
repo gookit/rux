@@ -83,8 +83,8 @@ func (c *Context) Validate(i interface{}) error {
  *************************************************************/
 
 // ShouldBind bind request data to an struct
-func (c *Context) ShouldBind(i interface{}, binder binding.Binder) error {
-	return binder.Bind(i, c.Req)
+func (c *Context) ShouldBind(obj interface{}, binder binding.Binder) error {
+	return binder.Bind(c.Req, obj)
 }
 
 // Respond render and response to client

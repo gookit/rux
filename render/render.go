@@ -4,6 +4,6 @@ import "io"
 
 // Renderer interface
 type Renderer interface {
-	Render(io.Writer, string, interface{}, *Context) error
+	Render(w io.Writer, obj interface{}) error
 }
 
