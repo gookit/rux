@@ -25,16 +25,6 @@ const (
 	OPTIONS = "OPTIONS"
 )
 
-// Match status:
-// - 1: found
-// - 2: not found
-// - 3: method not allowed
-const (
-	Found uint8 = iota + 1
-	NotFound
-	NotAllowed
-)
-
 // ControllerFace a simple controller interface
 type ControllerFace interface {
 	// AddRoutes for support register routes in the controller.
@@ -53,8 +43,8 @@ var (
 func Debug(val bool) {
 	debug = val
 	if debug {
-		color.Info.Println(" NOTICE, rux DEBUG mode is opened by rux.Debug(true)")
-		color.Info.Println("======================================================")
+		color.Info.Println("    NOTICE, rux DEBUG mode is opened by rux.Debug(true)")
+		color.Info.Println("===========================================================")
 	}
 }
 

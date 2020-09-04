@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/gookit/rux/binding"
+	"github.com/gookit/rux/render"
 )
 
 const (
@@ -88,6 +89,12 @@ func (c *Context) ShouldBind(obj interface{}, binder binding.Binder) error {
 }
 
 // Respond render and response to client
-// func (c *Context) Respond(i interface{}, renderer Renderer) error {
-// 	return renderer.Render(i, c.Req)
-// }
+func (c *Context) Respond(status int, obj interface{}, renderer render.Renderer) {
+	c.SetStatus(status)
+
+	err := renderer.Render(c.Resp, obj)
+	if err != nil {
+		panic(err)
+	}
+}
+

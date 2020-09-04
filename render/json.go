@@ -2,43 +2,61 @@ package render
 
 import (
 	"encoding/json"
-
-	"github.com/gookit/rux"
+	"net/http"
 )
 
-// JSON response rendering
-func JSON(status int, ptr interface{}, c *rux.Context) error {
-	bs, err := json.Marshal(ptr)
+// JSONRenderer for response JSON content to client
+type JSONRenderer struct {
+	Data interface{}
+}
+
+// Render JSON to client
+func (r JSONRenderer) Render(w http.ResponseWriter) error {
+	writeContentType(w, JSONContentType)
+
+	jsonBytes, err := json.Marshal(r.Data)
 	if err != nil {
 		return err
 	}
 
-	c.Resp.WriteHeader(status)
-	c.Resp.Header().Set(rux.ContentType, "application/json; charset=UTF-8")
+	_, err = w.Write(jsonBytes)
+	return err
+}
 
-	if len(bs) > 0 {
-		c.WriteBytes(bs)
+// JSON response rendering
+func JSON(obj interface{}, w http.ResponseWriter) error {
+	return JSONRenderer{obj}.Render(w)
+}
+
+// JSONPRenderer for response JSONP content to client
+type JSONPRenderer struct {
+	Data interface{}
+	Callback string
+}
+
+// Render JSONP to client
+func (r JSONPRenderer) Render(w http.ResponseWriter) (err error) {
+	writeContentType(w, JSContentType)
+
+	if _, err = w.Write([]byte(r.Callback + "(")); err != nil {
+		return err
 	}
 
-	return nil
+	enc := json.NewEncoder(w)
+	if err = enc.Encode(r.Data); err != nil {
+		return err
+	}
+
+	_, err = w.Write([]byte(");"))
+	return err
 }
 
 // JSONP response rendering
-func JSONP(status int, callback string, ptr interface{}, c *rux.Context) error {
-	enc := json.NewEncoder(c.Resp)
-
-	c.Resp.WriteHeader(status)
-	c.Resp.Header().Set(rux.ContentType, "application/javascript; charset=UTF-8")
-
-	var err error
-	if _, err = c.Resp.Write([]byte(callback + "(")); err != nil {
-		return err
+func JSONP(callback string, obj interface{}, w http.ResponseWriter) error {
+	r := JSONPRenderer{
+		Data:     obj,
+		Callback: callback,
 	}
 
-	if err = enc.Encode(ptr); err != nil {
-		return err
-	}
-
-	_, err = c.Resp.Write([]byte(");"))
-	return err
+	return r.Render(w)
 }
