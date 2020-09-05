@@ -10,6 +10,9 @@ type (
 		Bind(r *http.Request, obj interface{}) error
 	}
 
+	// BinderFunc bind func, implement the Binder() interface
+	BinderFunc func(r *http.Request, obj interface{}) error
+
 	// DataValidator interface
 	DataValidator interface {
 		Validate(i interface{}) error
@@ -35,9 +38,6 @@ var binders = map[string]Binder{
 	// "protobuf": ,
 }
 
-// BinderFunc bind func
-type BinderFunc func(interface{}, *http.Request) error
-
 // BinderFunc implements the Binder interface
 func (fn BinderFunc) Name() string {
 	return "unknown"
@@ -45,7 +45,7 @@ func (fn BinderFunc) Name() string {
 
 // BinderFunc implements the Binder interface
 func (fn BinderFunc) Bind(r *http.Request, obj interface{}) error {
-	return fn(obj, r)
+	return fn(r, obj)
 }
 
 // Register new binder with name
@@ -55,9 +55,11 @@ func Register(name string, b Binder) {
 	}
 }
 
-// Remove a exist binder
-func Remove(name string) {
-	if _, ok := binders[name]; ok {
-		delete(binders, name)
+// Remove exists binder(s)
+func Remove(names ...string) {
+	for _, name := range names {
+		if _, ok := binders[name]; ok {
+			delete(binders, name)
+		}
 	}
 }

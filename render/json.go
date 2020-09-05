@@ -9,44 +9,50 @@ import (
 
 // JSONRenderer for response JSON content to client
 type JSONRenderer struct {
-	Data interface{}
+	// Data interface{}
+	// Indent string for encode
 	Indent string
 	// NotEscape HTML string
 	NotEscape bool
 }
 
 // Render JSON to client
-func (r JSONRenderer) Render(w http.ResponseWriter) error {
+func (r JSONRenderer) Render(w http.ResponseWriter, obj interface{}) (err error) {
 	writeContentType(w, httpctype.JSON)
 
 	enc := json.NewEncoder(w)
-	enc.SetEscapeHTML(!r.NotEscape)
-
 	if r.Indent != "" {
 		enc.SetIndent("", r.Indent)
 	}
 
-	return enc.Encode(r.Data)
+	if r.NotEscape {
+		enc.SetEscapeHTML(false)
+	}
+
+	if err = enc.Encode(obj); err != nil {
+		return err
+	}
+
+	return err
 }
 
 // JSON response rendering
-func JSON(obj interface{}, w http.ResponseWriter) error {
-	return JSONRenderer{Data: obj}.Render(w)
+func JSON(w http.ResponseWriter, obj interface{}) error {
+	return JSONRenderer{}.Render(w, obj)
 }
 
-// JSONPretty response rendering with indent
-func JSONPretty(obj interface{}, w http.ResponseWriter) error {
-	return JSONRenderer{Data: obj, Indent: PrettyIndent}.Render(w)
+// JSONIndented response rendering with indent
+func JSONIndented( w http.ResponseWriter, obj interface{}) error {
+	return JSONRenderer{Indent: PrettyIndent}.Render(w, obj)
 }
 
 // JSONPRenderer for response JSONP content to client
 type JSONPRenderer struct {
-	Data interface{}
 	Callback string
 }
 
 // Render JSONP to client
-func (r JSONPRenderer) Render(w http.ResponseWriter) (err error) {
+func (r JSONPRenderer) Render(w http.ResponseWriter, obj interface{}) (err error) {
 	writeContentType(w, httpctype.JSONP)
 
 	if _, err = w.Write([]byte(r.Callback + "(")); err != nil {
@@ -54,7 +60,7 @@ func (r JSONPRenderer) Render(w http.ResponseWriter) (err error) {
 	}
 
 	enc := json.NewEncoder(w)
-	if err = enc.Encode(r.Data); err != nil {
+	if err = enc.Encode(obj); err != nil {
 		return err
 	}
 
@@ -64,10 +70,5 @@ func (r JSONPRenderer) Render(w http.ResponseWriter) (err error) {
 
 // JSONP response rendering
 func JSONP(callback string, obj interface{}, w http.ResponseWriter) error {
-	r := JSONPRenderer{
-		Data:     obj,
-		Callback: callback,
-	}
-
-	return r.Render(w)
+	return JSONPRenderer{Callback: callback}.Render(w, obj)
 }

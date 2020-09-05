@@ -9,12 +9,12 @@ import (
 
 // XMLRenderer for response XML content to client
 type XMLRenderer struct {
-	Data interface{}
+	// Data interface{}
 	Indent string
 }
 
 // Render XML to client
-func (r XMLRenderer) Render(w http.ResponseWriter) error {
+func (r XMLRenderer) Render(w http.ResponseWriter, obj interface{}) error {
 	writeContentType(w, httpctype.XML)
 
 	enc := xml.NewEncoder(w)
@@ -27,15 +27,15 @@ func (r XMLRenderer) Render(w http.ResponseWriter) error {
 		return err
 	}
 
-	return enc.Encode(r.Data)
+	return enc.Encode(obj)
 }
 
 // XML response rendering
-func XML(obj interface{}, w http.ResponseWriter) error {
-	return XMLRenderer{Data: obj}.Render(w)
+func XML(w http.ResponseWriter, obj interface{}) error {
+	return XMLRenderer{}.Render(w, obj)
 }
 
 // XMLPretty response rendering with indent
-func XMLPretty(obj interface{}, w http.ResponseWriter) error {
-	return XMLRenderer{Data: obj, Indent: PrettyIndent}.Render(w)
+func XMLPretty(w http.ResponseWriter, obj interface{}) error {
+	return XMLRenderer{Indent: PrettyIndent}.Render(w, obj)
 }

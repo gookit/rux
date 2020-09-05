@@ -9,7 +9,15 @@ var PrettyIndent = "  "
 
 // Renderer interface
 type Renderer interface {
-	Render(w http.ResponseWriter) error
+	Render(w http.ResponseWriter, obj interface{}) error
+}
+
+// RendererFunc definition
+type RendererFunc func(w http.ResponseWriter, obj interface{}) error
+
+// Render to http.ResponseWriter
+func (fn RendererFunc) Render(w http.ResponseWriter, obj interface{}) error {
+	return fn(w, obj)
 }
 
 func writeContentType(w http.ResponseWriter, value string) {

@@ -15,6 +15,8 @@ import (
 	"path"
 	"strings"
 	"time"
+
+	"github.com/gookit/rux/render"
 )
 
 /*************************************************************
@@ -583,13 +585,8 @@ func (c *Context) Stream(status int, contentType string, r io.Reader) {
 }
 
 // JSON writes out a JSON response.
-func (c *Context) JSON(status int, v interface{}) {
-	bs, err := json.Marshal(v)
-	if err != nil {
-		panic(err)
-	}
-
-	c.JSONBytes(status, bs)
+func (c *Context) JSON(status int, obj interface{}) {
+	c.Respond(status, obj, render.JSONRenderer{})
 }
 
 // JSONBytes writes out a string as JSON response.

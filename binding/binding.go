@@ -20,7 +20,7 @@ func Auto(r *http.Request, obj interface{}) (err error) {
 
 	// no body. like GET DELETE OPTION ....
 	if method != "POST" && method != "PUT" && method != "PATCH" {
-
+		// TODO query data binding
 		return
 	}
 
@@ -29,7 +29,7 @@ func Auto(r *http.Request, obj interface{}) (err error) {
 	// contains file uploaded form: multipart/form-data
 	// strings.HasPrefix(mediaType, "multipart/")
 	if strings.Contains(cType, "/form-data") {
-
+		// TODO form data binding
 	}
 
 	// basic POST form. content type: application/x-www-form-urlencoded
@@ -38,17 +38,17 @@ func Auto(r *http.Request, obj interface{}) (err error) {
 			return err
 		}
 
-		// TODO
+		// TODO form binding
 	}
 
 	// JSON body request: application/json
 	if strings.Contains(cType, "/json") {
-		return JSON.Bind(ptr, r)
+		return JSON.Bind(r, obj)
 	}
 
 	// XML body request: text/xml
 	if strings.Contains(cType, "/xml") {
-		return XML.Bind(ptr, r)
+		return XML.Bind(r, obj)
 	}
 	return
 }
