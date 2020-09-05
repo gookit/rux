@@ -8,24 +8,33 @@ import (
 // JSONRenderer for response JSON content to client
 type JSONRenderer struct {
 	Data interface{}
+	Indent string
+	// NotEscape HTML string
+	NotEscape bool
 }
 
 // Render JSON to client
 func (r JSONRenderer) Render(w http.ResponseWriter) error {
 	writeContentType(w, JSONContentType)
 
-	jsonBytes, err := json.Marshal(r.Data)
-	if err != nil {
-		return err
+	enc := json.NewEncoder(w)
+	enc.SetEscapeHTML(!r.NotEscape)
+
+	if r.Indent != "" {
+		enc.SetIndent("", r.Indent)
 	}
 
-	_, err = w.Write(jsonBytes)
-	return err
+	return enc.Encode(r.Data)
 }
 
 // JSON response rendering
 func JSON(obj interface{}, w http.ResponseWriter) error {
-	return JSONRenderer{obj}.Render(w)
+	return JSONRenderer{Data: obj}.Render(w)
+}
+
+// JSONPretty response rendering with indent
+func JSONPretty(obj interface{}, w http.ResponseWriter) error {
+	return JSONRenderer{Data: obj, Indent: PrettyIndent}.Render(w)
 }
 
 // JSONPRenderer for response JSONP content to client

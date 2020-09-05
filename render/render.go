@@ -5,6 +5,8 @@ import (
 	"net/http"
 )
 
+// PrettyIndent indent string for  render JSON or XML
+var PrettyIndent = "  "
 var (
 	TextContentType  = "text/plain; charset=UTF-8"
 	HTMLContentType  = "text/html; charset=UTF-8"
