@@ -3,6 +3,8 @@ package render
 import (
 	"encoding/xml"
 	"net/http"
+
+	"github.com/gookit/goutil/netutil/httpctype"
 )
 
 // XMLRenderer for response XML content to client
@@ -13,7 +15,7 @@ type XMLRenderer struct {
 
 // Render XML to client
 func (r XMLRenderer) Render(w http.ResponseWriter) error {
-	writeContentType(w, XMLContentType)
+	writeContentType(w, httpctype.XML)
 
 	enc := xml.NewEncoder(w)
 	if r.Indent != "" {

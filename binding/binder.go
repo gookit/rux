@@ -45,7 +45,7 @@ func (fn BinderFunc) Name() string {
 
 // BinderFunc implements the Binder interface
 func (fn BinderFunc) Bind(r *http.Request, obj interface{}) error {
-	return fn(ptr, r)
+	return fn(obj, r)
 }
 
 // Register new binder with name

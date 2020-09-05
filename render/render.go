@@ -1,24 +1,15 @@
 package render
 
 import (
-	"io"
 	"net/http"
 )
 
 // PrettyIndent indent string for  render JSON or XML
 var PrettyIndent = "  "
-var (
-	TextContentType  = "text/plain; charset=UTF-8"
-	HTMLContentType  = "text/html; charset=UTF-8"
-	XMLContentType   = "application/xml; charset=UTF-8"
-	JSONContentType  = "application/json; charset=utf-8"
-
-	JSContentType = "application/javascript; charset=UTF-8"
-)
 
 // Renderer interface
 type Renderer interface {
-	Render(w io.Writer, obj interface{}) error
+	Render(w http.ResponseWriter) error
 }
 
 func writeContentType(w http.ResponseWriter, value string) {
