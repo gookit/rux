@@ -1,14 +1,11 @@
 package binding
 
 import (
-	"encoding/json"
 	"net/http"
 )
 
-// QueryBinder URL query data binder
-type QueryBinder struct {
-
-}
+// QueryBinder binding URL query data to struct
+type QueryBinder struct {}
 
 // Name get name
 func (QueryBinder) Name() string {
@@ -16,6 +13,6 @@ func (QueryBinder) Name() string {
 }
 
 // Bind Query data binder
-func (QueryBinder) Bind(r *http.Request, obj interface{}) error {
-	return json.NewDecoder(r.Body).Decode(obj)
+func (QueryBinder) Bind(r *http.Request, ptr interface{}) error {
+	return decodeForm(r.URL.Query(), ptr)
 }

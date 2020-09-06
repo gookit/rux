@@ -22,6 +22,7 @@ type (
 // build-in data binder
 var (
 	Query = QueryBinder{}
+	Form  = FormBinder{}
 	JSON  = JSONBinder{}
 	XML   = XMLBinder{}
 )
@@ -30,8 +31,8 @@ var binders = map[string]Binder{
 	"xml":   XML,
 	"json":  JSON,
 	"query": Query,
+	"form": Form,
 	// TODO more driver
-	// "form": ,
 	// "yml": ,
 	// "header": ,
 	// "msgpack": ,

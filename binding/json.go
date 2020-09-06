@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-// JSONBinder JSON data binder
+// JSONBinder binding JSON data to struct
 type JSONBinder struct {}
 
 // Name get name
@@ -20,8 +20,8 @@ func (JSONBinder) Bind(r *http.Request, obj interface{}) error {
 	return json.NewDecoder(r.Body).Decode(obj)
 }
 
-// Bind JSON data from raw data
-func (JSONBinder) BindRaw(ptr interface{}, bts []byte) error {
+// Bind raw JSON data to struct
+func (JSONBinder) BindRaw( bts []byte, ptr interface{}) error {
 	return decodeJSON(strings.NewReader(string(bts)), ptr)
 }
 
