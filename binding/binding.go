@@ -1,3 +1,4 @@
+// Package binding provide some common binder for binding http.Request data to strcut
 package binding
 
 import (
@@ -40,6 +41,7 @@ func Auto(r *http.Request, obj interface{}) (err error) {
 		return Query.BindValues(r.URL.Query(), obj)
 	}
 
+	// binding body data by content type.
 	cType := r.Header.Get("Content-Type")
 
 	// basic POST form data binding. content type: "application/x-www-form-urlencoded"
