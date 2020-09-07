@@ -5,7 +5,7 @@ import "github.com/gookit/validate"
 // Validator for validate bounded data
 var Validator DataValidator = &stdValidator{}
 
-type stdValidator struct {}
+type stdValidator struct{}
 
 // Validate the struct data, if fail return error
 func (sv *stdValidator) Validate(obj interface{}) error {
@@ -22,4 +22,3 @@ func validating(obj interface{}) error {
 
 	return Validator.Validate(obj)
 }
-

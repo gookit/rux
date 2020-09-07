@@ -21,22 +21,28 @@ type (
 
 // build-in data binder
 var (
-	Query = QueryBinder{}
-	Form  = FormBinder{}
-	JSON  = JSONBinder{}
-	XML   = XMLBinder{}
+	Header = HeaderBinder{}
+	Query  = QueryBinder{}
+
+	Form = FormBinder{}
+	JSON = JSONBinder{}
+	XML  = XMLBinder{}
+	// TODO more driver
+	// YAML = YAMLBinder{}
+	// MSGPACK = MSGPACKBinder{}
+	// PROTOBUF = PROTOBUFBinder{}
 )
 
 var binders = map[string]Binder{
-	"xml":   XML,
-	"json":  JSON,
-	"query": Query,
-	"form": Form,
+	"xml":    XML,
+	"json":   JSON,
+	"query":  Query,
+	"form":   Form,
+	"header": Header,
 	// TODO more driver
-	// "yml": ,
-	// "header": ,
-	// "msgpack": ,
-	// "protobuf": ,
+	// "yaml": YAML,
+	// "msgpack": MSGPACK,
+	// "protobuf": PROTOBUF,
 }
 
 // BinderFunc implements the Binder interface
@@ -47,6 +53,14 @@ func (fn BinderFunc) Name() string {
 // BinderFunc implements the Binder interface
 func (fn BinderFunc) Bind(r *http.Request, obj interface{}) error {
 	return fn(r, obj)
+}
+
+// Get an binder by name
+func Get(name string) Binder {
+	if b, ok := binders[name]; ok {
+		return b
+	}
+	return nil
 }
 
 // Register new binder with name

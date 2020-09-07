@@ -8,7 +8,7 @@ import (
 )
 
 // JSONBinder binding JSON data to struct
-type JSONBinder struct {}
+type JSONBinder struct{}
 
 // Name get name
 func (JSONBinder) Name() string {
@@ -16,16 +16,16 @@ func (JSONBinder) Name() string {
 }
 
 // Bind JSON data from http.Request
-func (JSONBinder) Bind(r *http.Request, obj interface{}) error {
-	return json.NewDecoder(r.Body).Decode(obj)
+func (JSONBinder) Bind(r *http.Request, ptr interface{}) error {
+	return json.NewDecoder(r.Body).Decode(ptr)
 }
 
-// Bind raw JSON data to struct
-func (JSONBinder) BindRaw( bts []byte, ptr interface{}) error {
+// BindBytes raw JSON data to struct
+func (JSONBinder) BindBytes(bts []byte, ptr interface{}) error {
 	return decodeJSON(strings.NewReader(string(bts)), ptr)
 }
 
-func decodeJSON(r io.Reader, ptr interface{}) error  {
+func decodeJSON(r io.Reader, ptr interface{}) error {
 	err := json.NewDecoder(r).Decode(ptr)
 	if err != nil {
 		return err

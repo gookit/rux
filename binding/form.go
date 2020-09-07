@@ -7,10 +7,11 @@ import (
 	"github.com/monoculum/formam"
 )
 
+// TagName for decode url.Values(form,query) data
 var TagName = "form"
 
 // FormBinder binding Form/url.Values data to struct
-type FormBinder struct {}
+type FormBinder struct{}
 
 // Name get name
 func (FormBinder) Name() string {
@@ -19,25 +20,28 @@ func (FormBinder) Name() string {
 
 // Bind Form data from http.Request
 func (FormBinder) Bind(r *http.Request, ptr interface{}) error {
-	_ = r.ParseForm()
-	return decodeForm(r.Form, ptr)
+	err := r.ParseForm()
+	if err != nil {
+		return err
+	}
+
+	return DecodeUrlValues(r.Form, ptr)
 }
 
-// Bind Form data from raw data
-func (FormBinder) BindValues( val url.Values, ptr interface{}) error {
-	return decodeForm(val, ptr)
+// BindValues data from url.Values
+func (FormBinder) BindValues(values url.Values, ptr interface{}) error {
+	return DecodeUrlValues(values, ptr)
 }
 
-func decodeForm(form url.Values, ptr interface{}) error  {
+// DecodeUrlValues data to struct
+func DecodeUrlValues(values map[string][]string, ptr interface{}) error {
 	dec := formam.NewDecoder(&formam.DecoderOptions{
 		TagName: TagName,
 	})
 
-	err := dec.Decode(form, ptr)
-	if err != nil {
+	if err := dec.Decode(values, ptr); err != nil {
 		return err
 	}
 
 	return validating(ptr)
 }
-
