@@ -4,23 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"io"
-
-	"github.com/gookit/rux/binding"
-	"github.com/gookit/rux/render"
-)
-
-const (
-	// ContentType header key
-	ContentType = "Content-Type"
-	// ContentBinary represents content type application/octet-stream
-	ContentBinary = "application/octet-stream"
-
-	// ContentDisposition describes contentDisposition
-	ContentDisposition = "Content-Disposition"
-	// describes content disposition type
-	dispositionInline = "inline"
-	// describes content disposition type
-	dispositionAttachment = "attachment"
 )
 
 /*************************************************************
@@ -84,43 +67,3 @@ func (c *Context) Validate(i interface{}) error {
 /*************************************************************
  * Context binding and response render(RECOMMENDED)
  *************************************************************/
-
-// ShouldBind bind request data to an struct, will auto call validator
-//
-// Usage:
-//	err := c.ShouldBind(u, binding.JSON)
-func (c *Context) ShouldBind(obj interface{}, binder binding.Binder) error {
-	return binder.Bind(c.Req, obj)
-}
-
-// MustBind bind request data to an struct, will auto call validator
-//
-// Usage:
-//	c.MustBind(&user, binding.Json)
-func (c *Context) MustBind(obj interface{}, binder binding.Binder) {
-	err := binder.Bind(c.Req, obj)
-	if err != nil {
-		panic(err)
-	}
-}
-
-// ShouldRender render and response to client
-func (c *Context) ShouldRender(status int, obj interface{}, renderer render.Renderer) error {
-	c.SetStatus(status)
-	return renderer.Render(c.Resp, obj)
-}
-
-// MustRender render and response to client
-func (c *Context) MustRender(status int, obj interface{}, renderer render.Renderer) {
-	c.Respond(status, obj, renderer)
-}
-
-// Respond render and response to client
-func (c *Context) Respond(status int, obj interface{}, renderer render.Renderer) {
-	c.SetStatus(status)
-
-	err := renderer.Render(c.Resp, obj)
-	if err != nil {
-		panic(err)
-	}
-}

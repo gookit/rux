@@ -60,6 +60,6 @@ func Blob(w http.ResponseWriter, contentType string, data []byte) (err error) {
 func writeContentType(w http.ResponseWriter, value string) {
 	header := w.Header()
 	if val := header["Content-Type"]; len(val) == 0 {
-		header["Content-Type"] = []string{value}
+		w.Header().Set("Content-Type", value)
 	}
 }

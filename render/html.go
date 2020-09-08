@@ -8,7 +8,7 @@ import (
 
 // HTMLRenderer for response HTML contents to client
 type HTMLRenderer struct {
-
+	TplName string
 }
 
 // Render JSON to client
