@@ -47,6 +47,8 @@ type Validator interface {
  *************************************************************/
 
 // Bind context bind struct
+// Deprecated
+// please use ShouldBind(),
 func (c *Context) Bind(i interface{}) error {
 	if c.router.Binder == nil {
 		return errors.New("binder not registered")
@@ -80,12 +82,26 @@ func (c *Context) Validate(i interface{}) error {
 }
 
 /*************************************************************
- * Context binding and render(RECOMMENDED)
+ * Context binding and response render(RECOMMENDED)
  *************************************************************/
 
-// ShouldBind bind request data to an struct
+// ShouldBind bind request data to an struct, will auto call validator
+//
+// Usage:
+//	err := c.ShouldBind(u, binding.JSON)
 func (c *Context) ShouldBind(obj interface{}, binder binding.Binder) error {
 	return binder.Bind(c.Req, obj)
+}
+
+// MustBind bind request data to an struct, will auto call validator
+//
+// Usage:
+//	c.MustBind(&user, binding.Json)
+func (c *Context) MustBind(obj interface{}, binder binding.Binder) {
+	err := binder.Bind(c.Req, obj)
+	if err != nil {
+		panic(err)
+	}
 }
 
 // ShouldRender render and response to client
