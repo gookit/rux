@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/gookit/goutil/envutil"
+	"github.com/gookit/goutil/netutil/httpctype"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -690,7 +691,7 @@ func TestAccessStaticAssets(t *testing.T) {
 	})
 	w = mockRequest(r, "GET", "/some/test.txt", nil)
 	is.Equal(200, w.Code)
-	is.Equal("text/plain; charset=UTF-8", w.Header().Get("Content-Type"))
+	is.Equal(httpctype.Text, w.Header().Get(httpctype.Key))
 	is.Contains(w.Body.String(), "content")
 }
 
@@ -727,7 +728,9 @@ func TestResetful(t *testing.T) {
 	is.Equal(w.Body.String(), "GET Create")
 	w = mockRequest(r, "GET", "/product/123456", nil)
 	is.Equal(w.Body.String(), "GET Show 123456")
-	w = mockRequest(r, "GET", "/product/123456/edit", &md{H: m{"Authorization": fmt.Sprintf("Basic %s", base64.StdEncoding.EncodeToString([]byte("test:123")))}})
+	w = mockRequest(r, "GET", "/product/123456/edit", &md{
+		H: m{"Authorization": fmt.Sprintf("Basic %s", base64.StdEncoding.EncodeToString([]byte("test:123")))},
+	})
 	is.Equal(w.Body.String(), "GET Edit 123456")
 	w = mockRequest(r, "POST", "/product", nil)
 	is.Equal(w.Body.String(), "POST Store")

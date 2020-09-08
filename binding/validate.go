@@ -15,7 +15,18 @@ func (sv *stdValidator) Validate(obj interface{}) error {
 	return v.Errors
 }
 
+// DisableValidator for data binding
+func DisableValidator() {
+	Validator = nil
+}
+
+// ResetValidator for the package
+func ResetValidator() {
+	Validator = &stdValidator{}
+}
+
 func validating(obj interface{}) error {
+	// if Validator is nil, dont validate.
 	if Validator == nil {
 		return nil
 	}

@@ -2,8 +2,6 @@ package rux
 
 import (
 	"context"
-	"encoding/json"
-	"encoding/xml"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -16,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gookit/goutil/netutil/httpctype"
 	"github.com/gookit/rux/render"
 )
 
@@ -282,7 +281,7 @@ func (c *Context) PostParams(key string) ([]string, bool) {
 
 // FormParams return body values
 func (c *Context) FormParams(excepts ...[]string) (url.Values, error) {
-	if strings.HasPrefix(c.Req.Header.Get(ContentType), "multipart/form-data") {
+	if strings.HasPrefix(c.Req.Header.Get(httpctype.Key), "multipart/form-data") {
 		if err := c.ParseMultipartForm(defaultMaxMemory); err != nil {
 			return nil, err
 		}
@@ -539,7 +538,7 @@ func (c *Context) SetHeader(key, value string) {
 func (c *Context) WriteBytes(bt []byte) {
 	_, err := c.Resp.Write(bt)
 	if err != nil {
-		c.AddError(err)
+		panic(err)
 	}
 }
 
@@ -555,12 +554,12 @@ func (c *Context) HTTPError(msg string, status int) {
 
 // Text writes out a string as plain text.
 func (c *Context) Text(status int, str string) {
-	c.Blob(status, "text/plain; charset=UTF-8", []byte(str))
+	c.Blob(status, httpctype.Text, []byte(str))
 }
 
 // HTML writes out as html text. if data is empty, only write headers
 func (c *Context) HTML(status int, data []byte) {
-	c.Blob(status, "text/html; charset=UTF-8", data)
+	c.Blob(status, httpctype.HTML, data)
 }
 
 // Blob writes out []byte
@@ -591,50 +590,22 @@ func (c *Context) JSON(status int, obj interface{}) {
 
 // JSONBytes writes out a string as JSON response.
 func (c *Context) JSONBytes(status int, bs []byte) {
-	c.Blob(status, "application/json; charset=UTF-8", bs)
+	c.Blob(status, httpctype.JSON, bs)
 }
 
-// XML out struct pointer as xml response.
-func (c *Context) XML(status int, i interface{}, indents ...string) {
-	c.Resp.WriteHeader(status)
-	c.Resp.Header().Set(ContentType, "application/xml; charset=UTF-8")
-	enc := xml.NewEncoder(c.Resp)
-
-	if len(indents) > 0 {
-		if indents[0] != "" {
-			enc.Indent("", indents[0])
-		}
+// XML output xml response.
+func (c *Context) XML(status int, obj interface{}, indents ...string) {
+	var indent string
+	if len(indents) > 0 && indents[0] != ""{
+		indent = indents[0]
 	}
 
-	var err error
-	if _, err = c.Resp.Write([]byte(xml.Header)); err != nil {
-		panic(err)
-	}
-
-	if err = enc.Encode(i); err != nil {
-		panic(err)
-	}
+	c.Respond(status, obj, render.XMLRenderer{Indent: indent})
 }
 
 // JSONP is JSONP response.
-func (c *Context) JSONP(status int, callback string, i interface{}) {
-	enc := json.NewEncoder(c.Resp)
-
-	c.Resp.WriteHeader(status)
-	c.Resp.Header().Set(ContentType, "application/javascript; charset=UTF-8")
-
-	var err error
-	if _, err = c.Resp.Write([]byte(callback + "(")); err != nil {
-		panic(err)
-	}
-
-	if err = enc.Encode(i); err != nil {
-		panic(err)
-	}
-
-	if _, err = c.Resp.Write([]byte(");")); err != nil {
-		panic(err)
-	}
+func (c *Context) JSONP(status int, callback string, obj interface{}) {
+	c.Respond(status, obj, render.JSONPRenderer{Callback: callback})
 }
 
 // NoContent serve success but no content response
@@ -741,7 +712,8 @@ func (c *Context) dispositionContent(w http.ResponseWriter, status int, outName 
 		dispositionType = dispositionInline
 	}
 
-	w.Header().Set(ContentType, ContentBinary)
+	// "application/octet-stream"
+	w.Header().Set(httpctype.Key, httpctype.Binary)
 	w.Header().Set(ContentDisposition, fmt.Sprintf("%s; filename=%s", dispositionType, outName))
 	w.WriteHeader(status)
 }
@@ -750,7 +722,7 @@ func (c *Context) setRawContentHeader(w http.ResponseWriter, addType bool) {
 	w.Header().Set("Content-Description", "Raw content")
 
 	if addType {
-		w.Header().Set(ContentType, "text/plain")
+		w.Header().Set(httpctype.Key, "text/plain")
 	}
 
 	w.Header().Set("Expires", "0")

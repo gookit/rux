@@ -6,6 +6,7 @@ import (
 	"runtime"
 	"testing"
 
+	"github.com/gookit/goutil/netutil/httpctype"
 	"github.com/gookit/goutil/testutil"
 	"github.com/stretchr/testify/assert"
 )
@@ -323,7 +324,7 @@ func TestContext_Write(t *testing.T) {
 	w = mockRequest(r, GET, uri, nil)
 	is.Equal(200, w.Code)
 	is.Equal("hello", w.Body.String())
-	is.Equal("text/plain; charset=UTF-8", w.Header().Get("content-type"))
+	is.Equal(httpctype.Text, w.Header().Get(httpctype.Key))
 
 	uri = "/HTML"
 	r.GET(uri, func(c *Context) {
@@ -331,7 +332,7 @@ func TestContext_Write(t *testing.T) {
 	})
 	w = mockRequest(r, GET, uri, nil)
 	is.Equal(200, w.Code)
-	is.Equal("text/html; charset=UTF-8", w.Header().Get("content-type"))
+	is.Equal(httpctype.HTML, w.Header().Get(httpctype.Key))
 	is.Equal(`html`, w.Body.String())
 
 	uri = "/JSON"
@@ -340,8 +341,8 @@ func TestContext_Write(t *testing.T) {
 	})
 	w = mockRequest(r, GET, uri, nil)
 	is.Equal(200, w.Code)
-	is.Equal("application/json; charset=UTF-8", w.Header().Get("content-type"))
-	is.Equal(`{"name":"inhere"}`, w.Body.String())
+	is.Equal(httpctype.JSON, w.Header().Get(httpctype.Key))
+	is.Equal("{\"name\":\"inhere\"}\n", w.Body.String())
 
 	uri = "/JSONBytes"
 	r.GET(uri, func(c *Context) {
@@ -349,7 +350,7 @@ func TestContext_Write(t *testing.T) {
 	})
 	w = mockRequest(r, GET, uri, nil)
 	is.Equal(200, w.Code)
-	is.Equal("application/json; charset=UTF-8", w.Header().Get("content-type"))
+	is.Equal(httpctype.JSON, w.Header().Get(httpctype.Key))
 	is.Equal(`{"name": "inhere"}`, w.Body.String())
 
 	uri = "/NoContent"
@@ -535,12 +536,12 @@ func TestHandleXML(t *testing.T) {
 	})
 
 	w := mockRequest(r, GET, "/test-xml", nil)
-	is.Equal(`application/xml; charset=UTF-8`, w.Header().Get("Content-Type"))
+	is.Equal(httpctype.XML, w.Header().Get("Content-Type"))
 	is.Equal(`<?xml version="1.0" encoding="UTF-8"?>
 <User><Name>test</Name></User>`, w.Body.String())
 
 	w = mockRequest(r, GET, "/test-xml2", nil)
-	is.Equal(`application/xml; charset=UTF-8`, w.Header().Get("Content-Type"))
+	is.Equal(httpctype.XML, w.Header().Get("Content-Type"))
 	is.Equal(`<?xml version="1.0" encoding="UTF-8"?>
 <User>
   <Name>test</Name>
@@ -565,7 +566,7 @@ func TestHandleJSONP(t *testing.T) {
 	})
 
 	w := mockRequest(r, GET, "/test-jsonp", nil)
-	is.Equal(`application/javascript; charset=UTF-8`, w.Header().Get("Content-Type"))
+	is.Equal(httpctype.JSONP, w.Header().Get(httpctype.Key))
 	is.Equal(`jquery-jsonp({"Name":"test"}
 );`, w.Body.String())
 }

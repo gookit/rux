@@ -1,6 +1,7 @@
 package pprof
 
 import (
+	"os"
 	"testing"
 
 	"github.com/gookit/goutil/testutil"
@@ -9,6 +10,11 @@ import (
 )
 
 func TestRouter_PProf(t *testing.T) {
+	// skip run on local
+	if os.Getenv("GOPROXY") != "" {
+		return
+	}
+
 	r := rux.New(UsePProf)
 	is := assert.New(t)
 

@@ -80,12 +80,23 @@ func (c *Context) Validate(i interface{}) error {
 }
 
 /*************************************************************
- * Context function extends v2
+ * Context binding and render(RECOMMENDED)
  *************************************************************/
 
 // ShouldBind bind request data to an struct
 func (c *Context) ShouldBind(obj interface{}, binder binding.Binder) error {
 	return binder.Bind(c.Req, obj)
+}
+
+// ShouldRender render and response to client
+func (c *Context) ShouldRender(status int, obj interface{}, renderer render.Renderer) error {
+	c.SetStatus(status)
+	return renderer.Render(c.Resp, obj)
+}
+
+// MustRender render and response to client
+func (c *Context) MustRender(status int, obj interface{}, renderer render.Renderer) {
+	c.Respond(status, obj, renderer)
 }
 
 // Respond render and response to client
@@ -97,4 +108,3 @@ func (c *Context) Respond(status int, obj interface{}, renderer render.Renderer)
 		panic(err)
 	}
 }
-
