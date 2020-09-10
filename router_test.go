@@ -358,11 +358,26 @@ func TestRouter_Controller(t *testing.T) {
 	is.Equal(200, w.Code)
 	is.Equal("hello, in /", w.Body.String())
 
-	w = testutil.MockRequest(r, http.MethodGet, "/", nil)
+	w = testutil.MockRequest(r, http.MethodGet, "", nil)
+	is.Equal(200, w.Code)
+	is.Equal("hello, in ", w.Body.String())
+
+	Debug(false)
+}
+
+func TestRouter_Controller2(t *testing.T) {
+	is := assert.New(t)
+	r := New()
+
+	r.Controller("", &SiteController{})
+
+	w := testutil.MockRequest(r, http.MethodGet, "/", nil)
 	is.Equal(200, w.Code)
 	is.Equal("hello, in /", w.Body.String())
 
-	Debug(false)
+	w = testutil.MockRequest(r, http.MethodGet, "", nil)
+	is.Equal(200, w.Code)
+	is.Equal("hello, in ", w.Body.String())
 }
 
 func TestDynamicRoute(t *testing.T) {
