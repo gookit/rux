@@ -2,16 +2,10 @@ package rux
 
 import (
 	"bytes"
-	"encoding/json"
-	"errors"
-	"fmt"
-	"html/template"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
-	"reflect"
-	"strings"
 	"testing"
 
 	"github.com/gookit/goutil/netutil/httpctype"
@@ -261,125 +255,6 @@ func TestContext_Cookie(t *testing.T) {
 
 	resCke = w.Header().Get("Set-Cookie")
 	is.Equal("req-cke=; Path=/; Max-Age=0; HttpOnly", resCke)
-}
-
-type MyBinder string
-
-func (b *MyBinder) Bind(v interface{}, c *Context) error {
-	if c.IsPost() {
-		if err := json.NewDecoder(c.Req.Body).Decode(v); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func TestContext_Binder(t *testing.T) {
-	ris := assert.New(t)
-	r := New()
-
-	r.Binder = new(MyBinder)
-
-	r.Any("/binder", func(c *Context) {
-		var form = new(struct {
-			Username string `json:"username"`
-			Password string `json:"password"`
-		})
-
-		if err := c.Bind(form); err != nil {
-			c.AbortThen().Text(200, "binder error")
-		}
-
-		c.Text(200, fmt.Sprintf("%s=%s", form.Username, form.Password))
-	})
-
-	w := mockRequest(r, POST, "/binder", &md{B: `{"username":"admin","password":"123456"}`})
-
-	ris.Equal(200, w.Code)
-	ris.Equal(w.Body.String(), `admin=123456`)
-}
-
-type MyValidator string
-
-func (mv *MyValidator) Validate(v interface{}) error {
-	var rt = reflect.TypeOf(v)
-	var rv = reflect.ValueOf(v)
-	var field = rt.Elem().Field(0)
-	var value = rv.Elem().Field(0)
-	var rules = field.Tag.Get("valid")
-
-	for _, rule := range strings.Split(rules, "|") {
-		if rule == "required" && value.Interface() == "" {
-			return errors.New("must required")
-		}
-
-		if rule == "email" && value.Interface() != "admin@me.com" {
-			return errors.New("email error")
-		}
-	}
-
-	return nil
-}
-
-func TestContext_Validator(t *testing.T) {
-	ris := assert.New(t)
-	r := New()
-
-	r.Validator = new(MyValidator)
-
-	r.Any("/validator", func(c *Context) {
-		var form = new(struct {
-			Username string `valid:"required|email"`
-		})
-
-		form.Username = "admin@me.com"
-
-		if err := c.Validate(form); err != nil {
-			c.Text(200, err.Error())
-			return
-		}
-
-		c.Text(200, "passed")
-	})
-
-	w := mockRequest(r, GET, "/validator", nil)
-
-	ris.Equal(200, w.Code)
-	ris.Equal(w.Body.String(), `passed`)
-}
-
-type MyRenderer string
-
-func (mr *MyRenderer) Render(w io.Writer, name string, data interface{}, ctx *Context) error {
-	tpl, err := template.New(name).Funcs(template.FuncMap{
-		"Upper": strings.ToUpper,
-	}).Parse("{{.Name|Upper}}, ID is {{ .ID}}")
-
-	if err != nil {
-		return err
-	}
-
-	return tpl.Execute(w, data)
-}
-
-func TestContext_Renderer(t *testing.T) {
-	ris := assert.New(t)
-	r := New()
-
-	r.Renderer = new(MyRenderer)
-
-	r.Any("/renderer", func(c *Context) {
-		c.Render(200, "index", M{
-			"ID":   100,
-			"Name": "admin",
-		})
-	})
-
-	w := mockRequest(r, GET, "/renderer", nil)
-
-	ris.Equal(200, w.Code)
-	ris.Equal(w.Body.String(), `ADMIN, ID is 100`)
 }
 
 func TestContext_Length(t *testing.T) {
