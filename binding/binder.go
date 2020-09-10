@@ -21,10 +21,10 @@ type (
 
 // build-in data binder
 var (
-	Header = HeaderBinder{}
-	Query  = QueryBinder{}
+	Form   = FormBinder{FormTagName}
+	Header = HeaderBinder{HeaderTagName}
+	Query  = QueryBinder{QueryTagName}
 
-	Form = FormBinder{}
 	JSON = JSONBinder{}
 	XML  = XMLBinder{}
 	// TODO more driver
