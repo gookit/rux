@@ -93,7 +93,7 @@ func BenchmarkStableRoutes_noMethod(B *testing.B) {
 	method := http.MethodGet
 	for i := 0; i < B.N; i++ {
 		route, ok := srsNoMethod[path]
-		if ok && route.methodIsAllowed(method) {
+		if ok && strings.Contains(route.MethodString("|") + "|", method + "|") {
 			// match ok
 		}
 	}
