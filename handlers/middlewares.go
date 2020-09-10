@@ -34,7 +34,13 @@ func GenRequestID() rux.HandlerFunc {
 }
 
 // HTTPBasicAuth for the request
-func HTTPBasicAuth(users map[string]string) rux.HandlerFunc {
+// Usage:
+//
+//	r.GET("/auth", func(c *rux.Context) {
+//		c.WriteString("hello")
+//	}, HTTPBasicAuth(map[string]string{"testuser": "123"}))
+//
+func HTTPBasicAuth(accounts map[string]string) rux.HandlerFunc {
 	return func(c *rux.Context) {
 		user, pwd, ok := c.Req.BasicAuth()
 		if !ok {
@@ -43,8 +49,8 @@ func HTTPBasicAuth(users map[string]string) rux.HandlerFunc {
 			return
 		}
 
-		if len(users) > 0 {
-			srcPwd, ok := users[user]
+		if len(accounts) > 0 {
+			srcPwd, ok := accounts[user]
 			if !ok || srcPwd != pwd {
 				c.AbortWithStatus(403)
 			}
