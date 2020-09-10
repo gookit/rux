@@ -670,17 +670,14 @@ func (r *Router) String() string {
 
 func (r *Router) formatPath(path string) string {
 	path = strings.TrimSpace(path)
-	if path == "" || path == "/" {
-		return "/"
-	}
-
-	if path[0] != '/' {
-		path = "/" + path
-	}
-
 	if !r.strictLastSlash {
 		path = strings.TrimRight(path, "/")
 	}
 
-	return path
+	if path == "" || path == "/" {
+		return "/"
+	}
+
+	// fix: "//home" -> "home"
+	return "/" + strings.TrimLeft(path, "/")
 }

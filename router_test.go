@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/gookit/goutil/envutil"
+	"github.com/gookit/goutil/testutil"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -43,8 +44,13 @@ type SiteController struct {
 }
 
 func (c *SiteController) AddRoutes(r *Router) {
+	r.GET("", c.Index)
 	r.GET("{id}", c.Get)
 	r.POST("", c.Post)
+}
+
+func (c *SiteController) Index(ctx *Context) {
+	ctx.WriteString("hello, in " + ctx.URL().Path)
 }
 
 func (c *SiteController) Get(ctx *Context) {
@@ -339,6 +345,24 @@ func TestRouter_Group(t *testing.T) {
 			r.GET("/{id}", emptyHandler)
 		}, hs...)
 	})
+}
+
+func TestRouter_Controller(t *testing.T) {
+	is := assert.New(t)
+	r := New()
+	Debug(true)
+
+	r.Controller("/", &SiteController{})
+
+	w := testutil.MockRequest(r, http.MethodGet, "/", nil)
+	is.Equal(200, w.Code)
+	is.Equal("hello, in /", w.Body.String())
+
+	w = testutil.MockRequest(r, http.MethodGet, "/", nil)
+	is.Equal(200, w.Code)
+	is.Equal("hello, in /", w.Body.String())
+
+	Debug(false)
 }
 
 func TestDynamicRoute(t *testing.T) {
