@@ -75,7 +75,7 @@ func TestBuildRequestUrl_Build(t *testing.T) {
 	b := NewBuildRequestURL()
 	b.Params(M{"{name}": "test", "{id}": "20"})
 
-	is.Equal(r.BuildRequestURL("homepage", b).String(), `/build-test/test/20`)
+	is.Equal(r.BuildURL("homepage", b).String(), `/build-test/test/20`)
 	is.Equal(r.BuildRequestURL("homepage_fiexd_path").String(), `/build-test/fiexd/path`)
 }
 
@@ -168,11 +168,11 @@ func TestBuildRequestUrl_ErrorArgs(t *testing.T) {
 	homepage := NamedRoute("homepage", `/build-test/{name}/{id:\d+}`, emptyHandler, GET)
 	r.AddRoute(homepage)
 
-	is.PanicsWithValue("buildRequestURLs odd argument count", func() {
+	is.PanicsWithValue("buildArgs odd argument count", func() {
 		r.BuildRequestURL("homepage", "one")
 	})
 
-	is.PanicsWithValue("buildRequestURLs odd argument count", func() {
+	is.PanicsWithValue("buildArgs odd argument count", func() {
 		r.BuildRequestURL("homepage", "{name}", "test", "{id}")
 	})
 }

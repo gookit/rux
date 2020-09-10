@@ -191,52 +191,57 @@ func (r *Route) Info() RouteInfo {
 	return RouteInfo{r.name, r.path, r.HandlerName(), r.methods, len(r.handlers)}
 }
 
-// BuildURL alias of the method BuildRequestURL()
-func (r *Router) BuildURL(name string, buildArgs ...interface{}) *url.URL {
-	return r.BuildRequestURL(name, buildArgs...)
-}
-
-// BuildRequestURL build Request URL one arg can be set buildRequestURL or rux.M
-func (r *Router) BuildRequestURL(name string, buildRequestURLs ...interface{}) *url.URL {
+// ToURL build request URL, can with path vars
+func (r *Route) ToURL(buildArgs ...interface{}) *url.URL {
 	var URLBuilder *BuildRequestURL
-	var withParams = make(M)
-
-	route := r.GetRoute(name)
-	if route == nil {
-		panicf("BuildRequestURL get route is nil(name: %s)", name)
-	}
-
 	//noinspection GoNilness
-	path := route.path
-	varln := len(buildRequestURLs)
+	path := r.path
+	vlen := len(buildArgs)
 
-	if varln == 0 {
+	if vlen == 0 {
 		return NewBuildRequestURL().Path(path).Build()
 	}
 
-	if varln == 1 {
-		switch buildRequestURLs[0].(type) {
+	var withParams = make(M)
+	if vlen == 1 {
+		switch buildArgs[0].(type) {
 		case *BuildRequestURL:
-			URLBuilder = buildRequestURLs[0].(*BuildRequestURL)
+			URLBuilder = buildArgs[0].(*BuildRequestURL)
 		case M:
 			URLBuilder = NewBuildRequestURL()
-			withParams = buildRequestURLs[0].(M)
+			withParams = buildArgs[0].(M)
 		default:
-			panic("buildRequestURLs odd argument count")
+			panic("buildArgs odd argument count")
 		}
-	} else { // varln > 1
-		if varln%2 == 1 {
-			panic("buildRequestURLs odd argument count")
+	} else { // vlen > 1
+		if vlen%2 == 1 {
+			panic("buildArgs odd argument count")
 		}
 
-		for i := 0; i < len(buildRequestURLs); i += 2 {
-			withParams[toString(buildRequestURLs[i])] = buildRequestURLs[i+1]
+		for i := 0; i < len(buildArgs); i += 2 {
+			withParams[toString(buildArgs[i])] = buildArgs[i+1]
 		}
 
 		URLBuilder = NewBuildRequestURL()
 	}
 
 	return URLBuilder.Path(path).Build(withParams)
+}
+
+// BuildURL alias of the method BuildRequestURL()
+func (r *Router) BuildRequestURL(name string, buildArgs ...interface{}) *url.URL {
+	return r.BuildURL(name, buildArgs...)
+}
+
+// BuildRequestURL build Request URL one arg can be set buildRequestURL or rux.M
+func (r *Router) BuildURL(name string, buildArgs ...interface{}) *url.URL {
+	route := r.GetRoute(name)
+	if route == nil {
+		panicf("BuildRequestURL get route is nil(name: %s)", name)
+	}
+
+	//noinspection GoNilness
+	return route.ToURL(buildArgs...)
 }
 
 // check route info
