@@ -59,42 +59,42 @@ func main() {
 
 	fmt.Print("- First route match ...")
 	st = time.Now()
-	ok, ret := matchRoute(times, firstRoute)
+	ok, route := matchRoute(times, firstRoute)
 	total := time.Now().Sub(st).Seconds() * 1000
 	avg := total * 1000 / float64(times)
 	fmt.Printf(
 		" OK \n  Total time consuming %.3f ms, Number of matches: (%d/%d). Average time consuming: %.3f us\n  Match result: %+v\n\n",
-		total, ok, times, avg, ret,
+		total, ok, times, avg, route.Info(),
 	)
 
 	fmt.Print("- Random route match ...")
 	st = time.Now()
-	ok, ret = matchRoute(times, randRoute)
+	ok, route = matchRoute(times, randRoute)
 	total = time.Now().Sub(st).Seconds() * 1000
 	avg = total * 1000 / float64(times)
 	fmt.Printf(
 		" OK \n  Total time consuming %.3f ms, Number of matches: (%d/%d). Average time consuming: %.3f us\n  Match result: %+v\n\n",
-		total, ok, times, avg, *ret,
+		total, ok, times, avg, route.Info(),
 	)
 
 	fmt.Print("- Last route match ...")
 	st = time.Now()
-	ok, ret = matchRoute(times, lastRoute)
+	ok, route = matchRoute(times, lastRoute)
 	total = time.Now().Sub(st).Seconds() * 1000
 	avg = total * 1000 / float64(times)
 	fmt.Printf(
 		" OK \n  Total time consuming %.3f ms, Number of matches: (%d/%d). Average time consuming: %.3f us\n  Match result: %+v\n\n",
-		total, ok, times, avg, *ret,
+		total, ok, times, avg, route.Info(),
 	)
 
 	fmt.Print("- Unknown route match ...")
 	st = time.Now()
-	_, ret = matchRoute(times, map[string]string{"m": "GET", "p": "/not-exist"})
+	_, route = matchRoute(times, map[string]string{"m": "GET", "p": "/not-exist"})
 	total = time.Now().Sub(st).Seconds() * 1000
 	avg = total * 1000 / float64(times)
 	fmt.Printf(
 		" OK \n  Total time consuming %.3f ms, Number of matches: %d. Average time consuming: %.3f us\n  Match result: %+v\n",
-		total, times, avg, *ret,
+		total, times, avg, route.Info(),
 	)
 }
 
@@ -141,13 +141,13 @@ func collectRoutes() {
 	}
 }
 
-func matchRoute(times int, item map[string]string) (ok int, ret *rux.MatchResult) {
+func matchRoute(times int, item map[string]string) (ok int, rt *rux.Route) {
 	ok = 0
 	path := item["p1"]
 
 	for i := 0; i < times; i++ {
-		ret = r.Match(item["m"], path)
-		if ret.IsOK() {
+		route,_,_ := r.Match(item["m"], path)
+		if route != nil {
 			ok++
 		}
 	}

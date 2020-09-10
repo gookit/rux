@@ -13,6 +13,7 @@ const (
 
 var wg sync.WaitGroup
 
+// multi port listen
 func main() {
 	http.HandleFunc("/", Hello)
 

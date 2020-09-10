@@ -2,43 +2,73 @@ package render
 
 import (
 	"encoding/json"
+	"net/http"
 
-	"github.com/gookit/rux"
+	"github.com/gookit/goutil/netutil/httpctype"
 )
 
-// JSON response rendering
-func JSON(status int, ptr interface{}, c *rux.Context) error {
-	bs, err := json.Marshal(ptr)
-	if err != nil {
+// JSONRenderer for response JSON content to client
+type JSONRenderer struct {
+	// Data interface{}
+	// Indent string for encode
+	Indent string
+	// NotEscape HTML string
+	NotEscape bool
+}
+
+// Render JSON to client
+func (r JSONRenderer) Render(w http.ResponseWriter, obj interface{}) (err error) {
+	writeContentType(w, httpctype.JSON)
+
+	enc := json.NewEncoder(w)
+	if r.Indent != "" {
+		enc.SetIndent("", r.Indent)
+	}
+
+	if r.NotEscape {
+		enc.SetEscapeHTML(false)
+	}
+
+	if err = enc.Encode(obj); err != nil {
 		return err
 	}
 
-	c.Resp.WriteHeader(status)
-	c.Resp.Header().Set(rux.ContentType, "application/json; charset=UTF-8")
+	return err
+}
 
-	if len(bs) > 0 {
-		c.WriteBytes(bs)
+// JSON response rendering
+func JSON(w http.ResponseWriter, obj interface{}) error {
+	return JSONRenderer{}.Render(w, obj)
+}
+
+// JSONIndented response rendering with indent
+func JSONIndented( w http.ResponseWriter, obj interface{}) error {
+	return JSONRenderer{Indent: PrettyIndent}.Render(w, obj)
+}
+
+// JSONPRenderer for response JSONP content to client
+type JSONPRenderer struct {
+	Callback string
+}
+
+// Render JSONP to client
+func (r JSONPRenderer) Render(w http.ResponseWriter, obj interface{}) (err error) {
+	writeContentType(w, httpctype.JSONP)
+
+	if _, err = w.Write([]byte(r.Callback + "(")); err != nil {
+		return err
 	}
 
-	return nil
+	enc := json.NewEncoder(w)
+	if err = enc.Encode(obj); err != nil {
+		return err
+	}
+
+	_, err = w.Write([]byte(");"))
+	return err
 }
 
 // JSONP response rendering
-func JSONP(status int, callback string, ptr interface{}, c *rux.Context) error {
-	enc := json.NewEncoder(c.Resp)
-
-	c.Resp.WriteHeader(status)
-	c.Resp.Header().Set(rux.ContentType, "application/javascript; charset=UTF-8")
-
-	var err error
-	if _, err = c.Resp.Write([]byte(callback + "(")); err != nil {
-		return err
-	}
-
-	if err = enc.Encode(ptr); err != nil {
-		return err
-	}
-
-	_, err = c.Resp.Write([]byte(");"))
-	return err
+func JSONP(callback string, obj interface{}, w http.ResponseWriter) error {
+	return JSONPRenderer{Callback: callback}.Render(w, obj)
 }

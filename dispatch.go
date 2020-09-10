@@ -106,7 +106,7 @@ var internal405Handler HandlerFunc = func(c *Context) {
 	sort.Strings(allowed)
 	c.SetHeader("Allow", strings.Join(allowed, ", "))
 
-	if c.Req.Method == "OPTIONS" {
+	if c.Req.Method == http.MethodOptions {
 		c.SetStatus(200)
 	} else {
 		http.Error(c.Resp, "Method not allowed", 405)
@@ -116,23 +116,23 @@ var internal405Handler HandlerFunc = func(c *Context) {
 // ServeHTTP for handle HTTP request, response data to client.
 func (r *Router) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	// get new context
-	ctx := r.pool.Get().(*Context)
+	ctx := r.ctxPool.Get().(*Context)
+	// init and reset ctx
 	ctx.Init(res, req)
 
 	// handle HTTP Request
 	r.handleHTTPRequest(ctx)
 
-	// reset data
-	ctx.Reset()
-	// release data
-	r.pool.Put(ctx)
+	// ctx.Reset()
+	// release ctx
+	r.ctxPool.Put(ctx)
 }
 
 // HandleContext handle a given context
 func (r *Router) HandleContext(c *Context) {
 	c.Reset()
 	r.handleHTTPRequest(c)
-	r.pool.Put(c)
+	r.ctxPool.Put(c)
 }
 
 // handle HTTP Request
@@ -152,33 +152,32 @@ func (r *Router) handleHTTPRequest(ctx *Context) {
 		path = ctx.Req.URL.EscapedPath()
 	}
 
-	// match route
-	result := r.Match(ctx.Req.Method, path)
+	// matching route
+	route, params, allowed := r.Match(ctx.Req.Method, path)
 
 	var handlers HandlersChain
-	switch result.Status {
-	case Found:
+	if route != nil { // found route
 		// save route params
-		ctx.Params = result.Params
-		ctx.Set(CTXCurrentRouteName, result.Name)
+		ctx.Params = params
+		ctx.Set(CTXCurrentRouteName, route.name)
 		ctx.Set(CTXCurrentRoutePath, path)
 
 		// append main handler to last
-		handlers = append(result.Handlers, result.Handler)
-	case NotFound:
-		if len(r.noRoute) == 0 {
-			r.noRoute = HandlersChain{internal404Handler}
-		}
-
-		handlers = r.noRoute
-	case NotAllowed:
+		handlers = append(route.handlers, route.handler)
+	} else if len(allowed) > 0 { // method not allowed
 		if len(r.noAllowed) == 0 {
 			r.noAllowed = HandlersChain{internal405Handler}
 		}
 
 		// add allowed methods to context
-		ctx.Set(CTXAllowedMethods, result.AllowedMethods)
+		ctx.Set(CTXAllowedMethods, allowed)
 		handlers = r.noAllowed
+	} else { // not found route
+		if len(r.noRoute) == 0 {
+			r.noRoute = HandlersChain{internal404Handler}
+		}
+
+		handlers = r.noRoute
 	}
 
 	// has global middleware handlers
@@ -186,13 +185,13 @@ func (r *Router) handleHTTPRequest(ctx *Context) {
 		handlers = append(r.handlers, handlers...)
 	}
 
-	result = nil
 	ctx.SetHandlers(handlers)
 	ctx.Next() // handle processing
-	ctx.writer.ensureWriteHeader()
 
 	// has errors and has error handler
 	if r.OnError != nil && len(ctx.Errors) > 0 {
 		r.OnError(ctx)
 	}
+
+	ctx.writer.ensureWriteHeader()
 }

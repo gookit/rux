@@ -233,9 +233,7 @@ func main() {
 ```go
 package main
 
-import (
-	"net/http"
-	
+import (	
 	"github.com/gookit/rux"
 )
 
@@ -282,21 +280,42 @@ Examples：
 
 ### Redirect
 
-```go
-	r.GET("/", func(c *rux.Context) {
-		c.AbortThen().Redirect("/login", 302)
-	})
-    
-	// Or
-	r.GET("/", func(c *rux.Context) {
-		c.Redirect("/login", 302)
-        c.Abort()
-	})
+redirect to other page
 
-	r.GET("/", func(c *rux.Context) {
-        c.Back()
-        c.Abort()
-    })
+```go
+r.GET("/", func(c *rux.Context) {
+    c.AbortThen().Redirect("/login", 302)
+})
+
+// Or
+r.GET("/", func(c *rux.Context) {
+    c.Redirect("/login", 302)
+    c.Abort()
+})
+
+r.GET("/", func(c *rux.Context) {
+    c.Back()
+    c.Abort()
+})
+```
+
+### Cookies
+
+you can quick operate cookies by `FastSetCookie()` `DelCookie()`
+
+> Note: You must set or delete cookies before writing BODY content
+
+```go
+r.GET("/setcookie", func(c *rux.Context) {
+    c.FastSetCookie("rux_cookie2", "test-value2", 3600)
+    c.SetCookie("rux_cookie", "test-value1", 3600, "/", c.Req.URL.Host, false, true)
+	c.WriteString("hello, in " + c.URL().Path)
+})
+
+r.GET("/delcookie", func(c *rux.Context) {
+	val := ctx.Cookie("rux_cookie") // "test-value1"
+	c.DelCookie("rux_cookie", "rux_cookie2")
+})
 ```
 
 ### Multi Domains

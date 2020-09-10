@@ -162,6 +162,11 @@ func (r *Route) Handler() HandlerFunc {
 	return r.handler
 }
 
+// Handlers returns handlers of the route.
+func (r *Route) Handlers() HandlersChain {
+	return r.handlers
+}
+
 // HandlerName get the main handler name
 func (r *Route) HandlerName() string {
 	return nameOfFunction(r.handler)
@@ -244,9 +249,10 @@ func (r *Route) goodInfo() {
 		panicf("the route allowed methods cannot be empty.(path: '%s')", r.path)
 	}
 
+	mstr := MethodsString()
 	for _, method := range r.methods {
-		if strings.Index(","+StringMethods, ","+method) == -1 {
-			panicf("invalid method name '%s', must in: %s", method, StringMethods)
+		if strings.Index(","+mstr, ","+method) == -1 {
+			panicf("invalid method name '%s', must in: %s", method, mstr)
 		}
 	}
 }

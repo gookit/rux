@@ -60,6 +60,45 @@ func Benchmark404Many(B *testing.B) {
 	runRequest(B, router, "GET", "/viewfake")
 }
 
+var (
+	srsHasMethod = map[string]*Route{}
+	srsNoMethod = map[string]*Route{}
+)
+
+func BenchmarkStableRoutes_hasMethod(B *testing.B) {
+	srsHasMethod["GET/"] = NewRoute("/", emptyHandler, http.MethodGet)
+	srsHasMethod["GET/home"] = NewRoute("/home", emptyHandler, http.MethodGet)
+
+	B.ReportAllocs()
+	B.ResetTimer()
+
+	path := "/"
+	method := http.MethodGet
+	for i := 0; i < B.N; i++ {
+		key := method + path
+		if _, ok := srsHasMethod[key]; ok {
+			// match ok
+		}
+	}
+}
+
+func BenchmarkStableRoutes_noMethod(B *testing.B) {
+	srsNoMethod["/"] = NewRoute("/", emptyHandler, http.MethodGet)
+	srsNoMethod["/home"] = NewRoute("/home", emptyHandler, http.MethodGet)
+
+	B.ReportAllocs()
+	B.ResetTimer()
+
+	path := "/"
+	method := http.MethodGet
+	for i := 0; i < B.N; i++ {
+		route, ok := srsNoMethod[path]
+		if ok && strings.Contains(route.MethodString("|") + "|", method + "|") {
+			// match ok
+		}
+	}
+}
+
 /*************************************************************
  * helper methods(ref the gin framework)
  *************************************************************/

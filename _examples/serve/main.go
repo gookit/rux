@@ -41,7 +41,7 @@ func main() {
 	}
 
 	// quick start
-	r.Listen(":18080")
+	r.Listen("127.0.0.1:18080")
 	// apply global pre-handlers
 	// http.ListenAndServe(":18080", handlers.HTTPMethodOverrideHandler(r))
 }

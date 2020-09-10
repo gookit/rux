@@ -30,11 +30,21 @@ func (c HandlersChain) Last() HandlerFunc {
 	return nil
 }
 
+// HTTPHandler warp an generic http.Handler as an middleware HandlerFunc
+func HTTPHandler(gh http.Handler) HandlerFunc {
+	return WrapHTTPHandler(gh)
+}
+
 // WrapHTTPHandler warp an generic http.Handler as an middleware HandlerFunc
 func WrapHTTPHandler(gh http.Handler) HandlerFunc {
 	return func(c *Context) {
 		gh.ServeHTTP(c.Resp, c.Req)
 	}
+}
+
+// HTTPHandlerFunc warp an generic http.HandlerFunc as an middleware HandlerFunc
+func HTTPHandlerFunc(hf http.HandlerFunc) HandlerFunc {
+	return WrapHTTPHandlerFunc(hf)
 }
 
 // WrapHTTPHandlerFunc warp an generic http.HandlerFunc as an middleware HandlerFunc

@@ -1,0 +1,156 @@
+package rux
+
+import (
+	"io/ioutil"
+	"net/http/httptest"
+	"os"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
+
+func TestContext_Redirect(t *testing.T) {
+	is := assert.New(t)
+	r := New()
+
+	// Redirect()
+	uri := "/Redirect"
+	r.GET(uri, func(c *Context) {
+		c.Redirect("/new-path")
+	})
+	w := mockRequest(r, GET, uri, nil)
+	is.Equal(301, w.Code)
+	is.Equal("/new-path", w.Header().Get("Location"))
+	is.Equal("<a href=\"/new-path\">Moved Permanently</a>.\n\n", w.Body.String())
+
+	uri = "/Redirect1"
+	r.GET(uri, func(c *Context) {
+		c.Redirect("/new-path1", 302)
+	})
+	w = mockRequest(r, GET, uri, nil)
+	is.Equal(302, w.Code)
+	is.Equal("/new-path1", w.Header().Get("Location"))
+	is.Equal("<a href=\"/new-path1\">Found</a>.\n\n", w.Body.String())
+}
+
+func TestContext_Back(t *testing.T) {
+	is := assert.New(t)
+	r := New()
+
+	// Back()
+	uri := "/Back"
+	r.GET(uri, func(c *Context) {
+		c.Back()
+	})
+	w := mockRequest(r, GET, uri, &md{H: m{"Referer": "/old-path"}})
+	is.Equal(302, w.Code)
+	is.Equal("/old-path", w.Header().Get("Location"))
+	is.Equal("<a href=\"/old-path\">Found</a>.\n\n", w.Body.String())
+
+	// Back()
+	uri = "/Back1"
+	r.GET(uri, func(c *Context) {
+		c.Back(301)
+	})
+	w = mockRequest(r, GET, uri, &md{H: m{"Referer": "/old-path1"}})
+	is.Equal(301, w.Code)
+	is.Equal("/old-path1", w.Header().Get("Location"))
+	is.Equal("<a href=\"/old-path1\">Moved Permanently</a>.\n\n", w.Body.String())
+}
+
+func TestContext_Blob(t *testing.T) {
+	is := assert.New(t)
+	r := New()
+
+	r.GET("/blob", func(c *Context) {
+		c.Blob(200, "text/plain; charset=UTF-8", []byte("blob-test"))
+	})
+
+	w := mockRequest(r, GET, "/blob", nil)
+
+	is.Equal(200, w.Code)
+	is.Equal("text/plain; charset=UTF-8", w.Header().Get(ContentType))
+
+	body, err := ioutil.ReadAll(w.Body)
+
+	is.NoError(err)
+	is.Equal(string(body), "blob-test")
+}
+
+func TestContext_Binary(t *testing.T) {
+	is := assert.New(t)
+	c := mockContext("GET", "/site.md", nil, nil)
+
+	in, _ := os.Open("testdata/site.md")
+	c.Binary(200, in, "new-name.md", true)
+
+	w := c.RawWriter().(*httptest.ResponseRecorder)
+	is.Equal(200, w.Code)
+	ss, ok := w.Header()["Content-Type"]
+	is.True(ok)
+	is.Equal(ss[0], "application/octet-stream")
+	ss, ok = w.Header()["Content-Disposition"]
+	is.True(ok)
+	is.Equal(ss[0], "inline; filename=new-name.md")
+	is.Equal("# readme", w.Body.String())
+}
+
+func TestContext_FileContent(t *testing.T) {
+	is := assert.New(t)
+
+	c := mockContext("GET", "/site.md", nil, nil)
+	c.FileContent("testdata/site.md", "new-name.md")
+
+	w := c.RawWriter().(*httptest.ResponseRecorder)
+	is.Equal(200, c.StatusCode())
+	is.Equal(200, w.Code)
+	ss, ok := w.Header()["Content-Type"]
+	is.True(ok)
+	// go 1.14.4 "text/markdown; charset=utf-8" does not contain "text/plain"
+	is.Contains(ss[0], "text/")
+	is.Equal("# readme", w.Body.String())
+	is.Equal(8, c.writer.Length())
+
+	c = mockContext("GET", "/site.md", nil, nil)
+	c.FileContent("testdata/not-exist.md")
+	w = c.RawWriter().(*httptest.ResponseRecorder)
+	is.Equal(500, c.StatusCode())
+	is.Equal(500, w.Code)
+	is.Equal("Internal Server Error\n", w.Body.String())
+}
+
+func TestContext_Attachment(t *testing.T) {
+	is := assert.New(t)
+
+	c := mockContext("GET", "/site.md", nil, nil)
+	c.Attachment("testdata/site.md", "new-name.md")
+
+	w := c.RawWriter().(*httptest.ResponseRecorder)
+	is.Equal(200, w.Code)
+	ss, ok := w.Header()["Content-Type"]
+	is.True(ok)
+	is.Equal(ss[0], "application/octet-stream")
+	ss, ok = w.Header()["Content-Disposition"]
+	is.True(ok)
+	is.Equal(ss[0], "attachment; filename=new-name.md")
+	is.Equal("# readme", w.Body.String())
+}
+
+func TestContext_Inline(t *testing.T) {
+	is := assert.New(t)
+
+	// Inline
+	c := mockContext("GET", "/site.md", nil, nil)
+	c.Inline("testdata/site.md", "new-name.md")
+
+	w := c.RawWriter().(*httptest.ResponseRecorder)
+	is.Equal(200, w.Code)
+	ss, ok := w.Header()["Content-Type"]
+	is.True(ok)
+	is.Equal(ss[0], "application/octet-stream")
+	ss, ok = w.Header()["Content-Disposition"]
+	is.True(ok)
+	is.Equal(ss[0], "inline; filename=new-name.md")
+	is.Equal("# readme", w.Body.String())
+}
+

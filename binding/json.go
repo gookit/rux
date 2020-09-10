@@ -2,15 +2,34 @@ package binding
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
+	"strings"
 )
 
-// JSONBinder JSON data binder
-var JSONBinder = BinderFunc(func(i interface{}, r *http.Request) error {
-	return json.NewDecoder(r.Body).Decode(i)
-})
+// JSONBinder binding JSON data to struct
+type JSONBinder struct{}
 
-// JSON parse request JSON data to an ptr
-func JSON(i interface{}, r *http.Request) error {
-	return JSONBinder.Bind(i, r)
+// Name get name
+func (JSONBinder) Name() string {
+	return "json"
+}
+
+// Bind JSON data from http.Request
+func (JSONBinder) Bind(r *http.Request, ptr interface{}) error {
+	return json.NewDecoder(r.Body).Decode(ptr)
+}
+
+// BindBytes raw JSON data to struct
+func (JSONBinder) BindBytes(bts []byte, ptr interface{}) error {
+	return decodeJSON(strings.NewReader(string(bts)), ptr)
+}
+
+func decodeJSON(r io.Reader, ptr interface{}) error {
+	err := json.NewDecoder(r).Decode(ptr)
+	if err != nil {
+		return err
+	}
+
+	return validating(ptr)
 }

@@ -15,6 +15,8 @@ func RequestLogger() rux.HandlerFunc {
 		"/health": 1,
 		"/status": 1,
 	}
+	// open color
+	color.ForceOpenColor()
 
 	return func(c *rux.Context) {
 		// start time
@@ -44,7 +46,7 @@ func RequestLogger() rux.HandlerFunc {
 		mColor := colorForMethod(c.Req.Method)
 		codeColor := colorForStatus(c.StatusCode())
 
-		fmt.Printf(
+		color.Printf(
 			// 2006-01-02 15:04:05 [rux] GET /articles 200 10.0.0.1 "use-agent" 0.034ms
 			// `%s %s %s %d %s "%s" %sms` + "\n",
 			"%s %s %s [%s] %s %sms\n",
