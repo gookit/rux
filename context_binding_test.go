@@ -108,7 +108,7 @@ func TestContext_Bind(t *testing.T) {
 	}, GET, POST)
 
 	// post Form body
-	w := testutil.MockRequest(r, POST, "/AutoBind", &testutil.MD{
+	w := testutil.MockRequest(r, POST, "/Bind", &testutil.MD{
 		Body: strings.NewReader(userQuery),
 		Headers: testutil.M{
 			httpctype.Key: httpctype.MIMEPOSTForm,
