@@ -478,22 +478,6 @@ func TestHandleBack(t *testing.T) {
 	is.Equal(301, w.Code)
 }
 
-func TestHandleBinder(t *testing.T) {
-	is := assert.New(t)
-	r := New()
-
-	r.GET("/test-binder", func(c *Context) {
-		var form struct {
-		}
-
-		if err := c.Bind(&form); err != nil {
-			is.Equal(err.Error(), "binder not registered")
-		}
-	})
-
-	mockRequest(r, GET, "/test-binder", nil)
-}
-
 func TestHandleRender(t *testing.T) {
 	is := assert.New(t)
 	r := New()

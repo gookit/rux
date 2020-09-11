@@ -10,7 +10,9 @@ type stdValidator struct{}
 // Validate the struct data, if fail return error
 func (sv *stdValidator) Validate(obj interface{}) error {
 	v := validate.New(obj)
-	v.Validate()
+	if v.Validate() {
+		return nil
+	}
 
 	return v.Errors
 }

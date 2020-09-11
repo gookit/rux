@@ -11,7 +11,7 @@ import (
 
 func TestRouter_PProf(t *testing.T) {
 	// skip run on local
-	if os.Getenv("GOPROXY") != "" {
+	if os.Getenv("USER") == "inhere" {
 		return
 	}
 

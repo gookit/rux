@@ -1,9 +1,7 @@
 package rux
 
 import (
-	"encoding/json"
 	"errors"
-	"fmt"
 	"html/template"
 	"io"
 	"net/url"
@@ -175,43 +173,6 @@ func TestBuildRequestUrl_ErrorArgs(t *testing.T) {
 	is.PanicsWithValue("buildArgs odd argument count", func() {
 		r.BuildRequestURL("homepage", "{name}", "test", "{id}")
 	})
-}
-
-type MyBinder string
-
-func (b *MyBinder) Bind(v interface{}, c *Context) error {
-	if c.IsPost() {
-		if err := json.NewDecoder(c.Req.Body).Decode(v); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func TestContext_Binder(t *testing.T) {
-	ris := assert.New(t)
-	r := New()
-
-	r.Binder = new(MyBinder)
-
-	r.Any("/binder", func(c *Context) {
-		var form = new(struct {
-			Username string `json:"username"`
-			Password string `json:"password"`
-		})
-
-		if err := c.Bind(form); err != nil {
-			c.AbortThen().Text(200, "binder error")
-		}
-
-		c.Text(200, fmt.Sprintf("%s=%s", form.Username, form.Password))
-	})
-
-	w := mockRequest(r, POST, "/binder", &md{B: `{"username":"admin","password":"123456"}`})
-
-	ris.Equal(200, w.Code)
-	ris.Equal(w.Body.String(), `admin=123456`)
 }
 
 type MyValidator string

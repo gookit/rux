@@ -8,6 +8,7 @@ import (
 )
 
 // XMLBinder Xml data binder
+// struct binding-tag default is "xml". eg: `xml:"field"`
 type XMLBinder struct{}
 
 // Name get name

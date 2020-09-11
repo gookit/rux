@@ -13,18 +13,18 @@ func UsePProf(r *rux.Router) {
 		Path    string
 		Handler rux.HandlerFunc
 	}{
-		{rux.GET, "/pprof", rux.WrapHTTPHandlerFunc(pprof.Index)},
-		{rux.GET, "/heap", rux.WrapHTTPHandler(pprof.Handler("heap"))},
-		{rux.GET, "/goroutine", rux.WrapHTTPHandler(pprof.Handler("goroutine"))},
-		{rux.GET, "/allocs", rux.WrapHTTPHandler(pprof.Handler("allocs"))},
-		{rux.GET, "/block", rux.WrapHTTPHandler(pprof.Handler("block"))},
-		{rux.GET, "/threadcreate", rux.WrapHTTPHandler(pprof.Handler("threadcreate"))},
-		{rux.GET, "/cmdline", rux.WrapHTTPHandlerFunc(pprof.Cmdline)},
-		{rux.GET, "/profile", rux.WrapHTTPHandlerFunc(pprof.Profile)},
-		{rux.GET, "/symbol", rux.WrapHTTPHandlerFunc(pprof.Symbol)},
-		{rux.POST, "/symbol", rux.WrapHTTPHandlerFunc(pprof.Symbol)},
-		{rux.GET, "/trace", rux.WrapHTTPHandlerFunc(pprof.Trace)},
-		{rux.GET, "/mutex", rux.WrapHTTPHandler(pprof.Handler("mutex"))},
+		{rux.GET, "/pprof", rux.HTTPHandlerFunc(pprof.Index)},
+		{rux.GET, "/heap", rux.HTTPHandler(pprof.Handler("heap"))},
+		{rux.GET, "/goroutine", rux.HTTPHandler(pprof.Handler("goroutine"))},
+		{rux.GET, "/allocs", rux.HTTPHandler(pprof.Handler("allocs"))},
+		{rux.GET, "/block", rux.HTTPHandler(pprof.Handler("block"))},
+		{rux.GET, "/threadcreate", rux.HTTPHandler(pprof.Handler("threadcreate"))},
+		{rux.GET, "/cmdline", rux.HTTPHandlerFunc(pprof.Cmdline)},
+		{rux.GET, "/profile", rux.HTTPHandlerFunc(pprof.Profile)},
+		{rux.GET, "/symbol", rux.HTTPHandlerFunc(pprof.Symbol)},
+		{rux.POST, "/symbol", rux.HTTPHandlerFunc(pprof.Symbol)},
+		{rux.GET, "/trace", rux.HTTPHandlerFunc(pprof.Trace)},
+		{rux.GET, "/mutex", rux.HTTPHandler(pprof.Handler("mutex"))},
 	}
 
 	r.Group("/debug", func() {
