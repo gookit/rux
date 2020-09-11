@@ -1,4 +1,16 @@
-package binding
+package binding_test
+
+import (
+	"fmt"
+	"net/http"
+	"strings"
+	"testing"
+
+	"github.com/gookit/goutil/netutil/httpctype"
+	"github.com/gookit/goutil/testutil"
+	"github.com/gookit/rux/binding"
+	"github.com/stretchr/testify/assert"
+)
 
 var (
 	userQuery = "age=12&name=inhere"
@@ -9,3 +21,80 @@ var (
     <name>inhere</name>
 </body>`
 )
+
+type User struct {
+	Age  int    `query:"age" form:"age" xml:"age"`
+	Name string `query:"name" form:"name" xml:"name"`
+}
+
+func TestAuto(t *testing.T) {
+	is := assert.New(t)
+	r := http.NewServeMux()
+
+	r.HandleFunc("/AutoBind", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		u := &User{}
+		if ctype := r.Header.Get(httpctype.Key); ctype != "" {
+			fmt.Printf(" - auto bind data by content type: %s\n", ctype)
+		} else {
+			fmt.Println(" - auto bind data from URL query string")
+		}
+
+		err := binding.Bind(r, u)
+		testBoundedUserIsOK(is, err, u)
+	}))
+
+	// post Form body
+	w := testutil.MockRequest(r, http.MethodPost, "/AutoBind", &testutil.MD{
+		Body: strings.NewReader(userQuery),
+		Headers: testutil.M{
+			httpctype.Key: httpctype.MIMEPOSTForm,
+		},
+	})
+	is.Equal(http.StatusOK, w.Code)
+
+	// post JSON body
+	w = testutil.MockRequest(r, http.MethodPost, "/AutoBind", &testutil.MD{
+		Body: strings.NewReader(userJSON),
+		Headers: testutil.M{
+			httpctype.Key: httpctype.MIMEJSON,
+		},
+	})
+	is.Equal(http.StatusOK, w.Code)
+
+	// post XML body
+	w = testutil.MockRequest(r, http.MethodPost, "/AutoBind", &testutil.MD{
+		Body: strings.NewReader(userXML),
+		Headers: testutil.M{
+			httpctype.Key: httpctype.MIMEXML,
+		},
+	})
+	is.Equal(http.StatusOK, w.Code)
+
+	// URL query string
+	w = testutil.MockRequest(r, http.MethodGet, "/AutoBind?"+userQuery, nil)
+	is.Equal(http.StatusOK, w.Code)
+}
+
+func TestHeaderBinder_Bind(t *testing.T) {
+	req, err := http.NewRequest("POST", "/", nil)
+	is := assert.New(t)
+	is.NoError(err)
+
+	req.Header.Set("age", "12")
+	req.Header.Set("name", "inhere")
+
+	u := &User{}
+	err = binding.Header.Bind(req, u)
+	testBoundedUserIsOK(is, err, u)
+
+	u = &User{}
+	err = binding.Header.BindValues(req.Header, u)
+	testBoundedUserIsOK(is, err, u)
+}
+
+func testBoundedUserIsOK(is *assert.Assertions, err error, u *User) {
+	is.NoError(err)
+	is.NotEmpty(u)
+	is.Equal(12, u.Age)
+	is.Equal("inhere", u.Name)
+}

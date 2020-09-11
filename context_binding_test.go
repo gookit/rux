@@ -35,9 +35,7 @@ func TestContext_ShouldBind(t *testing.T) {
 		u := &User{}
 
 		err := c.ShouldBind(u, binding.JSON)
-		is.NoError(err)
-		is.Equal(12, u.Age)
-		is.Equal("inhere", u.Name)
+		testBoundedUserIsOK(is, err, u)
 	})
 	r.POST("/ShouldBind-err", func(c *Context) {
 		u := &User{}
@@ -69,10 +67,6 @@ func TestContext_MustBind(t *testing.T) {
 		c.MustBind(u, binding.JSON)
 		is.Equal(12, u.Age)
 		is.Equal("inhere", u.Name)
-
-		// fmt.Println(u)
-		// bs, _ := xml.Marshal(u)
-		// fmt.Println(string(bs))
 	})
 
 	w := testutil.MockRequest(r, POST, "/MustBind", &testutil.MD{
@@ -101,10 +95,8 @@ func TestContext_Bind(t *testing.T) {
 		u := &User{}
 
 		fmt.Printf(" - auto bind data by content type: %s\n", c.ContentType())
-		err := c.AutoBind(u)
-		is.NoError(err)
-		is.Equal(12, u.Age)
-		is.Equal("inhere", u.Name)
+		err := c.Bind(u)
+		testBoundedUserIsOK(is, err, u)
 	}, GET, POST)
 
 	// post Form body
@@ -124,11 +116,14 @@ func TestContext_AutoBind(t *testing.T) {
 	r.Add("/AutoBind", func(c *Context) {
 		u := &User{}
 
-		fmt.Printf(" - auto bind data by content type: %s\n", c.ContentType())
+		if ctype := c.ContentType(); ctype != "" {
+			fmt.Printf(" - auto bind data by content type: %s\n", ctype)
+		} else {
+			fmt.Println(" - auto bind data from URL query string")
+		}
+
 		err := c.AutoBind(u)
-		is.NoError(err)
-		is.Equal(12, u.Age)
-		is.Equal("inhere", u.Name)
+		testBoundedUserIsOK(is, err, u)
 	}, GET, POST)
 
 	// post Form body
@@ -157,4 +152,66 @@ func TestContext_AutoBind(t *testing.T) {
 		},
 	})
 	is.Equal(http.StatusOK, w.Code)
+
+	// URL query string
+	w = testutil.MockRequest(r, GET, "/AutoBind?"+userQuery, nil)
+	is.Equal(http.StatusOK, w.Code)
+}
+
+func TestContext_BindForm(t *testing.T) {
+	r := New()
+	is := assert.New(t)
+
+	r.POST("/BindForm", func(c *Context) {
+		u := &User{}
+		err := c.BindForm(u)
+		testBoundedUserIsOK(is, err, u)
+	})
+
+	w := testutil.MockRequest(r, POST, "/BindForm", &testutil.MD{
+		Body: strings.NewReader(userQuery),
+		Headers: testutil.M{
+			httpctype.Key: httpctype.MIMEPOSTForm,
+		},
+	})
+	is.Equal(http.StatusOK, w.Code)
+}
+
+func TestContext_BindJSON(t *testing.T) {
+	r := New()
+	is := assert.New(t)
+
+	r.POST("/BindJSON", func(c *Context) {
+		u := &User{}
+		err := c.BindJSON(u)
+		testBoundedUserIsOK(is, err, u)
+	})
+
+	w := testutil.MockRequest(r, POST, "/BindJSON", &testutil.MD{
+		Body: strings.NewReader(userJSON),
+	})
+	is.Equal(http.StatusOK, w.Code)
+}
+
+func TestContext_BindXML(t *testing.T) {
+	r := New()
+	is := assert.New(t)
+
+	r.POST("/BindXML", func(c *Context) {
+		u := &User{}
+		err := c.BindXML(u)
+		testBoundedUserIsOK(is, err, u)
+	})
+
+	w := testutil.MockRequest(r, POST, "/BindXML", &testutil.MD{
+		Body: strings.NewReader(userXML),
+	})
+	is.Equal(http.StatusOK, w.Code)
+}
+
+func testBoundedUserIsOK(is *assert.Assertions, err error, u *User) {
+	is.NoError(err)
+	is.NotEmpty(u)
+	is.Equal(12, u.Age)
+	is.Equal("inhere", u.Name)
 }

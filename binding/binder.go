@@ -7,6 +7,7 @@ import (
 type (
 	// Binder interface
 	Binder interface {
+		Name() string
 		Bind(r *http.Request, obj interface{}) error
 	}
 
@@ -31,19 +32,20 @@ var (
 	// YAML = YAMLBinder{}
 	// MSGPACK = MSGPACKBinder{}
 	// PROTOBUF = PROTOBUFBinder{}
-)
 
-var binders = map[string]Binder{
-	"xml":    XML,
-	"json":   JSON,
-	"query":  Query,
-	"form":   Form,
-	"header": Header,
-	// TODO more driver
-	// "yaml": YAML,
-	// "msgpack": MSGPACK,
-	// "protobuf": PROTOBUF,
-}
+	// Binders mapping
+	Binders = map[string]Binder{
+		"xml":    XML,
+		"json":   JSON,
+		"query":  Query,
+		"form":   Form,
+		"header": Header,
+		// TODO more driver
+		// "yaml": YAML,
+		// "msgpack": MSGPACK,
+		// "protobuf": PROTOBUF,
+	}
+)
 
 // BinderFunc implements the Binder interface
 func (fn BinderFunc) Name() string {
@@ -55,9 +57,9 @@ func (fn BinderFunc) Bind(r *http.Request, obj interface{}) error {
 	return fn(r, obj)
 }
 
-// Get an binder by name
-func Get(name string) Binder {
-	if b, ok := binders[name]; ok {
+// GetBinder get an binder by name
+func GetBinder(name string) Binder {
+	if b, ok := Binders[name]; ok {
 		return b
 	}
 	return nil
@@ -66,15 +68,15 @@ func Get(name string) Binder {
 // Register new binder with name
 func Register(name string, b Binder) {
 	if name != "" && b != nil {
-		binders[name] = b
+		Binders[name] = b
 	}
 }
 
 // Remove exists binder(s)
 func Remove(names ...string) {
 	for _, name := range names {
-		if _, ok := binders[name]; ok {
-			delete(binders, name)
+		if _, ok := Binders[name]; ok {
+			delete(Binders, name)
 		}
 	}
 }

@@ -15,7 +15,7 @@ type QueryBinder struct {
 
 // Name get name
 func (QueryBinder) Name() string {
-	return "url-query"
+	return "query"
 }
 
 // Bind Query data binder

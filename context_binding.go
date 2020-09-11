@@ -42,11 +42,18 @@ func (c *Context) Bind(obj interface{}) error {
  * quick context data binding
  *************************************************************/
 
+// BindForm request data to an struct, will auto call validator
+//
+// Usage:
+//	err := c.BindForm(&user)
+func (c *Context) BindForm(obj interface{}) error {
+	return binding.Form.Bind(c.Req, obj)
+}
+
 // BindJSON request data to an struct, will auto call validator
 //
 // Usage:
 //	err := c.BindJSON(&user)
-//
 func (c *Context) BindJSON(obj interface{}) error {
 	return binding.JSON.Bind(c.Req, obj)
 }
@@ -55,7 +62,6 @@ func (c *Context) BindJSON(obj interface{}) error {
 //
 // Usage:
 //	err := c.BindXML(&user)
-//
 func (c *Context) BindXML(obj interface{}) error {
 	return binding.XML.Bind(c.Req, obj)
 }
