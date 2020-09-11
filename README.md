@@ -10,7 +10,7 @@
 
 Simple and fast web framework for build golang HTTP applications.
 
-> **[中文说明](README.zh-CN.md)**
+> NOTICE: `v1.3.x` is not fully compatible with `v1.2.x` version
 
 - Fast route match, support route group
 - Support route path params and named routing
@@ -19,6 +19,10 @@ Simple and fast web framework for build golang HTTP applications.
 - Support generic `http.Handler` interface middleware
 - Support static file access handle
 - Support add handlers for handle `NotFound` and `NotAllowed`
+
+## [中文说明](README.zh-CN.md)
+
+中文说明请看 **[README.zh-CN](README.zh-CN.md)**
 
 ## GoDoc
 

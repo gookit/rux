@@ -1,13 +1,14 @@
 package rux
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
 	"runtime"
 	"testing"
 
+	"github.com/gookit/color"
 	"github.com/gookit/goutil/netutil/httpctype"
-	"github.com/gookit/goutil/testutil"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -57,8 +58,11 @@ func TestRouterListen(t *testing.T) {
 		return
 	}
 
+	buf := new(bytes.Buffer)
+	color.SetOutput(buf)
+
 	// httptest.NewServer().Start()
-	testutil.RewriteStdout()
+	// testutil.RewriteStdout()
 	r.Listen("invalid]")
 	r.Listen(":invalid]")
 	r.Listen("127.0.0.1:invalid]")
@@ -70,13 +74,15 @@ func TestRouterListen(t *testing.T) {
 		r.Listen()
 	})
 
-	s := testutil.RestoreStdout()
+	// s := testutil.RestoreStdout()
+	s := color.ClearCode(buf.String())
 
 	is.Contains(s, "[ERROR] listen tcp: address 0.0.0.0:invalid]")
 	is.Contains(s, "[ERROR] listen tcp: address 127.0.0.1:invalid]")
 	fmt.Println(s)
 
 	Debug(false)
+	color.ResetOutput()
 }
 
 func TestRouter_ServeHTTP(t *testing.T) {

@@ -8,9 +8,9 @@
 [![Coverage Status](https://coveralls.io/repos/github/gookit/rux/badge.svg?branch=master)](https://coveralls.io/github/gookit/rux?branch=master)
 [![Go Report Card](https://goreportcard.com/badge/github.com/gookit/rux)](https://goreportcard.com/report/github.com/gookit/rux)
 
-简单且快速的 Go web 框架，支持中间件，兼容 http.Handler 接口。
+`rux` 简单且快速的 Go web 框架，支持中间件，兼容 http.Handler 接口。
 
-> **[EN README](README.md)**
+> NOTICE: `v1.3.x` 不完全兼容 `v1.2.x` 版本
 
 - 支持路由参数，支持路由组，支持给路由命名
 - 支持方便的静态文件/目录处理
@@ -18,6 +18,11 @@
 - 支持中间件: 路由中间件，组中间件，全局中间件
 - 兼容支持 `http.Handler` 接口，可以直接使用其他的常用中间件
 - 支持添加 `NotFound` 和 `NotAllowed` 处理
+- 支持添加 `Error` 和 `Panic` 处理错误或异常
+
+## [English](README.md)
+
+English introduction, please see **[EN README](README.md)**
 
 ## GoDoc
 
