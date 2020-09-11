@@ -12,11 +12,6 @@ import (
  * Extends interfaces definition
  *************************************************************/
 
-// Binder interface
-type Binder interface {
-	Bind(i interface{}, c *Context) error
-}
-
 // Renderer interface
 type Renderer interface {
 	Render(io.Writer, string, interface{}, *Context) error
@@ -30,17 +25,6 @@ type Validator interface {
 /*************************************************************
  * Context function extends()
  *************************************************************/
-
-// Bind context bind struct
-// Deprecated
-// please use ShouldBind(),
-func (c *Context) Bind(i interface{}) error {
-	if c.router.Binder == nil {
-		return errors.New("binder not registered")
-	}
-
-	return c.router.Binder.Bind(i, c)
-}
 
 // Render context template
 func (c *Context) Render(status int, name string, data interface{}) (err error) {

@@ -29,6 +29,15 @@ func (c *Context) AutoBind(obj interface{}) error {
 	return binding.Auto(c.Req, obj)
 }
 
+// Bind auto bind request data to an struct, will auto select binding.Binder by content-type
+// Alias method of the Bind()
+//
+// Usage:
+//	err := c.Bind(&user)
+func (c *Context) Bind(obj interface{}) error {
+	return binding.Auto(c.Req, obj)
+}
+
 /*************************************************************
  * quick context data binding
  *************************************************************/

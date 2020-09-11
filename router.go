@@ -100,8 +100,6 @@ type Router struct {
 	//
 	// Extends tools
 	//
-	// Binder bind form,params,json body,query value to struct interface
-	Binder Binder
 	// Renderer template(view) interface
 	Renderer Renderer
 	// Validator validator interface
