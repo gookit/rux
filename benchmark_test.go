@@ -62,7 +62,7 @@ func Benchmark404Many(B *testing.B) {
 
 var (
 	srsHasMethod = map[string]*Route{}
-	srsNoMethod = map[string]*Route{}
+	srsNoMethod  = map[string]*Route{}
 )
 
 func BenchmarkStableRoutes_hasMethod(B *testing.B) {
@@ -93,7 +93,7 @@ func BenchmarkStableRoutes_noMethod(B *testing.B) {
 	method := http.MethodGet
 	for i := 0; i < B.N; i++ {
 		route, ok := srsNoMethod[path]
-		if ok && strings.Contains(route.MethodString("|") + "|", method + "|") {
+		if ok && strings.Contains(route.MethodString("|")+"|", method+"|") {
 			// match ok
 		}
 	}

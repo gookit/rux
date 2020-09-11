@@ -8,7 +8,7 @@ import (
 var HeaderTagName = "header"
 
 // HeaderBinder binding URL query data to struct
-type HeaderBinder struct{
+type HeaderBinder struct {
 	TagName string
 }
 

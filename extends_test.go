@@ -177,7 +177,6 @@ func TestBuildRequestUrl_ErrorArgs(t *testing.T) {
 	})
 }
 
-
 type MyBinder string
 
 func (b *MyBinder) Bind(v interface{}, c *Context) error {

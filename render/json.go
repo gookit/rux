@@ -42,7 +42,7 @@ func JSON(w http.ResponseWriter, obj interface{}) error {
 }
 
 // JSONIndented response rendering with indent
-func JSONIndented( w http.ResponseWriter, obj interface{}) error {
+func JSONIndented(w http.ResponseWriter, obj interface{}) error {
 	return JSONRenderer{Indent: PrettyIndent}.Render(w, obj)
 }
 

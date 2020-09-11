@@ -1,7 +1,6 @@
 package rux
 
 import (
-	"net/http"
 	"regexp"
 	"strings"
 )
@@ -115,7 +114,7 @@ func (r *Router) Match(method, path string) (route *Route, ps Params, alm []stri
 
 	// for HEAD requests, attempt fallback to GET
 	if method == HEAD {
-		route, ps = r.match(http.MethodGet, path)
+		route, ps = r.match(GET, path)
 		if route != nil {
 			return
 		}
@@ -210,7 +209,7 @@ func (r *Router) findAllowedMethods(method, path string) (allowed []string) {
 			continue
 		}
 
-		if rt,_ := r.match(m, path); rt != nil {
+		if rt, _ := r.match(m, path); rt != nil {
 			mMap[m] = 1
 		}
 	}

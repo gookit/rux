@@ -741,7 +741,7 @@ func TestAccessStaticAssets(t *testing.T) {
 	is.Contains(w.Body.String(), "content")
 }
 
-func TestResetful(t *testing.T) {
+func TestRestFul(t *testing.T) {
 	var methodOverride = func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.Method == "POST" {
@@ -787,18 +787,14 @@ func TestResetful(t *testing.T) {
 	w = mockRequest(h, "POST", "/product/123456", &md{H: m{"X-HTTP-Method-Override": "DELETE"}})
 	is.Equal(w.Body.String(), "DELETE Delete 123456")
 
-	resPaincPtr := Product{}
 	r = New()
-
 	is.PanicsWithValue("controller must type ptr", func() {
-		r.Resource("/", resPaincPtr)
+		r.Resource("/", Product{})
 	})
 
-	resPaincString := "test"
-	r = New()
-
+	resPanicString := "test"
 	is.PanicsWithValue("controller must type struct", func() {
-		r.Resource("/", &resPaincString)
+		r.Resource("/", &resPanicString)
 	})
 }
 

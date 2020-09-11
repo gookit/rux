@@ -387,12 +387,12 @@ func (c *Context) IsAjax() bool {
 
 // IsGet check request is post request
 func (c *Context) IsGet() bool {
-	return c.Req.Method == http.MethodGet
+	return c.Req.Method == GET
 }
 
 // IsPost check request is post request
 func (c *Context) IsPost() bool {
-	return c.Req.Method == http.MethodPost
+	return c.Req.Method == POST
 }
 
 // IsMethod returns true if current is equal to input method name

@@ -41,8 +41,8 @@ func Auto(w http.ResponseWriter, r *http.Request, obj interface{}) (err error) {
 			err = XML(w, obj)
 			handled = true
 			break
-		// case httpctype.MIMEYAML:
-		// 	break
+			// case httpctype.MIMEYAML:
+			// 	break
 		}
 
 		if handled {

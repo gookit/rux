@@ -101,7 +101,7 @@ func PanicsHandler() rux.HandlerFunc {
 //
 // 	 c.WriteBytes([]byte("done"))
 //  })
-func Timeout(timeout time.Duration) rux.HandlerFunc  {
+func Timeout(timeout time.Duration) rux.HandlerFunc {
 	return func(c *rux.Context) {
 		ctx, cancel := context.WithTimeout(c.Req.Context(), timeout)
 		defer func() {

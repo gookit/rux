@@ -159,7 +159,7 @@ func MaxNumCaches(num uint16) func(*Router) {
 // CachingWithNum for the router
 func CachingWithNum(num uint16) func(*Router) {
 	return func(r *Router) {
-		r.maxNumCaches  = num
+		r.maxNumCaches = num
 		r.enableCaching = true
 	}
 }
@@ -334,26 +334,6 @@ func (r *Router) Controller(basePath string, controller ControllerFace, middles 
 // 	DELETE     /resource/{id}       delete   resource_delete
 //
 func (r *Router) Resource(basePath string, controller interface{}, middles ...HandlerFunc) {
-	const (
-		INDEX  = "Index"
-		CREATE = "Create"
-		STORE  = "Store"
-		SHOW   = "Show"
-		EDIT   = "Edit"
-		UPDATE = "Update"
-		DELETE = "Delete"
-	)
-
-	actions := map[string][]string{
-		INDEX:  {GET},
-		CREATE: {GET},
-		STORE:  {POST},
-		SHOW:   {GET},
-		EDIT:   {GET},
-		UPDATE: {PUT, PATCH},
-		DELETE: {DELETE},
-	}
-
 	cv := reflect.ValueOf(controller)
 	ct := cv.Type()
 
@@ -376,7 +356,7 @@ func (r *Router) Resource(basePath string, controller interface{}, middles ...Ha
 	basePath += resName
 
 	r.Group(basePath, func() {
-		for name, methods := range actions {
+		for name, methods := range RESTFulActions {
 			m := cv.MethodByName(name)
 			if !m.IsValid() {
 				continue
@@ -390,11 +370,11 @@ func (r *Router) Resource(basePath string, controller interface{}, middles ...Ha
 			var route *Route
 
 			routeName := resName + "_" + strings.ToLower(name)
-			if name == INDEX || name == STORE {
+			if name == IndexAction || name == StoreAction {
 				route = r.AddNamed(routeName, "/", action, methods...)
-			} else if name == CREATE {
+			} else if name == CreateAction {
 				route = r.AddNamed(routeName, "/"+strings.ToLower(name)+"/", action, methods...)
-			} else if name == EDIT {
+			} else if name == EditAction {
 				route = r.AddNamed(routeName, "{id}/"+strings.ToLower(name)+"/", action, methods...)
 			} else { // if name == SHOW || name == UPDATE || name == DELETE
 				route = r.AddNamed(routeName, "{id}/", action, methods...)

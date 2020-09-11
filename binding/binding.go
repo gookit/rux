@@ -11,7 +11,7 @@ import (
 var DefaultMaxMemory int64 = 32 << 20 // 32 MB
 
 // MustBind auto bind request data to an struct ptr
-func MustBind(r *http.Request, obj interface{})  {
+func MustBind(r *http.Request, obj interface{}) {
 	err := Auto(r, obj)
 	if err != nil {
 		panic(err)

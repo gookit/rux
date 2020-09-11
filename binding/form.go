@@ -11,7 +11,7 @@ import (
 var FormTagName = "form"
 
 // FormBinder binding Form/url.Values data to struct
-type FormBinder struct{
+type FormBinder struct {
 	TagName string
 }
 

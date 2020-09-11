@@ -39,6 +39,28 @@ var (
 	anyMethods = []string{GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD, CONNECT, TRACE}
 )
 
+// RESTFul method names definition
+var (
+	IndexAction  = "Index"
+	CreateAction = "Create"
+	StoreAction  = "Store"
+	ShowAction   = "Show"
+	EditAction   = "Edit"
+	UpdateAction = "Update"
+	DeleteAction = "Delete"
+
+	// RESTFul action methods definition
+	RESTFulActions = map[string][]string{
+		IndexAction:  {GET},
+		CreateAction: {GET},
+		StoreAction:  {POST},
+		ShowAction:   {GET},
+		EditAction:   {GET},
+		UpdateAction: {PUT, PATCH},
+		DeleteAction: {DELETE},
+	}
+)
+
 // Debug switch debug mode
 func Debug(val bool) {
 	debug = val

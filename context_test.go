@@ -69,7 +69,7 @@ func TestContext_Post(t *testing.T) {
 	ris := assert.New(t)
 	body := bytes.NewBufferString("foo=bar&page=11&both=v0&foo=second")
 	c := mockContext("POST", "/?both=v1", body, m{
-		"Accept":    "application/json",
+		"Accept":      "application/json",
 		httpctype.Key: "application/x-www-form-urlencoded",
 	})
 

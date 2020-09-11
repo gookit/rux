@@ -153,4 +153,3 @@ func TestContext_Inline(t *testing.T) {
 	is.Equal(ss[0], "inline; filename=new-name.md")
 	is.Equal("# readme", w.Body.String())
 }
-

@@ -8,6 +8,8 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+
+	"github.com/gookit/color"
 )
 
 /*************************************************************
@@ -115,15 +117,14 @@ func panicf(f string, v ...interface{}) {
 
 func debugPrintError(err error) {
 	if err != nil {
-		debugPrint("[ERROR] %v\n", err)
+		debugPrint("<red>[ERROR]</> %v\n", err)
 	}
 }
 
 func debugPrint(f string, v ...interface{}) {
 	if debug {
-		msg := fmt.Sprintf(f, v...)
 		// fmt.Printf("[RUX-DEBUG] %s %s\n", time.Now().Format("2006-01-02 15:04:05"), msg)
-		fmt.Printf("[RUX-DEBUG] %s\n", msg)
+		color.Printf("<cyan>[RUX-DEBUG]</> %s\n", fmt.Sprintf(f, v...))
 	}
 }
 

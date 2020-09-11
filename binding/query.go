@@ -9,7 +9,7 @@ import (
 var QueryTagName = "query"
 
 // QueryBinder binding URL query data to struct
-type QueryBinder struct{
+type QueryBinder struct {
 	TagName string
 }
 

@@ -127,7 +127,7 @@ func (c *Context) JSONBytes(status int, bs []byte) {
 // XML output xml response.
 func (c *Context) XML(status int, obj interface{}, indents ...string) {
 	var indent string
-	if len(indents) > 0 && indents[0] != ""{
+	if len(indents) > 0 && indents[0] != "" {
 		indent = indents[0]
 	}
 

@@ -106,7 +106,7 @@ var internal405Handler HandlerFunc = func(c *Context) {
 	sort.Strings(allowed)
 	c.SetHeader("Allow", strings.Join(allowed, ", "))
 
-	if c.Req.Method == http.MethodOptions {
+	if c.Req.Method == OPTIONS {
 		c.SetStatus(200)
 	} else {
 		http.Error(c.Resp, "Method not allowed", 405)
