@@ -17,7 +17,7 @@ func (JSONBinder) Name() string {
 
 // Bind JSON data from http.Request
 func (JSONBinder) Bind(r *http.Request, ptr interface{}) error {
-	return json.NewDecoder(r.Body).Decode(ptr)
+	return decodeJSON(r.Body, ptr)
 }
 
 // BindBytes raw JSON data to struct

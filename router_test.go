@@ -51,7 +51,22 @@ func (c *SiteController) AddRoutes(r *Router) {
 	r.GET("about", c.About)
 }
 
+func (c *SiteController) MappingRoutes(r *Router) map[string]HandlerFunc {
+	// r.GET("", c.Index)
+
+	return map[string]HandlerFunc {
+		"/ GET,POST": c.Index,
+		"/about GET": c.About,
+		// "GET" short as "/detail GET"
+		"GET": c.Detail,
+	}
+}
+
 func (c *SiteController) Index(ctx *Context) {
+	ctx.WriteString("hello, in " + ctx.URL().Path)
+}
+
+func (c *SiteController) Detail(ctx *Context) {
 	ctx.WriteString("hello, in " + ctx.URL().Path)
 }
 

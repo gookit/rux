@@ -344,6 +344,8 @@ func (r *Router) Resource(basePath string, controller interface{}, middles ...Ha
 	}
 
 	var handlerFuncs = make(map[string][]HandlerFunc)
+
+	// can custom add middleware for actions
 	if m := cv.MethodByName("Uses"); m.IsValid() {
 		if uses, ok := m.Interface().(func() map[string][]HandlerFunc); ok {
 			handlerFuncs = uses()
