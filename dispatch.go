@@ -5,8 +5,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"sort"
-	"strings"
 )
 
 /*************************************************************
@@ -82,36 +80,6 @@ func (r *Router) WrapHTTPHandlers(preHandlers ...func(h http.Handler) http.Handl
 /*************************************************************
  * dispatch http request
  *************************************************************/
-
-const (
-	// CTXMatchResult key name in the context
-	// CTXMatchResult = "_matchResult"
-
-	// CTXRecoverResult key name in the context
-	CTXRecoverResult = "_recoverResult"
-	// CTXAllowedMethods key name in the context
-	CTXAllowedMethods = "_allowedMethods"
-	// CTXCurrentRouteName key name in the context
-	CTXCurrentRouteName = "_currentRouteName"
-	// CTXCurrentRoutePath key name in the context
-	CTXCurrentRoutePath = "_currentRoutePath"
-)
-
-var internal404Handler HandlerFunc = func(c *Context) {
-	http.NotFound(c.Resp, c.Req)
-}
-
-var internal405Handler HandlerFunc = func(c *Context) {
-	allowed := c.MustGet(CTXAllowedMethods).([]string)
-	sort.Strings(allowed)
-	c.SetHeader("Allow", strings.Join(allowed, ", "))
-
-	if c.Req.Method == OPTIONS {
-		c.SetStatus(200)
-	} else {
-		http.Error(c.Resp, "Method not allowed", 405)
-	}
-}
 
 // ServeHTTP for handle HTTP request, response data to client.
 func (r *Router) ServeHTTP(res http.ResponseWriter, req *http.Request) {

@@ -12,20 +12,6 @@ import (
 	"github.com/gookit/rux/render"
 )
 
-const (
-	// ContentType header key
-	ContentType = "Content-Type"
-	// ContentBinary represents content type application/octet-stream
-	ContentBinary = "application/octet-stream"
-
-	// ContentDisposition describes contentDisposition
-	ContentDisposition = "Content-Disposition"
-	// describes content disposition type
-	dispositionInline = "inline"
-	// describes content disposition type
-	dispositionAttachment = "attachment"
-)
-
 // ShouldRender render and response to client
 func (c *Context) ShouldRender(status int, obj interface{}, renderer render.Renderer) error {
 	c.SetStatus(status)
@@ -43,7 +29,7 @@ func (c *Context) Respond(status int, obj interface{}, renderer render.Renderer)
 
 	err := renderer.Render(c.Resp, obj)
 	if err != nil {
-		panic(err)
+		panic(err) // TODO or use AddError()
 	}
 }
 

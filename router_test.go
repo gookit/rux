@@ -54,7 +54,7 @@ func (c *SiteController) AddRoutes(r *Router) {
 func (c *SiteController) MappingRoutes(r *Router) map[string]HandlerFunc {
 	// r.GET("", c.Index)
 
-	return map[string]HandlerFunc {
+	return map[string]HandlerFunc{
 		"/ GET,POST": c.Index,
 		"/about GET": c.About,
 		// "GET" short as "/detail GET"

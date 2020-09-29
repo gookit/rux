@@ -9,13 +9,6 @@ import (
  * route parse
  *************************************************************/
 
-const (
-	anyMatch = `[^/]+`
-)
-
-// "/users/{id}" "/users/{id:\d+}" `/users/{uid:\d+}/blog/{id}`
-var varRegex = regexp.MustCompile(`{[^/]+}`)
-
 // Parsing routes with parameters
 func (r *Router) parseParamRoute(route *Route) (first string) {
 	path := route.path

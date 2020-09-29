@@ -25,42 +25,6 @@ const (
 	OPTIONS = "OPTIONS"
 )
 
-// ControllerFace a simple controller interface
-type ControllerFace interface {
-	// AddRoutes for support register routes in the controller.
-	AddRoutes(g *Router)
-}
-
-var (
-	debug bool
-	// current supported HTTP method
-	// all supported methods string, use for method check
-	// more: ,COPY,PURGE,LINK,UNLINK,LOCK,UNLOCK,VIEW,SEARCH
-	anyMethods = []string{GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD, CONNECT, TRACE}
-)
-
-// RESTFul method names definition
-var (
-	IndexAction  = "Index"
-	CreateAction = "Create"
-	StoreAction  = "Store"
-	ShowAction   = "Show"
-	EditAction   = "Edit"
-	UpdateAction = "Update"
-	DeleteAction = "Delete"
-
-	// RESTFul action methods definition
-	RESTFulActions = map[string][]string{
-		IndexAction:  {GET},
-		CreateAction: {GET},
-		StoreAction:  {POST},
-		ShowAction:   {GET},
-		EditAction:   {GET},
-		UpdateAction: {PUT, PATCH},
-		DeleteAction: {DELETE},
-	}
-)
-
 // Debug switch debug mode
 func Debug(val bool) {
 	debug = val
@@ -88,4 +52,62 @@ func AllMethods() []string {
 // MethodsString of all supported methods
 func MethodsString() string {
 	return strings.Join(anyMethods, ",")
+}
+
+/*************************************************************
+ * Router options
+ *************************************************************/
+
+// InterceptAll setting for the router
+func InterceptAll(path string) func(*Router) {
+	return func(r *Router) {
+		r.interceptAll = strings.TrimSpace(path)
+	}
+}
+
+// MaxNumCaches setting for the router
+func MaxNumCaches(num uint16) func(*Router) {
+	return func(r *Router) {
+		r.maxNumCaches = num
+	}
+}
+
+// CachingWithNum for the router
+func CachingWithNum(num uint16) func(*Router) {
+	return func(r *Router) {
+		r.maxNumCaches = num
+		r.enableCaching = true
+	}
+}
+
+// UseEncodedPath enable for the router
+func UseEncodedPath(r *Router) {
+	r.useEncodedPath = true
+}
+
+// EnableCaching for the router
+func EnableCaching(r *Router) {
+	r.enableCaching = true
+}
+
+// StrictLastSlash enable for the router
+func StrictLastSlash(r *Router) {
+	r.strictLastSlash = true
+}
+
+// MaxMultipartMemory set max memory limit for post forms
+// func MaxMultipartMemory(max int64) func(*Router) {
+// 	return func(r *Router) {
+// 		r.maxMultipartMemory = max
+// 	}
+// }
+
+// HandleFallbackRoute enable for the router
+func HandleFallbackRoute(r *Router) {
+	r.handleFallbackRoute = true
+}
+
+// HandleMethodNotAllowed enable for the router
+func HandleMethodNotAllowed(r *Router) {
+	r.handleMethodNotAllowed = true
 }

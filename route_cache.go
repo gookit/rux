@@ -5,6 +5,10 @@ import (
 	"sync"
 )
 
+/*************************************************************
+ * Route Caches TODO move to extends.go
+ *************************************************************/
+
 // cacheNode struct
 type cacheNode struct {
 	Key   string

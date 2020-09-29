@@ -13,11 +13,6 @@ import (
  * Router definition
  *************************************************************/
 
-type routes []*Route
-
-// like "GET": [ Route, ...]
-type methodRoutes map[string]routes
-
 // Router definition
 type Router struct {
 	// router name
@@ -134,64 +129,6 @@ func New(options ...func(*Router)) *Router {
 	}
 
 	return router
-}
-
-/*************************************************************
- * Router options
- *************************************************************/
-
-// InterceptAll setting for the router
-func InterceptAll(path string) func(*Router) {
-	return func(r *Router) {
-		r.interceptAll = strings.TrimSpace(path)
-	}
-}
-
-// MaxNumCaches setting for the router
-func MaxNumCaches(num uint16) func(*Router) {
-	return func(r *Router) {
-		r.maxNumCaches = num
-	}
-}
-
-// CachingWithNum for the router
-func CachingWithNum(num uint16) func(*Router) {
-	return func(r *Router) {
-		r.maxNumCaches = num
-		r.enableCaching = true
-	}
-}
-
-// UseEncodedPath enable for the router
-func UseEncodedPath(r *Router) {
-	r.useEncodedPath = true
-}
-
-// EnableCaching for the router
-func EnableCaching(r *Router) {
-	r.enableCaching = true
-}
-
-// StrictLastSlash enable for the router
-func StrictLastSlash(r *Router) {
-	r.strictLastSlash = true
-}
-
-// MaxMultipartMemory set max memory limit for post forms
-// func MaxMultipartMemory(max int64) func(*Router) {
-// 	return func(r *Router) {
-// 		r.maxMultipartMemory = max
-// 	}
-// }
-
-// HandleFallbackRoute enable for the router
-func HandleFallbackRoute(r *Router) {
-	r.handleFallbackRoute = true
-}
-
-// HandleMethodNotAllowed enable for the router
-func HandleMethodNotAllowed(r *Router) {
-	r.handleMethodNotAllowed = true
 }
 
 // WithOptions for the router
