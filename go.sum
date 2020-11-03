@@ -5,8 +5,8 @@ github.com/google/gofuzz v1.0.0/go.mod h1:dBl0BpW6vV/+mYPU4Po3pmUjxk6FQPldtuIdl/
 github.com/gookit/color v1.2.8/go.mod h1:AhIE+pS6D4Ql0SQWbBeXPHw7gY0/sjHoA4s/n1KB7xg=
 github.com/gookit/color v1.2.9 h1:1gwRqF/u6wZrxzn+thlROF7D4Toi9eVGUidZNAxAZHE=
 github.com/gookit/color v1.2.9/go.mod h1:AhIE+pS6D4Ql0SQWbBeXPHw7gY0/sjHoA4s/n1KB7xg=
-github.com/gookit/color v1.3.1 h1:PPD/C7sf8u2L8XQPdPgsWRoAiLQGZEZOzU3cf5IYYUk=
-github.com/gookit/color v1.3.1/go.mod h1:R3ogXq2B9rTbXoSHJ1HyUVAZ3poOJHpd9nQmyGZsfvQ=
+github.com/gookit/color v1.3.2 h1:WO8+16ZZtx+HlOb6cueziUAF8VtALZKRr/jOvuDk0X0=
+github.com/gookit/color v1.3.2/go.mod h1:R3ogXq2B9rTbXoSHJ1HyUVAZ3poOJHpd9nQmyGZsfvQ=
 github.com/gookit/filter v1.1.1 h1:kR0Kkh6IzwiH3zzOffU6P0H3Xipxg4TU/85iV+5Vpbw=
 github.com/gookit/filter v1.1.1/go.mod h1:BQtJ4142tmEvJU9O2K2XAOY0JYaBouiEOMJ94sRt1oo=
 github.com/gookit/goutil v0.3.2/go.mod h1:GDiBL9sTX3GnzNhXWLYNpmeKlHsHEb9XodyXniOnWgk=
