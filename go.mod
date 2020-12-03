@@ -3,7 +3,7 @@ module github.com/gookit/rux
 go 1.13
 
 require (
-	github.com/gookit/color v1.3.2
+	github.com/gookit/color v1.3.3
 	github.com/gookit/goutil v0.3.5
 	github.com/gookit/validate v1.2.5
 	github.com/gorilla/websocket v1.4.2
