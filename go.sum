@@ -5,6 +5,7 @@ github.com/google/gofuzz v1.0.0/go.mod h1:dBl0BpW6vV/+mYPU4Po3pmUjxk6FQPldtuIdl/
 github.com/gookit/color v1.2.8/go.mod h1:AhIE+pS6D4Ql0SQWbBeXPHw7gY0/sjHoA4s/n1KB7xg=
 github.com/gookit/color v1.2.9 h1:1gwRqF/u6wZrxzn+thlROF7D4Toi9eVGUidZNAxAZHE=
 github.com/gookit/color v1.2.9/go.mod h1:AhIE+pS6D4Ql0SQWbBeXPHw7gY0/sjHoA4s/n1KB7xg=
+github.com/gookit/color v1.3.2/go.mod h1:R3ogXq2B9rTbXoSHJ1HyUVAZ3poOJHpd9nQmyGZsfvQ=
 github.com/gookit/color v1.3.3 h1:6IAwxWCdABGNc4gI+YFBMYw0Hz8g5+lpYeKRAaALQoQ=
 github.com/gookit/color v1.3.3/go.mod h1:GqqLKF1le3EfrbHbYsYa5WdLqfc/PHMdMRbt6tMnqIc=
 github.com/gookit/filter v1.1.1 h1:kR0Kkh6IzwiH3zzOffU6P0H3Xipxg4TU/85iV+5Vpbw=
@@ -12,6 +13,8 @@ github.com/gookit/filter v1.1.1/go.mod h1:BQtJ4142tmEvJU9O2K2XAOY0JYaBouiEOMJ94s
 github.com/gookit/goutil v0.3.2/go.mod h1:GDiBL9sTX3GnzNhXWLYNpmeKlHsHEb9XodyXniOnWgk=
 github.com/gookit/goutil v0.3.5 h1:95hWrCXcz7wuwlvcHw7YyUbFH0fV15YM0WPioYMcZww=
 github.com/gookit/goutil v0.3.5/go.mod h1:OHs5W5Xmfj4pCMXHnMxsDPrCc0SRbHLgJ2qs6wr5fxM=
+github.com/gookit/goutil v0.3.6 h1:ObCzm8HpuRkOHNmGIfe1oJhdkUTkfPcPCJDtV/z8/hs=
+github.com/gookit/goutil v0.3.6/go.mod h1:2cDvnlRuL480AYH6YiMI/uOIfaEAWd/vK4SJAEjJSvI=
 github.com/gookit/validate v1.2.5 h1:Va/PwPpLTQHte5ug2abKUo0knnMMQYExzwz56/vF4bU=
 github.com/gookit/validate v1.2.5/go.mod h1:GZ4dNwWWXVu8UVR7mPy7k9Vh6QoVn/RDn3CfU/NUzmA=
 github.com/gorilla/websocket v1.4.2 h1:+/TMaTYc4QFitKJxsQ7Yye35DkWvkdLcvGKqM+x0Ufc=
