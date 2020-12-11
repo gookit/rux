@@ -558,6 +558,7 @@ go test -cover ./...
 - [gookit/ini](https://github.com/gookit/ini) Go config management, use INI files
 - [gookit/rux](https://github.com/gookit/rux) Simple and fast request router for golang HTTP 
 - [gookit/gcli](https://github.com/gookit/gcli) build CLI application, tool library, running CLI commands
+- [gookit/slog](https://github.com/gookit/slog) Concise and extensible go log library
 - [gookit/event](https://github.com/gookit/event) Lightweight event manager and dispatcher implements by Go
 - [gookit/cache](https://github.com/gookit/cache) Generic cache use and cache manager for golang. support File, Memory, Redis, Memcached.
 - [gookit/config](https://github.com/gookit/config) Go config management. support JSON, YAML, TOML, INI, HCL, ENV and Flags
