@@ -29,11 +29,7 @@ func (r JSONRenderer) Render(w http.ResponseWriter, obj interface{}) (err error)
 		enc.SetEscapeHTML(false)
 	}
 
-	if err = enc.Encode(obj); err != nil {
-		return err
-	}
-
-	return err
+	return enc.Encode(obj)
 }
 
 // JSON response rendering

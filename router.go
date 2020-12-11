@@ -96,8 +96,10 @@ type Router struct {
 	// Extends tools
 	//
 	// Renderer template(view) interface
+	// Deprecated
 	Renderer Renderer
 	// Validator validator interface
+	// Deprecated
 	Validator Validator
 }
 

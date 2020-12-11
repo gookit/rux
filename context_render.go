@@ -29,7 +29,8 @@ func (c *Context) Respond(status int, obj interface{}, renderer render.Renderer)
 
 	err := renderer.Render(c.Resp, obj)
 	if err != nil {
-		panic(err) // TODO or use AddError()
+		// panic(err) // TODO or use AddError()
+		c.AddError(err)
 	}
 }
 
@@ -96,7 +97,9 @@ func (c *Context) Stream(status int, contentType string, r io.Reader) {
 	_, err := io.Copy(c.Resp, r)
 
 	if err != nil {
-		panic(err)
+		// TODO use AddError()
+		// panic(err)
+		c.AddError(err)
 	}
 }
 

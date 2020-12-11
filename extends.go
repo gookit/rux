@@ -26,7 +26,9 @@ type Validator interface {
  * Context function extends()
  *************************************************************/
 
-// Render context template
+// Render context template.
+//
+// please use ShouldRender() instead
 func (c *Context) Render(status int, name string, data interface{}) (err error) {
 	if c.router.Renderer == nil {
 		return errors.New("renderer not registered")
@@ -43,7 +45,7 @@ func (c *Context) Render(status int, name string, data interface{}) (err error) 
 
 // Validate context validator
 // Deprecated
-// please use ShouldBind(), it will auto call validator.
+// please use ShouldBind() instead, it will auto call validator.
 func (c *Context) Validate(i interface{}) error {
 	if c.Router().Validator == nil {
 		return errors.New("validator not registered")
