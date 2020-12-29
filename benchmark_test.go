@@ -1,10 +1,12 @@
 package rux
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -97,6 +99,16 @@ func BenchmarkStableRoutes_noMethod(B *testing.B) {
 			// match ok
 		}
 	}
+}
+
+func TestMultiMatchAtOnce(t *testing.T)  {
+	// route: /user/{arg1}/{arg2}
+	regexS := `^(?|/user/([^/]+)/([^/]+)|/blog/([^/]+)/([^/]+)|/order/([^/]+)/([^/]+)|/goods/([^/]+)/([^/]+))$`
+
+	// tests := []struct{}
+	rgp := regexp.MustCompilePOSIX(regexS)
+	ret := rgp.FindAllStringSubmatch("/user/test/123", -1)
+	fmt.Println(ret)
 }
 
 /*************************************************************
