@@ -58,6 +58,7 @@ github.com/gookit/color v1.2.9/go.mod h1:AhIE+pS6D4Ql0SQWbBeXPHw7gY0/sjHoA4s/n1K
 github.com/gookit/color v1.3.2/go.mod h1:R3ogXq2B9rTbXoSHJ1HyUVAZ3poOJHpd9nQmyGZsfvQ=
 github.com/gookit/color v1.3.5 h1:1nszcmDVrfti1Su5fhtuS5YBs/Xs6v8UIi0bJ/2oDHY=
 github.com/gookit/color v1.3.5/go.mod h1:GqqLKF1le3EfrbHbYsYa5WdLqfc/PHMdMRbt6tMnqIc=
+github.com/gookit/color v1.3.6/go.mod h1:R3ogXq2B9rTbXoSHJ1HyUVAZ3poOJHpd9nQmyGZsfvQ=
 github.com/gookit/filter v1.1.0 h1:K7RTF0miQpkwLThkcbuDDebtVNGeXoYgG7+dOsoZHkA=
 github.com/gookit/filter v1.1.0/go.mod h1:goEI07jAkSf3wAoa7IWi6Ex8qzLHx9R5/Phv3opvKh4=
 github.com/gookit/filter v1.1.1 h1:kR0Kkh6IzwiH3zzOffU6P0H3Xipxg4TU/85iV+5Vpbw=
@@ -72,6 +73,7 @@ github.com/gookit/goutil v0.3.5 h1:95hWrCXcz7wuwlvcHw7YyUbFH0fV15YM0WPioYMcZww=
 github.com/gookit/goutil v0.3.5/go.mod h1:OHs5W5Xmfj4pCMXHnMxsDPrCc0SRbHLgJ2qs6wr5fxM=
 github.com/gookit/goutil v0.3.6 h1:ObCzm8HpuRkOHNmGIfe1oJhdkUTkfPcPCJDtV/z8/hs=
 github.com/gookit/goutil v0.3.6/go.mod h1:2cDvnlRuL480AYH6YiMI/uOIfaEAWd/vK4SJAEjJSvI=
+github.com/gookit/goutil v0.3.7/go.mod h1:tPwx/BlEuzR3eTAbUPDqkZvjwWky22GFqvgmNYSCyac=
 github.com/gookit/rux v1.2.5 h1:iRusBes1XytNMEsX2KJog74nLT0oOysYy6szcuQ+m2A=
 github.com/gookit/rux v1.2.5/go.mod h1:gBSSor6e74sYICGz/BAhPIfR3tLTksl6hTzavnzpfFo=
 github.com/gookit/rux v1.2.8 h1:bggQOhbYWf3YGRyHr3XRjtLZ/VZyOlMcV6K1pSJNavQ=
@@ -80,6 +82,7 @@ github.com/gookit/validate v1.2.2 h1:GB7cr46BMgkUzxBZBK/305ESocFwzVJaeTgCt1PhXjw
 github.com/gookit/validate v1.2.2/go.mod h1:67NcxMm6YhAfmAeChmaevnI2b5dcZvu/+AIAdRYcu7k=
 github.com/gookit/validate v1.2.5 h1:Va/PwPpLTQHte5ug2abKUo0knnMMQYExzwz56/vF4bU=
 github.com/gookit/validate v1.2.5/go.mod h1:GZ4dNwWWXVu8UVR7mPy7k9Vh6QoVn/RDn3CfU/NUzmA=
+github.com/gookit/validate v1.2.8/go.mod h1:C7cxPb4SWrWjPORoeYvRhYDnxGIc7/TJm4LGO59Eh18=
 github.com/gorilla/mux v1.7.4 h1:VuZ8uybHlWmqV03+zRzdwKL4tUnIp1MAQtp1mIFE1bc=
 github.com/gorilla/mux v1.7.4/go.mod h1:DVbg23sWSpFRCP0SfiEN6jmj59UnW/n46BH5rLB71So=
 github.com/gorilla/websocket v1.4.0/go.mod h1:E7qHFY5m1UJ88s3WnNqhKjPHQ0heANvMoAMk2YaljkQ=

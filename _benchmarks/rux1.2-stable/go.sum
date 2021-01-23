@@ -11,6 +11,7 @@ github.com/gookit/goutil v0.3.1 h1:VpWkYhJ4tHqhTwa1DV7JeVK0TNdw6pNh8HB06XxQx4c=
 github.com/gookit/goutil v0.3.1/go.mod h1:avL1wnSRDLyY4lC2FPAq5vNLwUB9JYaKWoUxx9lISNs=
 github.com/gookit/rux v1.2.9 h1:ffnRtBK48QTPv6HwBHfcOkmE2ybQ7fZ9aKMg1MFRcQA=
 github.com/gookit/rux v1.2.9/go.mod h1:uXQ1xmYj2AhJoHRSgk0xPDJRrBdgWjTS3tmtoI2M7fI=
+github.com/gookit/rux v1.2.10/go.mod h1:uXQ1xmYj2AhJoHRSgk0xPDJRrBdgWjTS3tmtoI2M7fI=
 github.com/gorilla/websocket v1.4.2/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
 github.com/json-iterator/go v1.1.10/go.mod h1:KdQUCv79m/52Kvf8AW2vK1V8akMuk1QjK/uOdHXbAo4=
 github.com/kisielk/gotool v1.0.0/go.mod h1:XhKaO+MFFWcvkIS/tQcRk01m1F5IRFswLeQ+oQHNcck=

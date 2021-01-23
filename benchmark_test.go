@@ -101,7 +101,7 @@ func BenchmarkStableRoutes_noMethod(B *testing.B) {
 	}
 }
 
-func TestMultiMatchAtOnce(t *testing.T)  {
+func TestMultiMatchAtOnce(t *testing.T) {
 	t.Skip("skip testing this")
 
 	// route: /user/{arg1}/{arg2}

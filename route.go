@@ -4,8 +4,49 @@ import (
 	"fmt"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 )
+
+/*************************************************************
+ * Route Params/Info
+ *************************************************************/
+
+// RouteInfo simple route info struct
+type RouteInfo struct {
+	Name, Path, HandlerName string
+	// supported method of the route
+	Methods    []string
+	HandlerNum int
+}
+
+// Params for current route
+type Params map[string]string
+
+// Has param key in the Params
+func (p Params) Has(key string) bool {
+	_, ok := p[key]
+	return ok
+}
+
+// String get string value by key
+func (p Params) String(key string) (val string) {
+	if val, ok := p[key]; ok {
+		return val
+	}
+	return
+}
+
+// Int get int value by key
+func (p Params) Int(key string) (val int) {
+	if str, ok := p[key]; ok {
+		val, err := strconv.Atoi(str)
+		if err == nil {
+			return val
+		}
+	}
+	return
+}
 
 /*************************************************************
  * Route definition

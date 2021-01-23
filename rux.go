@@ -25,6 +25,79 @@ const (
 	OPTIONS = "OPTIONS"
 )
 
+const (
+	anyMatch = `[^/]+`
+)
+
+const (
+	// ContentType header key
+	ContentType = "Content-Type"
+	// ContentBinary represents content type application/octet-stream
+	ContentBinary = "application/octet-stream"
+
+	// ContentDisposition describes contentDisposition
+	ContentDisposition = "Content-Disposition"
+	// describes content disposition type
+	dispositionInline = "inline"
+	// describes content disposition type
+	dispositionAttachment = "attachment"
+)
+
+const (
+	// CTXMatchResult key name in the context
+	// CTXMatchResult = "_matchResult"
+
+	// CTXRecoverResult key name in the context
+	CTXRecoverResult = "_recoverResult"
+	// CTXAllowedMethods key name in the context
+	CTXAllowedMethods = "_allowedMethods"
+	// CTXCurrentRouteName key name in the context
+	CTXCurrentRouteName = "_currentRouteName"
+	// CTXCurrentRoutePath key name in the context
+	CTXCurrentRoutePath = "_currentRoutePath"
+)
+
+type routes []*Route
+
+// like "GET": [ Route, ...]
+type methodRoutes map[string]routes
+
+// ControllerFace a simple controller interface
+type ControllerFace interface {
+	// AddRoutes for support register routes in the controller.
+	AddRoutes(g *Router)
+}
+
+var (
+	debug bool
+	// current supported HTTP method
+	// all supported methods string, use for method check
+	// more: ,COPY,PURGE,LINK,UNLINK,LOCK,UNLOCK,VIEW,SEARCH
+	anyMethods = []string{GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD, CONNECT, TRACE}
+)
+
+// RESTFul method names definition
+var (
+	IndexAction  = "Index"
+	CreateAction = "Create"
+	StoreAction  = "Store"
+	ShowAction   = "Show"
+	EditAction   = "Edit"
+	UpdateAction = "Update"
+	DeleteAction = "Delete"
+
+	// RESTFul action methods definition
+	RESTFulActions = map[string][]string{
+		IndexAction:  {GET},
+		CreateAction: {GET},
+		StoreAction:  {POST},
+		ShowAction:   {GET},
+		EditAction:   {GET},
+		UpdateAction: {PUT, PATCH},
+		DeleteAction: {DELETE},
+	}
+)
+
 // Debug switch debug mode
 func Debug(val bool) {
 	debug = val

@@ -5,7 +5,33 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"regexp"
+	"sort"
+	"strings"
 )
+
+/*************************************************************
+ * internal vars
+ *************************************************************/
+
+// "/users/{id}" "/users/{id:\d+}" `/users/{uid:\d+}/blog/{id}`
+var varRegex = regexp.MustCompile(`{[^/]+}`)
+
+var internal404Handler HandlerFunc = func(c *Context) {
+	http.NotFound(c.Resp, c.Req)
+}
+
+var internal405Handler HandlerFunc = func(c *Context) {
+	allowed := c.MustGet(CTXAllowedMethods).([]string)
+	sort.Strings(allowed)
+	c.SetHeader("Allow", strings.Join(allowed, ", "))
+
+	if c.Req.Method == OPTIONS {
+		c.SetStatus(200)
+	} else {
+		http.Error(c.Resp, "Method not allowed", 405)
+	}
+}
 
 /*************************************************************
  * starting HTTP serve
