@@ -9,11 +9,11 @@ github.com/gookit/color v1.3.8/go.mod h1:R3ogXq2B9rTbXoSHJ1HyUVAZ3poOJHpd9nQmyGZ
 github.com/gookit/filter v1.1.1 h1:kR0Kkh6IzwiH3zzOffU6P0H3Xipxg4TU/85iV+5Vpbw=
 github.com/gookit/filter v1.1.1/go.mod h1:BQtJ4142tmEvJU9O2K2XAOY0JYaBouiEOMJ94sRt1oo=
 github.com/gookit/goutil v0.3.2/go.mod h1:GDiBL9sTX3GnzNhXWLYNpmeKlHsHEb9XodyXniOnWgk=
-github.com/gookit/goutil v0.3.7/go.mod h1:tPwx/BlEuzR3eTAbUPDqkZvjwWky22GFqvgmNYSCyac=
+github.com/gookit/goutil v0.3.8/go.mod h1:8pmV0itRPVrL6qWJ84RG+E7ZZBP4wvTl6cjjps9hgaE=
 github.com/gookit/goutil v0.3.10 h1:silPdWxf02FpAeQQSOS9zVMLn48j20oMK+4WSsKLRa4=
 github.com/gookit/goutil v0.3.10/go.mod h1:ITj7Lw0muhJNOX+QRa+j+HH0+RNoQVuTmZx5d5LE1vE=
-github.com/gookit/validate v1.2.8 h1:S5tBSMPEqgyWIPObOrcWx1ipv1NLiVlsiIzSHYI9ZzI=
-github.com/gookit/validate v1.2.8/go.mod h1:C7cxPb4SWrWjPORoeYvRhYDnxGIc7/TJm4LGO59Eh18=
+github.com/gookit/validate v1.2.9 h1:AaQJxLrEjo5i7QmcUiZLD4LoG+eY5w17518BEndQy/k=
+github.com/gookit/validate v1.2.9/go.mod h1:Ypyy7RuLMkrO8oSTV7wqDQYe3KUzS4CgcrvwIENraao=
 github.com/gorilla/websocket v1.4.2 h1:+/TMaTYc4QFitKJxsQ7Yye35DkWvkdLcvGKqM+x0Ufc=
 github.com/gorilla/websocket v1.4.2/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
 github.com/json-iterator/go v1.1.10/go.mod h1:KdQUCv79m/52Kvf8AW2vK1V8akMuk1QjK/uOdHXbAo4=
@@ -31,7 +31,6 @@ github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZb
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
-github.com/stretchr/testify v1.6.1 h1:hDPOHmpOpP40lSULcqw7IrRb/u7w6RpDC9399XyoNd0=
 github.com/stretchr/testify v1.6.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.7.0 h1:nwc3DEeHmmLAfoZucVR881uASk0Mfjw8xYJ99tb5CcY=
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
