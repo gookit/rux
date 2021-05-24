@@ -300,8 +300,8 @@ func (r *Route) matchRegex(path string) (ps Params, ok bool) {
 
 	// Notice: vs[0] is full path.
 	for i, val := range vs[1:] {
-		n := r.matches[i]
-		ps[n] = val
+		// n := r.matches[i]
+		ps[r.matches[i]] = val
 	}
 	return
 }

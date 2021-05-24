@@ -44,7 +44,9 @@ func main() {
 	defer pprof.StopCPUProfile()
 
 	for i := 0; i < times; i++ {
-		r.Match("get", "/")
+		// r.QuickMatch("GET", "/")
+		r.QuickMatch("GET", "/user/23")
+		// r.Match("get", "/")
 		// r.Match("get", "/users/23")
 		// fmt.Println(ret)
 	}

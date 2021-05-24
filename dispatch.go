@@ -147,7 +147,7 @@ func (r *Router) handleHTTPRequest(ctx *Context) {
 	}
 
 	// matching route
-	route, params, allowed := r.Match(ctx.Req.Method, path)
+	route, params, allowed := r.QuickMatch(ctx.Req.Method, path)
 
 	var handlers HandlersChain
 	if route != nil { // found route

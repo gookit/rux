@@ -19,7 +19,7 @@ type cacheNode struct {
 type cachedRoutes struct {
 	size    int
 	list    *list.List
-	lock    *sync.Mutex
+	lock    *sync.RWMutex
 	hashMap map[string]*list.Element
 }
 
@@ -28,16 +28,15 @@ func NewCachedRoutes(size int) *cachedRoutes {
 	return &cachedRoutes{
 		size:    size,
 		list:    list.New(),
-		lock:    new(sync.Mutex),
+		lock:    new(sync.RWMutex),
 		hashMap: make(map[string]*list.Element),
 	}
 }
 
 // Len cache len
 func (c *cachedRoutes) Len() int {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-
+	c.lock.RLock()
+	defer c.lock.RUnlock()
 	return c.list.Len()
 }
 
@@ -76,8 +75,8 @@ func (c *cachedRoutes) Set(k string, v *Route) bool {
 
 // Get cached Route by key
 func (c *cachedRoutes) Get(k string) (*Route, bool) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	c.lock.RLock()
+	defer c.lock.RUnlock()
 
 	if element, ok := c.hashMap[k]; ok {
 		c.list.MoveToFront(element)

@@ -465,8 +465,13 @@ func (r *Router) String() string {
 }
 
 func (r *Router) formatPath(path string) string {
+	if path == "" || path == "/" {
+		return "/"
+	}
+
 	path = strings.TrimSpace(path)
-	if !r.strictLastSlash {
+	// clear last '/'
+	if !r.strictLastSlash && path[len(path)-1] == '/' {
 		path = strings.TrimRight(path, "/")
 	}
 
@@ -474,8 +479,16 @@ func (r *Router) formatPath(path string) string {
 		return "/"
 	}
 
-	// fix: "//home" -> "home"
-	return "/" + strings.TrimLeft(path, "/")
+	// fix: "home" -> "/home"
+	if path[0] != '/' {
+		return "/" + path
+	}
+
+	// fix: "//home" -> "/home"
+	if path[1] == '/' {
+		return path[1:]
+	}
+	return path
 }
 
 func (r *Router) appendRoute(route *Route) {
