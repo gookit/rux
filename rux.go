@@ -86,7 +86,7 @@ var (
 	UpdateAction = "Update"
 	DeleteAction = "Delete"
 
-	// RESTFul action methods definition
+	// RESTFulActions action methods definition
 	RESTFulActions = map[string][]string{
 		IndexAction:  {GET},
 		CreateAction: {GET},

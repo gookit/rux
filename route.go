@@ -228,12 +228,12 @@ func (r *Route) ToURL(buildArgs ...interface{}) *url.URL {
 	return URLBuilder.Path(path).Build(withParams)
 }
 
-// BuildURL alias of the method BuildRequestURL()
+// BuildRequestURL alias of the method BuildRequestURL()
 func (r *Router) BuildRequestURL(name string, buildArgs ...interface{}) *url.URL {
 	return r.BuildURL(name, buildArgs...)
 }
 
-// BuildRequestURL build Request URL one arg can be set buildRequestURL or rux.M
+// BuildURL build Request URL one arg can be set buildRequestURL or rux.M
 func (r *Router) BuildURL(name string, buildArgs ...interface{}) *url.URL {
 	route := r.GetRoute(name)
 	if route == nil {
