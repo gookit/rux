@@ -49,6 +49,16 @@ func isFixedPath(s string) bool {
 	return strings.IndexByte(s, '{') < 0 && strings.IndexByte(s, '[') < 0
 }
 
+func simpleFmtPath(path string) string  {
+	path = strings.TrimSpace(path)
+
+	if path == "" {
+		return "/"
+	}
+
+	return "/" + strings.TrimLeft(path, "/")
+}
+
 func resolveAddress(addr []string) (fullAddr string) {
 	ip := "0.0.0.0"
 	switch len(addr) {

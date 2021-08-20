@@ -82,7 +82,7 @@ type Router struct {
 	enableCaching bool
 	// use encoded path for match route. default is False
 	useEncodedPath bool
-	// strict check last slash char('/'). If is True, will strict compare last '/'. default is False
+	// strict match last slash char('/'). If is True, will strict compare last '/'. default is False
 	strictLastSlash bool
 	// the max memory limit for multipart forms
 	// maxMultipartMemory int64
@@ -470,9 +470,9 @@ func (r *Router) formatPath(path string) string {
 	}
 
 	path = strings.TrimSpace(path)
-	// clear last '/'
+	// clear last slash: '/'
 	if !r.strictLastSlash && path[len(path)-1] == '/' {
-		path = strings.TrimRight(path, "/")
+		path = strings.TrimRight(path, "/") // TODO alloc 1 times
 	}
 
 	if path == "" || path == "/" {

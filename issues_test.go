@@ -18,7 +18,7 @@ func TestIssue_60(t *testing.T)  {
 
 	route, _, _ := r.Match("GET", "/blog/100")
 	is.NotEmpty(route)
-	dump.P(route.Info())
+	// dump.P(route.Info())
 
 	route, _, _ = r.Match("GET", "/blog/100/")
 	is.NotEmpty(route)

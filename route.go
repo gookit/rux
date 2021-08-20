@@ -88,7 +88,7 @@ type Route struct {
 // NewRoute create a new route
 func NewRoute(path string, handler HandlerFunc, methods ...string) *Route {
 	return &Route{
-		path: strings.TrimSpace(path),
+		path: simpleFmtPath(path),
 		// handler
 		handler: handler,
 		methods: formatMethodsWithDefault(methods, GET),
@@ -105,7 +105,7 @@ func NamedRoute(name, path string, handler HandlerFunc, methods ...string) *Rout
 func NewNamedRoute(name, path string, handler HandlerFunc, methods ...string) *Route {
 	return &Route{
 		name: strings.TrimSpace(name),
-		path: strings.TrimSpace(path),
+		path: simpleFmtPath(path),
 		// handler
 		handler: handler,
 		methods: formatMethodsWithDefault(methods, GET),

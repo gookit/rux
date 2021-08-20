@@ -145,15 +145,14 @@ func (r *Router) QuickMatch(method, path string) (route *Route, ps Params, alm [
 
 func (r *Router) match(method, path string) (rt *Route, ps Params) {
 	// find in stable routes
-	key := method + path
-	if route, ok := r.stableRoutes[key]; ok {
+	if route, ok := r.stableRoutes[method + path]; ok {
 		// return r.newMatchResult(route, nil)
 		return route, nil
 	}
 
 	// find in cached routes
 	if r.enableCaching {
-		route, ok := r.cachedRoutes.Get(key)
+		route, ok := r.cachedRoutes.Get(method + path)
 		if ok {
 			return route, route.params
 		}
@@ -161,18 +160,18 @@ func (r *Router) match(method, path string) (rt *Route, ps Params) {
 
 	// find in regular routes
 	if pos := strings.IndexByte(path[1:], '/'); pos > 0 {
-		key = method + path[1:pos+1]
+		key := method + path[1:pos+1]
 
 		if rs, ok := r.regularRoutes[key]; ok {
-			for _, route := range rs {
-				if strings.Index(path, route.start) != 0 {
+			for i,_ := range rs {
+				if strings.Index(path, rs[i].start) != 0 {
 					continue
 				}
 
-				if ps, ok := route.matchRegex(path); ok {
+				if ps, ok := rs[i].matchRegex(path); ok {
 					// ret = r.newMatchResult(route, ps)
-					r.cacheDynamicRoute(key, ps, route)
-					return route, ps
+					r.cacheDynamicRoute(key, ps, rs[i])
+					return rs[i], ps
 				}
 			}
 		}
@@ -182,7 +181,7 @@ func (r *Router) match(method, path string) (rt *Route, ps Params) {
 	if rs, ok := r.irregularRoutes[method]; ok {
 		for _, route := range rs {
 			if ps, ok := route.matchRegex(path); ok {
-				r.cacheDynamicRoute(key, ps, route)
+				r.cacheDynamicRoute(method + path, ps, route)
 				return route, ps
 			}
 		}

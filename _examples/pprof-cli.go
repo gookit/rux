@@ -12,9 +12,9 @@ import (
 // run serve:
 // 	go run ./_examples/pprof-cli.go
 // see prof on cli:
-// 	go tool pprof rux_prof_data.prof
+// 	go tool pprof rux_cpu.prof
 // see prof on web:
-// 	go tool pprof -http=:8080 rux_prof_data.prof
+// 	go tool pprof -http=:8080 rux_cpu.prof
 func main() {
 	// rux.Debug(true)
 	r := rux.New()
@@ -30,7 +30,7 @@ func main() {
 	times := 1000000
 	fmt.Println("start profile, run times:", times)
 
-	ruxProfile := "rux_prof_data.prof"
+	ruxProfile := "rux_cpu.prof"
 	f, err := os.Create(ruxProfile)
 	if err != nil {
 		log.Fatal(err)
@@ -51,5 +51,6 @@ func main() {
 		// fmt.Println(ret)
 	}
 
-	fmt.Println("see prof on web:\n  go tool pprof -http=:8080 rux_prof_data.prof")
+	fmt.Println("see prof on cli:\n  go tool pprof", ruxProfile)
+	fmt.Println("see prof on web:\n  go tool pprof -http=:8080", ruxProfile)
 }

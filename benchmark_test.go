@@ -114,6 +114,43 @@ func TestMultiMatchAtOnce(t *testing.T) {
 }
 
 /*************************************************************
+ * test allocs
+ *************************************************************/
+
+func TestAlloc_formatPath(t *testing.T) {
+	r := New()
+	r.GET("/page/{id}", emptyHandler)
+	r.GET("/blog/{id}", emptyHandler)
+
+	fmt.Println("Alloc Times:", int(testing.AllocsPerRun(100, func() {
+		// r.formatPath("/blog/100")
+		r.formatPath("/blog/100/")
+	})))
+}
+
+func TestAlloc_match_static(t *testing.T) {
+	r := New()
+	r.GET("/page/{id}", emptyHandler)
+	r.GET("/blog/{id}", emptyHandler)
+	r.GET("/about", emptyHandler)
+
+	// output: 0 times
+	fmt.Println("Alloc Times:", int(testing.AllocsPerRun(100, func() {
+		r.match(GET, "/about")
+	})))
+}
+
+func TestAlloc_match_regular(t *testing.T) {
+	r := New()
+	r.GET("/page/{id}", emptyHandler)
+	r.GET("/blog/{id}", emptyHandler)
+
+	fmt.Println("Alloc Times:", int(testing.AllocsPerRun(100, func() {
+		r.match(GET, "/blog/100")
+	})))
+}
+
+/*************************************************************
  * helper methods(ref the gin framework)
  *************************************************************/
 
