@@ -92,7 +92,7 @@ r.Group("/articles", func() {
 })
 ```
 
-## With Path Params
+## Path Params
 
 You can add the path params like: `{id}` Or `{id:\d+}`
 

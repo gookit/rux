@@ -82,7 +82,7 @@ type Router struct {
 	enableCaching bool
 	// use encoded path for match route. default is False
 	useEncodedPath bool
-	// strict last slash char('/'). If is True, will strict compare last '/'. default is False
+	// strict check last slash char('/'). If is True, will strict compare last '/'. default is False
 	strictLastSlash bool
 	// the max memory limit for multipart forms
 	// maxMultipartMemory int64
@@ -486,7 +486,7 @@ func (r *Router) formatPath(path string) string {
 
 	// fix: "//home" -> "/home"
 	if path[1] == '/' {
-		return path[1:]
+		return "/" + strings.TrimLeft(path, "/")
 	}
 	return path
 }

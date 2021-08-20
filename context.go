@@ -101,9 +101,9 @@ func (c *Context) Next() {
 func (c *Context) Reset() {
 	c.index = -1
 	c.data = nil
-	c.Params = nil
-	c.handlers = nil
 	c.Resp = &c.writer
+	c.Params = nil
+	c.handlers = c.handlers[:0]
 	c.Errors = c.Errors[:0]
 	// c.Accepted = nil
 }

@@ -90,6 +90,7 @@ func (r *Router) parseParamRoute(route *Route) (first string) {
  *************************************************************/
 
 // Match route by given request METHOD and URI path
+//
 // ps  - route path Params, when has path vars.
 // alm - allowed request methods
 func (r *Router) Match(method, path string) (route *Route, ps Params, alm []string) {
@@ -102,9 +103,9 @@ func (r *Router) Match(method, path string) (route *Route, ps Params, alm []stri
 func (r *Router) QuickMatch(method, path string) (route *Route, ps Params, alm []string) {
 	if r.interceptAll != "" {
 		path = r.interceptAll
+	} else {
+		path = r.formatPath(path)
 	}
-
-	path = r.formatPath(path)
 
 	// do match route
 	if route, ps = r.match(method, path); route != nil {
@@ -145,11 +146,6 @@ func (r *Router) QuickMatch(method, path string) (route *Route, ps Params, alm [
 func (r *Router) match(method, path string) (rt *Route, ps Params) {
 	// find in stable routes
 	key := method + path
-	// var b strings.Builder
-	// b.Grow(len(method)+len(path)+1)
-	// b.WriteString(method)
-	// b.WriteString(path)
-	// key := b.String()
 	if route, ok := r.stableRoutes[key]; ok {
 		// return r.newMatchResult(route, nil)
 		return route, nil
