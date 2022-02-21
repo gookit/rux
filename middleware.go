@@ -30,24 +30,34 @@ func (c HandlersChain) Last() HandlerFunc {
 	return nil
 }
 
-// HTTPHandler warp an generic http.Handler as an middleware HandlerFunc
+// WrapH warp an generic http.Handler as an rux HandlerFunc
+func WrapH(hh http.Handler) HandlerFunc {
+	return WrapHTTPHandler(hh)
+}
+
+// HTTPHandler warp a generic http.Handler as an rux HandlerFunc
 func HTTPHandler(gh http.Handler) HandlerFunc {
 	return WrapHTTPHandler(gh)
 }
 
-// WrapHTTPHandler warp an generic http.Handler as an middleware HandlerFunc
+// WrapHTTPHandler warp a generic http.Handler as an rux HandlerFunc
 func WrapHTTPHandler(gh http.Handler) HandlerFunc {
 	return func(c *Context) {
 		gh.ServeHTTP(c.Resp, c.Req)
 	}
 }
 
-// HTTPHandlerFunc warp an generic http.HandlerFunc as an middleware HandlerFunc
+// WrapHF warp a generic http.HandlerFunc as a rux HandlerFunc
+func WrapHF(hf http.HandlerFunc) HandlerFunc {
+	return WrapHTTPHandlerFunc(hf)
+}
+
+// HTTPHandlerFunc warp a generic http.HandlerFunc as a rux HandlerFunc
 func HTTPHandlerFunc(hf http.HandlerFunc) HandlerFunc {
 	return WrapHTTPHandlerFunc(hf)
 }
 
-// WrapHTTPHandlerFunc warp an generic http.HandlerFunc as an middleware HandlerFunc
+// WrapHTTPHandlerFunc warp a generic http.HandlerFunc as a rux HandlerFunc
 func WrapHTTPHandlerFunc(hf http.HandlerFunc) HandlerFunc {
 	return func(c *Context) {
 		hf(c.Resp, c.Req)

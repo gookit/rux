@@ -327,7 +327,7 @@ func TestWrapHTTPHandler(t *testing.T) {
 	r.GET("/path", func(c *Context) {
 		c.WriteString("o")
 	}).Use(
-		HTTPHandler(gh),
+		WrapH(gh),
 		WrapHTTPHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			_, _ = w.Write([]byte("ll"))
 		})))
@@ -337,7 +337,7 @@ func TestWrapHTTPHandler(t *testing.T) {
 	r.GET("/path1", func(c *Context) {
 		c.WriteString("o")
 	}).Use(
-		HTTPHandlerFunc(gh),
+		WrapHF(gh),
 		WrapHTTPHandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			_, _ = w.Write([]byte("ll"))
 		}))
