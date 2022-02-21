@@ -703,7 +703,11 @@ func TestAccessStaticAssets(t *testing.T) {
 		if envutil.IsWin() {
 			is.Equal("text/plain; charset=utf-8", contentType)
 		} else {
-			is.Equal("application/javascript", contentType)
+			// is.Equal("application/javascript", contentType)
+			// fix contentType:
+			// go < 1.17: "application/javascript"
+			// go >= 1.17: text/javascript; charset=utf-8
+			is.Contains(contentType, "javascript")
 		}
 	}
 
