@@ -10,8 +10,8 @@ github.com/gookit/filter v1.1.2/go.mod h1:pVXLLDD+A8yH9GRztq2Cp7zwZocnuTUpbZs9Q+
 github.com/gookit/goutil v0.3.12/go.mod h1:ITj7Lw0muhJNOX+QRa+j+HH0+RNoQVuTmZx5d5LE1vE=
 github.com/gookit/goutil v0.4.4 h1:18xr8NKbs4LteyOHZfQ8g7JqTqZal801mAT6LERGdpE=
 github.com/gookit/goutil v0.4.4/go.mod h1:qlGVh0PI+WnWSjYnIocfz/7tkeogxL6+EDNP1mRe+7o=
-github.com/gookit/validate v1.2.11 h1:zUMsezhMrW3Cy8St3cQJgCKB1ZIbKOWK8e7WMSuVIRc=
-github.com/gookit/validate v1.2.11/go.mod h1:wXo0Vr+AzFUCEUCbTFXgKlPfT+V/V0wPK3zLp49jQq0=
+github.com/gookit/validate v1.3.0 h1:VSJTcJykkNr3/LbdaI0iRPOZyj9xy45AP6oY5IfX5Rw=
+github.com/gookit/validate v1.3.0/go.mod h1:mzcr3U5XtAlQVAgbW0wbmDGiuefU/MNuDkXFMBNb1ko=
 github.com/gorilla/websocket v1.5.0 h1:PPwGk2jz7EePpoHN/+ClbZu8SPxiqlu12wZP/3sWmnc=
 github.com/gorilla/websocket v1.5.0/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
 github.com/json-iterator/go v1.1.10/go.mod h1:KdQUCv79m/52Kvf8AW2vK1V8akMuk1QjK/uOdHXbAo4=
