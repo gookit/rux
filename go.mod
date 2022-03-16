@@ -8,5 +8,5 @@ require (
 	github.com/gookit/validate v1.3.1
 	github.com/gorilla/websocket v1.5.0
 	github.com/monoculum/formam v0.0.0-20210131081218-41b48e2a724b
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.7.1
 )
