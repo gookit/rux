@@ -1,10 +1,10 @@
-module bench
+module bench_rux
 
-go 1.12
+go 1.15
 
 require (
-	github.com/gookit/rux v0.0.1
-	github.com/valyala/fasthttp v1.15.1 // indirect
+	github.com/gookit/rux v1.3.2
+	github.com/valyala/fasthttp v1.34.0
 )
 
 replace github.com/gookit/rux => ../
