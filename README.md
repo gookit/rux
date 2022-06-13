@@ -10,8 +10,6 @@
 
 Simple and fast web framework for build golang HTTP applications.
 
-> NOTICE: `v1.3.x` is not fully compatible with `v1.2.x` version
-
 - Fast route match, support route group
 - Support route path params and named routing
 - Support cache recently accessed dynamic routes
@@ -35,6 +33,8 @@ go get github.com/gookit/rux
 ```
 
 ## Quick start
+
+> NOTICE: `v1.3.x` is not fully compatible with `v1.2.x` version
 
 ```go
 package main

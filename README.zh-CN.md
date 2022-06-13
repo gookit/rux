@@ -10,8 +10,6 @@
 
 `rux` 简单且快速的 Go web 框架，支持中间件，兼容 http.Handler 接口。
 
-> NOTICE: `v1.3.x` 不完全兼容 `v1.2.x` 版本
-
 - 支持路由参数，支持路由组，支持给路由命名
 - 支持方便的静态文件/目录处理
 - 支持缓存最近访问的动态路由以获得更高性能
@@ -35,6 +33,8 @@ go get github.com/gookit/rux
 ```
 
 ## 快速开始
+
+> NOTICE: `v1.3.x` 不完全兼容 `v1.2.x` 版本
 
 ```go
 package main
