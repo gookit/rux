@@ -4,11 +4,9 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
-	"runtime"
 	"strings"
 	"testing"
 
-	"github.com/gookit/goutil/envutil"
 	"github.com/gookit/goutil/netutil/httpctype"
 	"github.com/gookit/goutil/testutil"
 	"github.com/stretchr/testify/assert"
@@ -699,27 +697,30 @@ func TestRouter_WithOptions(t *testing.T) {
 func TestAccessStaticAssets(t *testing.T) {
 	r := New()
 	is := assert.New(t)
-	gov := runtime.Version()[2:]
+	// gov := runtime.Version()[2:]
 
 	checkJsAssetHeader := func(contentType string) {
-		if envutil.IsWin() {
-			// go > 1.17: "application/javascript"
-			if gov >= "1.17" {
-				is.Equal("application/javascript", contentType)
-			} else {
-				is.Equal("text/plain; charset=utf-8", contentType)
-			}
-		} else {
-			is.Contains(contentType, "javascript")
+		// new go version has been fixed
+		is.Equal("application/javascript", contentType)
 
-			// go < 1.17: "application/javascript"
-			// go >= 1.17: text/javascript; charset=utf-8
-			if gov >= "1.17" {
-				is.Equal("application/javascript", contentType)
-			} else {
-				is.Equal("text/javascript; charset=utf-8", contentType)
-			}
-		}
+		// if envutil.IsWin() {
+		// 	// go > 1.17: "application/javascript"
+		// 	if gov >= "1.17" {
+		// 		is.Equal("application/javascript", contentType)
+		// 	} else {
+		// 		is.Equal("text/plain; charset=utf-8", contentType)
+		// 	}
+		// } else {
+		// 	is.Contains(contentType, "javascript")
+		//
+		// 	// go < 1.17: "application/javascript"
+		// 	// go >= 1.17: text/javascript; charset=utf-8
+		// 	if gov >= "1.17" {
+		// 		is.Equal("application/javascript", contentType)
+		// 	} else {
+		// 		is.Equal("text/javascript; charset=utf-8", contentType)
+		// 	}
+		// }
 	}
 
 	// one file
