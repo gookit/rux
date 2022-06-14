@@ -701,7 +701,10 @@ func TestAccessStaticAssets(t *testing.T) {
 
 	checkJsAssetHeader := func(contentType string) {
 		// new go version has been fixed
-		is.Equal("application/javascript", contentType)
+		// win: application/javascript
+		// lin: text/javascript; charset=utf-8
+		is.Contains(contentType, "javascript")
+		// is.Equal("application/javascript", contentType)
 
 		// if envutil.IsWin() {
 		// 	// go > 1.17: "application/javascript"
