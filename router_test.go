@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -698,16 +699,26 @@ func TestRouter_WithOptions(t *testing.T) {
 func TestAccessStaticAssets(t *testing.T) {
 	r := New()
 	is := assert.New(t)
+	gov := runtime.Version()[2:]
 
 	checkJsAssetHeader := func(contentType string) {
 		if envutil.IsWin() {
-			is.Equal("text/plain; charset=utf-8", contentType)
+			// go > 1.17: "application/javascript"
+			if gov >= "1.17" {
+				is.Equal("application/javascript", contentType)
+			} else {
+				is.Equal("text/plain; charset=utf-8", contentType)
+			}
 		} else {
-			// is.Equal("application/javascript", contentType)
-			// fix contentType:
+			is.Contains(contentType, "javascript")
+
 			// go < 1.17: "application/javascript"
 			// go >= 1.17: text/javascript; charset=utf-8
-			is.Contains(contentType, "javascript")
+			if gov >= "1.17" {
+				is.Equal("application/javascript", contentType)
+			} else {
+				is.Equal("text/javascript; charset=utf-8", contentType)
+			}
 		}
 	}
 
