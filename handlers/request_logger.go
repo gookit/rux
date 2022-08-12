@@ -47,10 +47,10 @@ func RequestLogger() rux.HandlerFunc {
 		codeColor := colorForStatus(c.StatusCode())
 
 		color.Printf(
-			// 2006-01-02 15:04:05 [rux] GET /articles 200 10.0.0.1 "use-agent" 0.034ms
+			// 2006-01-02T15:04:05 [rux] GET /articles 200 10.0.0.1 "use-agent" 0.034ms
 			// `%s %s %s %d %s "%s" %sms` + "\n",
-			"%s %s %s [%s] %s %sms\n",
-			start.Format("2006/01/02 15:04:05"),
+			"%s [%s] %s [%s] %s %sms\n",
+			start.Format("2006/01/02T15:04:05"),
 			c.ClientIP(),
 			mColor.Render(c.Req.Method),
 			codeColor.Render(c.StatusCode()),

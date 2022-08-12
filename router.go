@@ -367,6 +367,7 @@ func (r *Router) StaticFS(prefixURL string, fs http.FileSystem) {
 }
 
 // StaticDir add a static asset file handle
+//
 // Usage:
 // 	r.StaticDir("/assets", "/static")
 // 	// access GET /assets/css/site.css -> will find /static/css/site.css
@@ -380,6 +381,7 @@ func (r *Router) StaticDir(prefixURL string, fileDir string) {
 }
 
 // StaticFiles static files from the given file system root. and allow limit extensions.
+//
 // Usage:
 // 	router.ServeFiles("/src", "/var/www", "css|js|html")
 //

@@ -1,6 +1,6 @@
-module bench_rux
+module demo_rux
 
-go 1.15
+go 1.16
 
 require (
 	github.com/gookit/rux v1.3.2

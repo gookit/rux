@@ -1,6 +1,7 @@
 package main
 
 import (
+	"embed"
 	"fmt"
 	"log"
 	"net/http"
@@ -12,8 +13,13 @@ import (
 	"github.com/gookit/rux/handlers"
 )
 
-// start: go run ./_examples/serve
-// access: http://127.0.0.1:18080
+//go:embed static
+var embAssets embed.FS
+
+// start:
+// 	go run ./_examples/serve
+// access:
+// 	http://127.0.0.1:18080
 func main() {
 	// open debug
 	rux.Debug(true)
@@ -27,6 +33,9 @@ func main() {
 	// add file ext limit
 	// r.StaticFiles("", "testdata", "css|js")
 	r.StaticFiles("/assets", "testdata", "css|js")
+
+	// go 1.16+: use embed assets. access: /embed/static/some.html
+	r.StaticFS("/embed", http.FS(embAssets))
 
 	// fmt.Println(r)
 	// register routes

@@ -237,9 +237,15 @@ func main() {
 ```go
 package main
 
-import (	
+import (
+	"embed"	
+	"net/http"
+
 	"github.com/gookit/rux"
 )
+
+//go:embed static
+var embAssets embed.FS
 
 func main() {
 	r := rux.New()
@@ -252,6 +258,9 @@ func main() {
 
 	// file type limit in the directory
 	r.StaticFiles("/assets", "testdata", "css|js")
+
+	// go 1.16+: use embed assets. access: /embed/static/some.html
+	r.StaticFS("/embed", http.FS(embAssets))
 }
 ```
 

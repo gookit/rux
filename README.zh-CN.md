@@ -204,6 +204,38 @@ func main() {
 
 ## 更多功能
 
+### 静态资源
+
+```go
+package main
+
+import (
+	"embed"	
+	"net/http"
+
+	"github.com/gookit/rux"
+)
+
+//go:embed static
+var embAssets embed.FS
+
+func main() {
+	r := rux.New()
+
+	// one file
+	r.StaticFile("/site.js", "testdata/site.js")
+
+	// allow any files in the directory.
+	r.StaticDir("/static", "testdata")
+
+	// file type limit in the directory
+	r.StaticFiles("/assets", "testdata", "css|js")
+
+	// go 1.16+: use embed assets. access: /embed/static/some.html
+	r.StaticFS("/embed", http.FS(embAssets))
+}
+```
+
 ### 路由命名
 
 rux 中你可以添加命名路由，根据名称可以从路由器里拿到对应的路由实例 `rux.Route`。
