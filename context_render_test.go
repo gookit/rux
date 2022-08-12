@@ -89,10 +89,11 @@ func TestContext_Binary(t *testing.T) {
 	ss, ok := w.Header()["Content-Type"]
 	is.True(ok)
 	is.Equal(ss[0], "application/octet-stream")
+
 	ss, ok = w.Header()["Content-Disposition"]
 	is.True(ok)
 	is.Equal(ss[0], "inline; filename=new-name.md")
-	is.Equal("# readme", w.Body.String())
+	is.Contains(w.Body.String(), "# readme")
 }
 
 func TestContext_FileContent(t *testing.T) {
@@ -104,12 +105,13 @@ func TestContext_FileContent(t *testing.T) {
 	w := c.RawWriter().(*httptest.ResponseRecorder)
 	is.Equal(200, c.StatusCode())
 	is.Equal(200, w.Code)
+
 	ss, ok := w.Header()["Content-Type"]
 	is.True(ok)
 	// go 1.14.4 "text/markdown; charset=utf-8" does not contain "text/plain"
 	is.Contains(ss[0], "text/")
-	is.Equal("# readme", w.Body.String())
-	is.Equal(8, c.writer.Length())
+	is.Contains(w.Body.String(), "# readme")
+	is.True(8 < c.writer.Length())
 
 	c = mockContext("GET", "/site.md", nil, nil)
 	c.FileContent("testdata/not-exist.md")
@@ -130,10 +132,11 @@ func TestContext_Attachment(t *testing.T) {
 	ss, ok := w.Header()["Content-Type"]
 	is.True(ok)
 	is.Equal(ss[0], "application/octet-stream")
+
 	ss, ok = w.Header()["Content-Disposition"]
 	is.True(ok)
 	is.Equal(ss[0], "attachment; filename=new-name.md")
-	is.Equal("# readme", w.Body.String())
+	is.Contains(w.Body.String(), "# readme")
 }
 
 func TestContext_Inline(t *testing.T) {
@@ -148,8 +151,9 @@ func TestContext_Inline(t *testing.T) {
 	ss, ok := w.Header()["Content-Type"]
 	is.True(ok)
 	is.Equal(ss[0], "application/octet-stream")
+
 	ss, ok = w.Header()["Content-Disposition"]
 	is.True(ok)
 	is.Equal(ss[0], "inline; filename=new-name.md")
-	is.Equal("# readme", w.Body.String())
+	is.Contains(w.Body.String(), "# readme")
 }
