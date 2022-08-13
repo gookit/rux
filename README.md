@@ -13,6 +13,7 @@ Simple and fast web framework for build golang HTTP applications.
 - Support route path params and named routing
 - Support cache recently accessed dynamic routes
 - Support route middleware, group middleware, global middleware
+- Support quickly add a `RESETFul` or `Controller` style structs
 - Support generic `http.Handler` interface middleware
 - Support static file access handle
 - Support add handlers for handle `NotFound` and `NotAllowed`
