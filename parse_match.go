@@ -145,7 +145,7 @@ func (r *Router) QuickMatch(method, path string) (route *Route, ps Params, alm [
 
 func (r *Router) match(method, path string) (rt *Route, ps Params) {
 	// find in stable routes
-	if route, ok := r.stableRoutes[method + path]; ok {
+	if route, ok := r.stableRoutes[method+path]; ok {
 		// return r.newMatchResult(route, nil)
 		return route, nil
 	}
@@ -163,7 +163,7 @@ func (r *Router) match(method, path string) (rt *Route, ps Params) {
 		key := method + path[1:pos+1]
 
 		if rs, ok := r.regularRoutes[key]; ok {
-			for i,_ := range rs {
+			for i := range rs {
 				if strings.Index(path, rs[i].start) != 0 {
 					continue
 				}
@@ -181,7 +181,7 @@ func (r *Router) match(method, path string) (rt *Route, ps Params) {
 	if rs, ok := r.irregularRoutes[method]; ok {
 		for _, route := range rs {
 			if ps, ok := route.matchRegex(path); ok {
-				r.cacheDynamicRoute(method + path, ps, route)
+				r.cacheDynamicRoute(method+path, ps, route)
 				return route, ps
 			}
 		}

@@ -1,4 +1,4 @@
-module bench
+module ruxbench
 
 go 1.12
 
