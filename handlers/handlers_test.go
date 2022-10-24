@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/gookit/goutil/testutil"
+	"github.com/gookit/goutil/testutil/assert"
 	"github.com/gookit/rux"
-	"github.com/stretchr/testify/assert"
 )
 
 func ExampleHTTPMethodOverrideHandler() {
@@ -39,7 +39,7 @@ func TestHTTPMethodOverrideHandler(t *testing.T) {
 
 	r.PUT("/put", func(c *rux.Context) {
 		// real method save on the request.Context
-		art.Equal("POST", c.ReqCtxValue(OriginalMethodContextKey))
+		art.Eq("POST", c.ReqCtxValue(OriginalMethodContextKey))
 		c.Text(200, "put")
 	})
 
@@ -47,15 +47,15 @@ func TestHTTPMethodOverrideHandler(t *testing.T) {
 	w := testutil.MockRequest(h, "POST", "/put", &testutil.MD{
 		Headers: testutil.M{"X-HTTP-Method-Override": "PUT"},
 	})
-	art.Equal(200, w.Code)
-	art.Equal("put", w.Body.String())
+	art.Eq(200, w.Code)
+	art.Eq("put", w.Body.String())
 
 	w = testutil.MockRequest(h, "POST", "/put", &testutil.MD{
 		Headers: testutil.M{"Content-Type": "application/x-www-form-urlencoded"},
 		Body:    strings.NewReader("_method=put"),
 	})
-	art.Equal(200, w.Code)
-	art.Equal("put", w.Body.String())
+	art.Eq(200, w.Code)
+	art.Eq("put", w.Body.String())
 }
 
 type SkipperAllowURLConfig struct {
@@ -98,8 +98,8 @@ func TestSkipperHandler(t *testing.T) {
 	w3 := testutil.MockRequest(r, "GET", "/test3", nil)
 	w4 := testutil.MockRequest(r, "GET", "/test4", nil)
 
-	art.Equal(403, w1.Code)
-	art.Equal(403, w2.Code)
-	art.Equal(403, w3.Code)
-	art.Equal(200, w4.Code)
+	art.Eq(403, w1.Code)
+	art.Eq(403, w2.Code)
+	art.Eq(403, w3.Code)
+	art.Eq(200, w4.Code)
 }

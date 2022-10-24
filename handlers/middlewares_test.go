@@ -12,8 +12,8 @@ import (
 	"testing"
 
 	"github.com/gookit/goutil/testutil"
+	"github.com/gookit/goutil/testutil/assert"
 	"github.com/gookit/rux"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestSomeMiddleware(t *testing.T) {
@@ -28,19 +28,19 @@ func TestSomeMiddleware(t *testing.T) {
 	}).Use(GenRequestID())
 
 	w := mockRequest(r, "GET", "/rid", nil)
-	art.Equal(200, w.Code)
+	art.Eq(200, w.Code)
 
 	// ignore /favicon.ico request
 	r.GET("/favicon.ico", func(c *rux.Context) {}, IgnoreFavIcon())
 	w = mockRequest(r, "GET", "/favicon.ico", nil)
-	art.Equal(204, w.Code)
+	art.Eq(204, w.Code)
 
 	// catch panic
 	r.GET("/panic", func(c *rux.Context) {
 		panic("error msg")
 	}, PanicsHandler())
 	w = mockRequest(r, "GET", "/panic", nil)
-	art.Equal(500, w.Code)
+	art.Eq(500, w.Code)
 }
 
 func TestHTTPBasicAuth(t *testing.T) {
@@ -55,20 +55,20 @@ func TestHTTPBasicAuth(t *testing.T) {
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/auth", nil)
 	r.ServeHTTP(w, req)
-	is.Equal(401, w.Code)
+	is.Eq(401, w.Code)
 
 	req, _ = http.NewRequest("GET", "/auth", nil)
 	req.SetBasicAuth("test", "123err")
 	w = httptest.NewRecorder()
 	r.ServeHTTP(w, req)
-	is.Equal(403, w.Code)
+	is.Eq(403, w.Code)
 
 	req, _ = http.NewRequest("GET", "/auth", nil)
 	req.SetBasicAuth("test", "123")
 	w = httptest.NewRecorder()
 	r.ServeHTTP(w, req)
-	is.Equal(200, w.Code)
-	is.Equal("hello", w.Body.String())
+	is.Eq(200, w.Code)
+	is.Eq("hello", w.Body.String())
 }
 
 func TestRequestLogger(t *testing.T) {
@@ -87,7 +87,7 @@ func TestRequestLogger(t *testing.T) {
 	r.Any("/req-log", func(c *rux.Context) {
 		code, err := strconv.Atoi(c.Query("code", "200"))
 		c.Text(code, "hello")
-		ris.NoError(err)
+		ris.NoErr(err)
 	}, RequestLogger())
 
 	for _, m := range rux.AnyMethods() {
@@ -98,8 +98,8 @@ func TestRequestLogger(t *testing.T) {
 
 		uri := fmt.Sprintf("/req-log?code=%d", code)
 		w := mockRequest(r, m, uri, nil)
-		ris.Equal(code, w.Code)
-		ris.Equal("hello", w.Body.String())
+		ris.Eq(code, w.Code)
+		ris.Eq("hello", w.Body.String())
 	}
 
 	// out := restoreStdout()
@@ -112,11 +112,11 @@ func TestRequestLogger(t *testing.T) {
 	}, RequestLogger())
 
 	w := testutil.MockRequest(r, "GET", "/status", nil)
-	ris.Equal(200, w.Code)
-	ris.Equal("hello", w.Body.String())
+	ris.Eq(200, w.Code)
+	ris.Eq("hello", w.Body.String())
 
 	// out = restoreStdout()
-	// ris.Equal(out, "")
+	// ris.Eq(out, "")
 }
 
 /*************************************************************
@@ -130,10 +130,11 @@ type md struct {
 }
 
 // Usage:
-// 	handler := router.New()
-// 	res := mockRequest(handler, "GET", "/path", nil)
-// 	// with data
-// 	res := mockRequest(handler, "GET", "/path", &md{B: "data", H:{"x-head": "val"}})
+//
+//	handler := router.New()
+//	res := mockRequest(handler, "GET", "/path", nil)
+//	// with data
+//	res := mockRequest(handler, "GET", "/path", &md{B: "data", H:{"x-head": "val"}})
 func mockRequest(h http.Handler, method, path string, data *md) *httptest.ResponseRecorder {
 	var body io.Reader
 	if data != nil && len(data.B) > 0 {

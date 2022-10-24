@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/gookit/goutil/testutil/assert"
 )
 
 func TestBuildRequestUrl_Params(t *testing.T) {
@@ -19,7 +19,7 @@ func TestBuildRequestUrl_Params(t *testing.T) {
 	b.Path(`/news/{category_id}/{new_id}/detail`)
 	b.Params(M{"{category_id}": "100", "{new_id}": "20"})
 
-	is.Equal(b.Build().String(), `/news/100/20/detail`)
+	is.Eq(b.Build().String(), `/news/100/20/detail`)
 }
 
 func TestBuildRequestUrl_Host(t *testing.T) {
@@ -30,7 +30,7 @@ func TestBuildRequestUrl_Host(t *testing.T) {
 	b.Host("127.0.0.1")
 	b.Path(`/news`)
 
-	is.Equal(b.Build().String(), `https://127.0.0.1/news`)
+	is.Eq(b.Build().String(), `https://127.0.0.1/news`)
 }
 
 func TestBuildRequestURL_User(t *testing.T) {
@@ -42,7 +42,7 @@ func TestBuildRequestURL_User(t *testing.T) {
 	b.Host("127.0.0.1")
 	b.Path(`/news`)
 
-	is.Equal(b.Build().String(), `https://tom:123@127.0.0.1/news`)
+	is.Eq(b.Build().String(), `https://tom:123@127.0.0.1/news`)
 }
 
 func TestBuildRequestUrl_Queries(t *testing.T) {
@@ -56,7 +56,7 @@ func TestBuildRequestUrl_Queries(t *testing.T) {
 	b.Queries(u)
 	b.Path(`/news`)
 
-	is.Equal(b.Build().String(), `/news?password=12345&username=admin`)
+	is.Eq(b.Build().String(), `/news?password=12345&username=admin`)
 }
 
 func TestBuildRequestUrl_Build(t *testing.T) {
@@ -73,8 +73,8 @@ func TestBuildRequestUrl_Build(t *testing.T) {
 	b := NewBuildRequestURL()
 	b.Params(M{"{name}": "test", "{id}": "20"})
 
-	is.Equal(r.BuildURL("homepage", b).String(), `/build-test/test/20`)
-	is.Equal(r.BuildRequestURL("homepage_fiexd_path").String(), `/build-test/fiexd/path`)
+	is.Eq(r.BuildURL("homepage", b).String(), `/build-test/test/20`)
+	is.Eq(r.BuildRequestURL("homepage_fiexd_path").String(), `/build-test/fiexd/path`)
 }
 
 func TestBuildRequestUrl_With(t *testing.T) {
@@ -85,7 +85,7 @@ func TestBuildRequestUrl_With(t *testing.T) {
 
 	r.AddRoute(homepage)
 
-	is.Equal(r.BuildRequestURL("homepage", M{
+	is.Eq(r.BuildRequestURL("homepage", M{
 		"{name}":   "test",
 		"{id}":     20,
 		"username": "demo",
@@ -98,7 +98,7 @@ func TestBuildRequestUrl_WithCustom(t *testing.T) {
 	b := NewBuildRequestURL()
 	b.Path("/build-test/test/{id}")
 
-	is.Equal(b.Build(M{
+	is.Eq(b.Build(M{
 		"{id}":     20,
 		"username": "demo",
 	}).String(), `/build-test/test/20?username=demo`)
@@ -113,7 +113,7 @@ func TestBuildRequestUrl_WithMutilArgs(t *testing.T) {
 	r.AddRoute(homepage)
 
 	str := r.BuildRequestURL("homepage", "{name}", "test", "{id}", 20, "username", "demo").String()
-	is.Equal(`/build-test/test/20?username=demo`, str)
+	is.Eq(`/build-test/test/20?username=demo`, str)
 }
 
 func TestBuildRequestUrl_WithMutilArgs2(t *testing.T) {
@@ -125,10 +125,10 @@ func TestBuildRequestUrl_WithMutilArgs2(t *testing.T) {
 	r.AddRoute(homepage)
 
 	str := r.BuildRequestURL("homepage", "{name}", "test", "{id}", 20, "username", "demo").String()
-	is.Equal(`/build-test?username=demo`, str)
+	is.Eq(`/build-test?username=demo`, str)
 
 	str = r.BuildURL("homepage", "{name}", "test", "{id}", 20).String()
-	is.Equal(`/build-test`, str)
+	is.Eq(`/build-test`, str)
 }
 
 func TestBuildRequestUrl_WithMutilArgs3(t *testing.T) {
@@ -140,10 +140,10 @@ func TestBuildRequestUrl_WithMutilArgs3(t *testing.T) {
 	r.AddRoute(homepage)
 
 	str := r.BuildRequestURL("homepage", "{name}", "test", "{id}", 20, "username", "demo").String()
-	is.Equal(`/build-test/20?username=demo`, str)
+	is.Eq(`/build-test/20?username=demo`, str)
 
 	str = r.BuildURL("homepage", "{name}", "test", "{id}", 23).String()
-	is.Equal(`/build-test/23`, str)
+	is.Eq(`/build-test/23`, str)
 }
 
 func TestBuildRequestUrl_EmptyRoute(t *testing.T) {
@@ -154,9 +154,9 @@ func TestBuildRequestUrl_EmptyRoute(t *testing.T) {
 
 	r.AddRoute(homepage)
 
-	is.PanicsWithValue("BuildRequestURL get route is nil(name: homepage-empty)", func() {
+	is.PanicsMsg(func() {
 		r.BuildRequestURL("homepage-empty", "{name}", "test", "{id}", "20", "username", "demo")
-	})
+	}, "BuildRequestURL get route is nil(name: homepage-empty)")
 }
 
 func TestBuildRequestUrl_ErrorArgs(t *testing.T) {
@@ -166,13 +166,13 @@ func TestBuildRequestUrl_ErrorArgs(t *testing.T) {
 	homepage := NamedRoute("homepage", `/build-test/{name}/{id:\d+}`, emptyHandler, GET)
 	r.AddRoute(homepage)
 
-	is.PanicsWithValue("buildArgs odd argument count", func() {
+	is.PanicsMsg(func() {
 		r.BuildRequestURL("homepage", "one")
-	})
+	}, "buildArgs odd argument count")
 
-	is.PanicsWithValue("buildArgs odd argument count", func() {
+	is.PanicsMsg(func() {
 		r.BuildRequestURL("homepage", "{name}", "test", "{id}")
-	})
+	}, "buildArgs odd argument count")
 }
 
 type MyValidator string
@@ -220,8 +220,8 @@ func TestContext_Validator(t *testing.T) {
 
 	w := mockRequest(r, GET, "/validator", nil)
 
-	ris.Equal(200, w.Code)
-	ris.Equal(w.Body.String(), `passed`)
+	ris.Eq(200, w.Code)
+	ris.Eq(w.Body.String(), `passed`)
 }
 
 type MyRenderer string
@@ -234,7 +234,6 @@ func (mr *MyRenderer) Render(w io.Writer, name string, data interface{}, ctx *Co
 	if err != nil {
 		return err
 	}
-
 	return tpl.Execute(w, data)
 }
 
@@ -253,6 +252,6 @@ func TestContext_Renderer(t *testing.T) {
 
 	w := mockRequest(r, GET, "/renderer", nil)
 
-	ris.Equal(200, w.Code)
-	ris.Equal(w.Body.String(), `ADMIN, ID is 100`)
+	ris.Eq(200, w.Code)
+	ris.Eq(w.Body.String(), `ADMIN, ID is 100`)
 }

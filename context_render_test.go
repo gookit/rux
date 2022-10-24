@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/gookit/goutil/testutil/assert"
 )
 
 func TestContext_Redirect(t *testing.T) {
@@ -19,18 +19,18 @@ func TestContext_Redirect(t *testing.T) {
 		c.Redirect("/new-path")
 	})
 	w := mockRequest(r, GET, uri, nil)
-	is.Equal(301, w.Code)
-	is.Equal("/new-path", w.Header().Get("Location"))
-	is.Equal("<a href=\"/new-path\">Moved Permanently</a>.\n\n", w.Body.String())
+	is.Eq(301, w.Code)
+	is.Eq("/new-path", w.Header().Get("Location"))
+	is.Eq("<a href=\"/new-path\">Moved Permanently</a>.\n\n", w.Body.String())
 
 	uri = "/Redirect1"
 	r.GET(uri, func(c *Context) {
 		c.Redirect("/new-path1", 302)
 	})
 	w = mockRequest(r, GET, uri, nil)
-	is.Equal(302, w.Code)
-	is.Equal("/new-path1", w.Header().Get("Location"))
-	is.Equal("<a href=\"/new-path1\">Found</a>.\n\n", w.Body.String())
+	is.Eq(302, w.Code)
+	is.Eq("/new-path1", w.Header().Get("Location"))
+	is.Eq("<a href=\"/new-path1\">Found</a>.\n\n", w.Body.String())
 }
 
 func TestContext_Back(t *testing.T) {
@@ -43,9 +43,9 @@ func TestContext_Back(t *testing.T) {
 		c.Back()
 	})
 	w := mockRequest(r, GET, uri, &md{H: m{"Referer": "/old-path"}})
-	is.Equal(302, w.Code)
-	is.Equal("/old-path", w.Header().Get("Location"))
-	is.Equal("<a href=\"/old-path\">Found</a>.\n\n", w.Body.String())
+	is.Eq(302, w.Code)
+	is.Eq("/old-path", w.Header().Get("Location"))
+	is.Eq("<a href=\"/old-path\">Found</a>.\n\n", w.Body.String())
 
 	// Back()
 	uri = "/Back1"
@@ -53,9 +53,9 @@ func TestContext_Back(t *testing.T) {
 		c.Back(301)
 	})
 	w = mockRequest(r, GET, uri, &md{H: m{"Referer": "/old-path1"}})
-	is.Equal(301, w.Code)
-	is.Equal("/old-path1", w.Header().Get("Location"))
-	is.Equal("<a href=\"/old-path1\">Moved Permanently</a>.\n\n", w.Body.String())
+	is.Eq(301, w.Code)
+	is.Eq("/old-path1", w.Header().Get("Location"))
+	is.Eq("<a href=\"/old-path1\">Moved Permanently</a>.\n\n", w.Body.String())
 }
 
 func TestContext_Blob(t *testing.T) {
@@ -68,13 +68,13 @@ func TestContext_Blob(t *testing.T) {
 
 	w := mockRequest(r, GET, "/blob", nil)
 
-	is.Equal(200, w.Code)
-	is.Equal("text/plain; charset=UTF-8", w.Header().Get(ContentType))
+	is.Eq(200, w.Code)
+	is.Eq("text/plain; charset=UTF-8", w.Header().Get(ContentType))
 
 	body, err := ioutil.ReadAll(w.Body)
 
-	is.NoError(err)
-	is.Equal(string(body), "blob-test")
+	is.NoErr(err)
+	is.Eq(string(body), "blob-test")
 }
 
 func TestContext_Binary(t *testing.T) {
@@ -85,14 +85,14 @@ func TestContext_Binary(t *testing.T) {
 	c.Binary(200, in, "new-name.md", true)
 
 	w := c.RawWriter().(*httptest.ResponseRecorder)
-	is.Equal(200, w.Code)
+	is.Eq(200, w.Code)
 	ss, ok := w.Header()["Content-Type"]
 	is.True(ok)
-	is.Equal(ss[0], "application/octet-stream")
+	is.Eq(ss[0], "application/octet-stream")
 
 	ss, ok = w.Header()["Content-Disposition"]
 	is.True(ok)
-	is.Equal(ss[0], "inline; filename=new-name.md")
+	is.Eq(ss[0], "inline; filename=new-name.md")
 	is.Contains(w.Body.String(), "# readme")
 }
 
@@ -103,8 +103,8 @@ func TestContext_FileContent(t *testing.T) {
 	c.FileContent("testdata/site.md", "new-name.md")
 
 	w := c.RawWriter().(*httptest.ResponseRecorder)
-	is.Equal(200, c.StatusCode())
-	is.Equal(200, w.Code)
+	is.Eq(200, c.StatusCode())
+	is.Eq(200, w.Code)
 
 	ss, ok := w.Header()["Content-Type"]
 	is.True(ok)
@@ -116,9 +116,9 @@ func TestContext_FileContent(t *testing.T) {
 	c = mockContext("GET", "/site.md", nil, nil)
 	c.FileContent("testdata/not-exist.md")
 	w = c.RawWriter().(*httptest.ResponseRecorder)
-	is.Equal(500, c.StatusCode())
-	is.Equal(500, w.Code)
-	is.Equal("Internal Server Error\n", w.Body.String())
+	is.Eq(500, c.StatusCode())
+	is.Eq(500, w.Code)
+	is.Eq("Internal Server Error\n", w.Body.String())
 }
 
 func TestContext_Attachment(t *testing.T) {
@@ -128,14 +128,14 @@ func TestContext_Attachment(t *testing.T) {
 	c.Attachment("testdata/site.md", "new-name.md")
 
 	w := c.RawWriter().(*httptest.ResponseRecorder)
-	is.Equal(200, w.Code)
+	is.Eq(200, w.Code)
 	ss, ok := w.Header()["Content-Type"]
 	is.True(ok)
-	is.Equal(ss[0], "application/octet-stream")
+	is.Eq(ss[0], "application/octet-stream")
 
 	ss, ok = w.Header()["Content-Disposition"]
 	is.True(ok)
-	is.Equal(ss[0], "attachment; filename=new-name.md")
+	is.Eq(ss[0], "attachment; filename=new-name.md")
 	is.Contains(w.Body.String(), "# readme")
 }
 
@@ -147,13 +147,13 @@ func TestContext_Inline(t *testing.T) {
 	c.Inline("testdata/site.md", "new-name.md")
 
 	w := c.RawWriter().(*httptest.ResponseRecorder)
-	is.Equal(200, w.Code)
+	is.Eq(200, w.Code)
 	ss, ok := w.Header()["Content-Type"]
 	is.True(ok)
-	is.Equal(ss[0], "application/octet-stream")
+	is.Eq(ss[0], "application/octet-stream")
 
 	ss, ok = w.Header()["Content-Disposition"]
 	is.True(ok)
-	is.Equal(ss[0], "inline; filename=new-name.md")
+	is.Eq(ss[0], "inline; filename=new-name.md")
 	is.Contains(w.Body.String(), "# readme")
 }

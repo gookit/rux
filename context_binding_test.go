@@ -8,8 +8,8 @@ import (
 
 	"github.com/gookit/goutil/netutil/httpctype"
 	"github.com/gookit/goutil/testutil"
+	"github.com/gookit/goutil/testutil/assert"
 	"github.com/gookit/rux/binding"
-	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -41,20 +41,20 @@ func TestContext_ShouldBind(t *testing.T) {
 		u := &User{}
 
 		err := c.ShouldBind(u, binding.JSON)
-		is.Error(err)
-		is.Equal("invalid character 'i' looking for beginning of value", err.Error())
+		is.Err(err)
+		is.Eq("invalid character 'i' looking for beginning of value", err.Error())
 		c.SetStatus(http.StatusInternalServerError)
 	})
 
 	w := testutil.MockRequest(r, POST, "/ShouldBind", &testutil.MD{
 		Body: strings.NewReader(userJSON),
 	})
-	is.Equal(http.StatusOK, w.Code)
+	is.Eq(http.StatusOK, w.Code)
 
 	w = testutil.MockRequest(r, POST, "/ShouldBind-err", &testutil.MD{
 		Body: strings.NewReader("invalid-json"),
 	})
-	is.Equal(http.StatusInternalServerError, w.Code)
+	is.Eq(http.StatusInternalServerError, w.Code)
 }
 
 func TestContext_MustBind(t *testing.T) {
@@ -65,26 +65,26 @@ func TestContext_MustBind(t *testing.T) {
 		u := &User{}
 
 		c.MustBind(u, binding.JSON)
-		is.Equal(12, u.Age)
-		is.Equal("inhere", u.Name)
+		is.Eq(12, u.Age)
+		is.Eq("inhere", u.Name)
 	})
 
 	w := testutil.MockRequest(r, POST, "/MustBind", &testutil.MD{
 		Body: strings.NewReader(userJSON),
 	})
-	is.Equal(http.StatusOK, w.Code)
+	is.Eq(http.StatusOK, w.Code)
 
 	r.OnPanic = func(c *Context) {
 		ret, ok := c.Get(CTXRecoverResult)
 		is.True(ok)
 		err, ok := ret.(error)
 		is.True(ok)
-		is.Equal("invalid character 'i' looking for beginning of value", err.Error())
+		is.Eq("invalid character 'i' looking for beginning of value", err.Error())
 	}
 	w = testutil.MockRequest(r, POST, "/MustBind", &testutil.MD{
 		Body: strings.NewReader("invalid-json"),
 	})
-	is.Equal(http.StatusOK, w.Code)
+	is.Eq(http.StatusOK, w.Code)
 }
 
 func TestContext_Bind(t *testing.T) {
@@ -106,7 +106,7 @@ func TestContext_Bind(t *testing.T) {
 			httpctype.Key: httpctype.MIMEPOSTForm,
 		},
 	})
-	is.Equal(http.StatusOK, w.Code)
+	is.Eq(http.StatusOK, w.Code)
 }
 
 func TestContext_AutoBind(t *testing.T) {
@@ -133,7 +133,7 @@ func TestContext_AutoBind(t *testing.T) {
 			httpctype.Key: httpctype.MIMEPOSTForm,
 		},
 	})
-	is.Equal(http.StatusOK, w.Code)
+	is.Eq(http.StatusOK, w.Code)
 
 	// post JSON body
 	w = testutil.MockRequest(r, POST, "/AutoBind", &testutil.MD{
@@ -142,7 +142,7 @@ func TestContext_AutoBind(t *testing.T) {
 			httpctype.Key: httpctype.MIMEJSON,
 		},
 	})
-	is.Equal(http.StatusOK, w.Code)
+	is.Eq(http.StatusOK, w.Code)
 
 	// post XML body
 	w = testutil.MockRequest(r, POST, "/AutoBind", &testutil.MD{
@@ -151,11 +151,11 @@ func TestContext_AutoBind(t *testing.T) {
 			httpctype.Key: httpctype.MIMEXML,
 		},
 	})
-	is.Equal(http.StatusOK, w.Code)
+	is.Eq(http.StatusOK, w.Code)
 
 	// URL query string
 	w = testutil.MockRequest(r, GET, "/AutoBind?"+userQuery, nil)
-	is.Equal(http.StatusOK, w.Code)
+	is.Eq(http.StatusOK, w.Code)
 }
 
 func TestContext_BindForm(t *testing.T) {
@@ -174,7 +174,7 @@ func TestContext_BindForm(t *testing.T) {
 			httpctype.Key: httpctype.MIMEPOSTForm,
 		},
 	})
-	is.Equal(http.StatusOK, w.Code)
+	is.Eq(http.StatusOK, w.Code)
 }
 
 func TestContext_BindJSON(t *testing.T) {
@@ -190,7 +190,7 @@ func TestContext_BindJSON(t *testing.T) {
 	w := testutil.MockRequest(r, POST, "/BindJSON", &testutil.MD{
 		Body: strings.NewReader(userJSON),
 	})
-	is.Equal(http.StatusOK, w.Code)
+	is.Eq(http.StatusOK, w.Code)
 }
 
 func TestContext_BindXML(t *testing.T) {
@@ -206,12 +206,12 @@ func TestContext_BindXML(t *testing.T) {
 	w := testutil.MockRequest(r, POST, "/BindXML", &testutil.MD{
 		Body: strings.NewReader(userXML),
 	})
-	is.Equal(http.StatusOK, w.Code)
+	is.Eq(http.StatusOK, w.Code)
 }
 
 func testBoundedUserIsOK(is *assert.Assertions, err error, u *User) {
-	is.NoError(err)
+	is.NoErr(err)
 	is.NotEmpty(u)
-	is.Equal(12, u.Age)
-	is.Equal("inhere", u.Name)
+	is.Eq(12, u.Age)
+	is.Eq("inhere", u.Name)
 }

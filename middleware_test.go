@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/gookit/goutil/testutil/assert"
 )
 
 func TestRouteMiddleware(t *testing.T) {
@@ -21,7 +21,7 @@ func TestRouteMiddleware(t *testing.T) {
 	})
 
 	w := mockRequest(r, GET, "/middle", nil)
-	is.Equal("a-O-b", w.Body.String())
+	is.Eq("a-O-b", w.Body.String())
 
 	// add multi middleware
 	r.GET("/middle2", func(c *Context) { // main handler
@@ -37,7 +37,7 @@ func TestRouteMiddleware(t *testing.T) {
 	})
 	// Call sequence: middle 1 -> middle 2 -> main handler -> middle 2 -> middle 1
 	w = mockRequest(r, GET, "/middle2", nil)
-	is.Equal("ab-O-BA", w.Body.String())
+	is.Eq("ab-O-BA", w.Body.String())
 
 	// add multi middleware(don't call next)
 	r.GET("/middle3", func(c *Context) { // main handler
@@ -53,7 +53,7 @@ func TestRouteMiddleware(t *testing.T) {
 	})
 	// Call sequence: middle 1 -> middle 2 -> main handler
 	w = mockRequest(r, GET, "/middle3", nil)
-	is.Equal("aAbB-O-", w.Body.String())
+	is.Eq("aAbB-O-", w.Body.String())
 
 	// add middleware use method Use()
 	route := r.GET("/middle4", func(c *Context) { // main handler
@@ -70,7 +70,7 @@ func TestRouteMiddleware(t *testing.T) {
 	})
 	// Call sequence: middle 1 -> middle 2 -> main handler -> middle 2 -> middle 1
 	w = mockRequest(r, GET, "/middle4", nil)
-	is.Equal("ab-O-BA", w.Body.String())
+	is.Eq("ab-O-BA", w.Body.String())
 }
 
 func TestContext_Abort(t *testing.T) {
@@ -92,7 +92,7 @@ func TestContext_Abort(t *testing.T) {
 	})
 	// Call sequence: middle 1
 	w := mockRequest(r, GET, "/abort", nil)
-	is.Equal("aA", w.Body.String())
+	is.Eq("aA", w.Body.String())
 
 	// use middleware, will termination execution early by AbortThen()
 	r.GET("/abort1", func(c *Context) { // Will not execute
@@ -111,8 +111,8 @@ func TestContext_Abort(t *testing.T) {
 	// Call sequence: middle 1
 	w = mockRequest(r, GET, "/abort1", nil)
 	// body: <a href="/other">Found</a>.\n\naA
-	is.NotEqual("aA", w.Body.String())
-	is.Equal(302, w.Code)
+	is.NotEq("aA", w.Body.String())
+	is.Eq(302, w.Code)
 
 	// use middleware, will termination execution early by AbortWithStatus()
 	r.GET("/abort2", func(c *Context) { // Will not execute
@@ -130,8 +130,8 @@ func TestContext_Abort(t *testing.T) {
 	})
 	// Call sequence: middle 1
 	w = mockRequest(r, GET, "/abort2", nil)
-	is.Equal("aA", w.Body.String())
-	is.Equal(404, w.Code)
+	is.Eq("aA", w.Body.String())
+	is.Eq(404, w.Code)
 }
 
 func TestGlobalMiddleware(t *testing.T) {
@@ -150,7 +150,7 @@ func TestGlobalMiddleware(t *testing.T) {
 		c.WriteString("-O-")
 	})
 	w := mockRequest(r, GET, "/middle", nil)
-	is.Equal("z-O-Z", w.Body.String())
+	is.Eq("z-O-Z", w.Body.String())
 
 	// eg2: global + route middle
 	r.GET("/middle1", func(c *Context) { // main handler
@@ -161,7 +161,7 @@ func TestGlobalMiddleware(t *testing.T) {
 		c.WriteString("B")
 	})
 	w = mockRequest(r, GET, "/middle1", nil)
-	is.Equal("zb-O-BZ", w.Body.String())
+	is.Eq("zb-O-BZ", w.Body.String())
 
 	r.Group("/grp", func() {
 		// eg3: global + group middles
@@ -183,9 +183,9 @@ func TestGlobalMiddleware(t *testing.T) {
 		c.WriteString("B")
 	})
 	w = mockRequest(r, GET, "/grp/middle", nil)
-	is.Equal("zb-O-BZ", w.Body.String())
+	is.Eq("zb-O-BZ", w.Body.String())
 	w = mockRequest(r, GET, "/grp/middle1", nil)
-	is.Equal("zbc-O-CBZ", w.Body.String())
+	is.Eq("zbc-O-CBZ", w.Body.String())
 
 }
 
@@ -214,10 +214,10 @@ func TestGroupMiddleware(t *testing.T) {
 		c.WriteString("X")
 	})
 	w := mockRequest(r, GET, "/g0/m0", nil)
-	is.Equal("x-O-X", w.Body.String())
+	is.Eq("x-O-X", w.Body.String())
 
 	w = mockRequest(r, GET, "/g0/m1", nil)
-	is.Equal("xa-O-AX", w.Body.String())
+	is.Eq("xa-O-AX", w.Body.String())
 
 	r.Group("/grp", func() {
 		r.GET("/middle", func(c *Context) { // main handler
@@ -261,13 +261,13 @@ func TestGroupMiddleware(t *testing.T) {
 		c.WriteString("Y")
 	})
 	w = mockRequest(r, GET, "/grp/middle", nil)
-	is.Equal("zy-O-YZ", w.Body.String())
+	is.Eq("zy-O-YZ", w.Body.String())
 	w = mockRequest(r, GET, "/grp/middle1", nil)
-	is.Equal("zya-O-AYZ", w.Body.String())
+	is.Eq("zya-O-AYZ", w.Body.String())
 	w = mockRequest(r, GET, "/grp/sub-grp/middle", nil)
-	is.Equal("zyx-O-XYZ", w.Body.String())
+	is.Eq("zyx-O-XYZ", w.Body.String())
 	w = mockRequest(r, GET, "/grp/sub-grp/middle1", nil)
-	is.Equal("zyxa-O-AXYZ", w.Body.String())
+	is.Eq("zyxa-O-AXYZ", w.Body.String())
 }
 
 func TestRouter_Use(t *testing.T) {
@@ -311,10 +311,10 @@ func TestRouter_Use(t *testing.T) {
 	is.Len(r.Handlers(), 2)
 
 	w := mockRequest(r, GET, "/g0/m0", nil)
-	is.Equal("zyx-O-XYZ", w.Body.String())
+	is.Eq("zyx-O-XYZ", w.Body.String())
 
 	w = mockRequest(r, GET, "/g0/m1", nil)
-	is.Equal("zyxa-O-AXYZ", w.Body.String())
+	is.Eq("zyxa-O-AXYZ", w.Body.String())
 }
 
 func TestWrapHTTPHandler(t *testing.T) {
@@ -332,7 +332,7 @@ func TestWrapHTTPHandler(t *testing.T) {
 			_, _ = w.Write([]byte("ll"))
 		})))
 	w := mockRequest(r, GET, "/path", nil)
-	is.Equal("hello", w.Body.String())
+	is.Eq("hello", w.Body.String())
 
 	r.GET("/path1", func(c *Context) {
 		c.WriteString("o")
@@ -342,7 +342,7 @@ func TestWrapHTTPHandler(t *testing.T) {
 			_, _ = w.Write([]byte("ll"))
 		}))
 	w = mockRequest(r, GET, "/path1", nil)
-	is.Equal("hello", w.Body.String())
+	is.Eq("hello", w.Body.String())
 }
 
 func TestHandlerFunc_ServeHTTP(t *testing.T) {
@@ -352,5 +352,5 @@ func TestHandlerFunc_ServeHTTP(t *testing.T) {
 	})
 
 	w := mockRequest(hf, GET, "/path1", nil)
-	ris.Equal("hello, /path1", w.Body.String())
+	ris.Eq("hello, /path1", w.Body.String())
 }

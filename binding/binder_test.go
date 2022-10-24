@@ -4,14 +4,14 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/gookit/goutil/testutil/assert"
 	"github.com/gookit/rux/binding"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestBinder_Name(t *testing.T) {
 	is := assert.New(t)
 	for name, binder := range binding.Binders {
-		is.Equal(name, binder.Name())
+		is.Eq(name, binder.Name())
 	}
 }
 
@@ -20,7 +20,7 @@ func TestGetBinder(t *testing.T) {
 	b := binding.GetBinder("query")
 
 	req, err := http.NewRequest("GET", "/?"+userQuery, nil)
-	is.NoError(err)
+	is.NoErr(err)
 
 	u := &User{}
 	err = b.Bind(req, u)

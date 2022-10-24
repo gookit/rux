@@ -4,7 +4,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/gookit/goutil/testutil/assert"
 )
 
 func TestResponseWriter_WriteHeader(t *testing.T) {
@@ -14,7 +14,7 @@ func TestResponseWriter_WriteHeader(t *testing.T) {
 	c.SetStatus(200)
 	c.SetStatus(201)
 
-	assert.Equal(t, 201, c.StatusCode())
+	assert.Eq(t, 201, c.StatusCode())
 }
 
 func TestResponseWriter_Flush(t *testing.T) {

@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/gookit/goutil/netutil/httpctype"
-	"github.com/stretchr/testify/assert"
+	"github.com/gookit/goutil/testutil/assert"
 )
 
 func mockContext(method, uri string, body io.Reader, header m) *Context {
@@ -31,42 +31,42 @@ func mockContext(method, uri string, body io.Reader, header m) *Context {
 }
 
 func TestContext_WithReqCtxValue(t *testing.T) {
-	art := assert.New(t)
+	is := assert.New(t)
 	c := mockContext("GET", "/", nil, nil)
 
 	c.WithReqCtxValue("name", "inhere")
 
-	art.Equal("inhere", c.ReqCtxValue("name"))
-	art.False(c.IsTLS())
-	art.False(c.IsAborted())
+	is.Eq("inhere", c.ReqCtxValue("name"))
+	is.False(c.IsTLS())
+	is.False(c.IsAborted())
 }
 
 func TestContext_Query(t *testing.T) {
-	art := assert.New(t)
+	is := assert.New(t)
 
 	// c := mockContext("GET", "/test?a=12&b=tom&arr[]=4&arr[]=9", nil, nil)
 	c := mockContext("GET", "/test?page=12&name=tom&arr=4&arr=9", nil, nil)
 
-	art.Equal("GET", c.Req.Method)
-	art.Equal("12", c.Query("page"))
-	art.Equal("val0", c.Query("no-key", "val0"))
+	is.Eq("GET", c.Req.Method)
+	is.Eq("12", c.Query("page"))
+	is.Eq("val0", c.Query("no-key", "val0"))
 	ss, has := c.QueryParams("arr")
-	art.True(has)
-	art.Len(ss, 2)
+	is.True(has)
+	is.Len(ss, 2)
 	vs := c.QueryValues()
-	art.Len(vs, 3)
+	is.Len(vs, 3)
 	// fmt.Println(vs)
 
-	art.Equal("", c.Post("page"))
-	art.Equal("1", c.Post("page", "1"))
+	is.Eq("", c.Post("page"))
+	is.Eq("1", c.Post("page", "1"))
 
 	val, has := c.PostParam("page")
-	art.Equal("", val)
-	art.False(has)
+	is.Eq("", val)
+	is.False(has)
 }
 
 func TestContext_Post(t *testing.T) {
-	ris := assert.New(t)
+	is := assert.New(t)
 	body := bytes.NewBufferString("foo=bar&page=11&both=v0&foo=second")
 	c := mockContext("POST", "/?both=v1", body, m{
 		"Accept":      "application/json",
@@ -74,30 +74,30 @@ func TestContext_Post(t *testing.T) {
 	})
 
 	val, has := c.PostParam("page")
-	ris.True(has)
-	ris.Equal("11", val)
-	ris.Equal("11", c.Post("page"))
-	ris.Equal("11", c.Post("page", "1"))
+	is.True(has)
+	is.Eq("11", val)
+	is.Eq("11", c.Post("page"))
+	is.Eq("11", c.Post("page", "1"))
 
-	ris.Equal([]string{"application/json"}, c.AcceptedTypes())
-	ris.Equal("application/x-www-form-urlencoded", c.ContentType())
+	is.Eq([]string{"application/json"}, c.AcceptedTypes())
+	is.Eq("application/x-www-form-urlencoded", c.ContentType())
 
 	// test parse multipart/form-data
 	buf := new(bytes.Buffer)
 	mw := multipart.NewWriter(buf)
 	err := mw.WriteField("kay0", "val0")
-	ris.NoError(err)
-	ris.NoError(mw.Close()) // must call Close()
+	is.NoErr(err)
+	is.NoErr(mw.Close()) // must call Close()
 
 	c3 := mockContext("POST", "/", buf, m{
 		"Content-Type": mw.FormDataContentType(),
 	})
 
 	err = c3.ParseMultipartForm(defaultMaxMemory)
-	ris.NoError(err)
+	is.NoErr(err)
 
 	f0 := c3.Req.Form
-	ris.Equal("kay0=val0", f0.Encode())
+	is.Eq("kay0=val0", f0.Encode())
 }
 
 func TestContext_FormParams(t *testing.T) {
@@ -110,30 +110,30 @@ func TestContext_FormParams(t *testing.T) {
 
 	form1, err := c1.FormParams()
 
-	is.NoError(err)
+	is.NoErr(err)
 
 	form2, err := c2.FormParams([]string{"b"})
 
-	is.NoError(err)
+	is.NoErr(err)
 
-	is.Equal(form1.Encode(), "a=1&b=2&c=3")
-	is.Equal(form2.Encode(), "a=1&c=3")
+	is.Eq(form1.Encode(), "a=1&b=2&c=3")
+	is.Eq(form2.Encode(), "a=1&c=3")
 
 	// test parse multipart/form-data
 	buf := new(bytes.Buffer)
 	mw := multipart.NewWriter(buf)
 	err = mw.WriteField("kay0", "val0")
-	is.NoError(err)
+	is.NoErr(err)
 	err = mw.Close()
-	is.NoError(err)
+	is.NoErr(err)
 
 	c3 := mockContext("POST", "/", buf, m{
 		"Content-Type": mw.FormDataContentType(),
 	})
 
 	f3, err := c3.FormParams()
-	is.NoError(err)
-	is.Equal("kay0=val0", f3.Encode())
+	is.NoErr(err)
+	is.Eq("kay0=val0", f3.Encode())
 }
 
 func TestContext_SetCookie(t *testing.T) {
@@ -163,7 +163,7 @@ func TestContext_FormFile(t *testing.T) {
 	mw := multipart.NewWriter(buf)
 
 	w, err := mw.CreateFormFile("file", "test.txt")
-	if assert.NoError(t, err) {
+	if assert.NoErr(t, err) {
 		_, _ = w.Write([]byte("test"))
 	}
 	_ = mw.Close()
@@ -173,13 +173,13 @@ func TestContext_FormFile(t *testing.T) {
 	})
 
 	f, err := c.FormFile("file")
-	if assert.NoError(t, err) {
-		assert.Equal(t, "test.txt", f.Filename)
+	if assert.NoErr(t, err) {
+		assert.Eq(t, "test.txt", f.Filename)
 	}
 
-	assert.NoError(t, c.SaveFile(f, "testdata/test.txt"))
-	assert.NoError(t, c.UploadFile("file", "testdata/test.txt"))
-	assert.Error(t, c.UploadFile("no-exist", "testdata/test.txt"))
+	assert.NoErr(t, c.SaveFile(f, "testdata/test.txt"))
+	assert.NoErr(t, c.UploadFile("file", "testdata/test.txt"))
+	assert.Err(t, c.UploadFile("no-exist", "testdata/test.txt"))
 }
 
 func TestContext_SaveFile(t *testing.T) {
@@ -194,7 +194,7 @@ func TestContext_SaveFile(t *testing.T) {
 	f := &multipart.FileHeader{
 		Filename: "file",
 	}
-	assert.Error(t, c.SaveFile(f, "testdata/test.txt"))
+	assert.Err(t, c.SaveFile(f, "testdata/test.txt"))
 }
 
 func TestContext_RouteName(t *testing.T) {
@@ -206,7 +206,7 @@ func TestContext_RouteName(t *testing.T) {
 	name, ok := c.Get(CTXCurrentRouteName)
 
 	is.True(ok)
-	is.Equal("test_name", name)
+	is.Eq("test_name", name)
 }
 
 func TestContext_RoutePath(t *testing.T) {
@@ -218,7 +218,7 @@ func TestContext_RoutePath(t *testing.T) {
 	name, ok := c.Get(CTXCurrentRoutePath)
 
 	is.True(ok)
-	is.Equal("/test/{name}", name)
+	is.Eq("/test/{name}", name)
 }
 
 func TestContext_Cookie(t *testing.T) {
@@ -227,10 +227,10 @@ func TestContext_Cookie(t *testing.T) {
 	r := New()
 	r.GET("/test", func(c *Context) {
 		val := c.Cookie("req-cke")
-		is.Equal("req-val", val)
+		is.Eq("req-val", val)
 
 		val = c.Cookie("not-exist")
-		is.Equal("", val)
+		is.Eq("", val)
 
 		c.FastSetCookie("res-cke", "val1", 300)
 	})
@@ -242,19 +242,19 @@ func TestContext_Cookie(t *testing.T) {
 		req.AddCookie(&http.Cookie{Name: "req-cke", Value: "req-val"})
 	})
 
-	is.Equal(200, w.Code)
+	is.Eq(200, w.Code)
 
 	resCke := w.Header().Get("Set-Cookie")
-	is.Equal("res-cke=val1; Path=/; Max-Age=300; HttpOnly", resCke)
+	is.Eq("res-cke=val1; Path=/; Max-Age=300; HttpOnly", resCke)
 
 	w = mockRequest(r, GET, "/delcookie", nil, func(req *http.Request) {
 		req.AddCookie(&http.Cookie{Name: "req-cke", Value: "req-val"})
 	})
 
-	is.Equal(200, w.Code)
+	is.Eq(200, w.Code)
 
 	resCke = w.Header().Get("Set-Cookie")
-	is.Equal("req-cke=; Path=/; Max-Age=0; HttpOnly", resCke)
+	is.Eq("req-cke=; Path=/; Max-Age=0; HttpOnly", resCke)
 }
 
 func TestContext_Length(t *testing.T) {
@@ -263,5 +263,5 @@ func TestContext_Length(t *testing.T) {
 	c := mockContext("GET", "/", nil, nil)
 	c.WriteString("#length#")
 
-	ris.Equal(8, c.Length())
+	ris.Eq(8, c.Length())
 }

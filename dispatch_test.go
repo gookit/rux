@@ -9,7 +9,7 @@ import (
 
 	"github.com/gookit/color"
 	"github.com/gookit/goutil/netutil/httpctype"
-	"github.com/stretchr/testify/assert"
+	"github.com/gookit/goutil/testutil/assert"
 )
 
 func ExampleRouter_ServeHTTP() {
@@ -94,24 +94,24 @@ func TestRouter_ServeHTTP(t *testing.T) {
 	// simple
 	r.GET("/", func(c *Context) {
 		c.WriteString("ok")
-		is.Equal(c.URL().Path, "/")
+		is.Eq(c.URL().Path, "/")
 	})
 	w := mockRequest(r, GET, "/", nil)
-	is.Equal("ok", w.Body.String())
+	is.Eq("ok", w.Body.String())
 
 	// use Params
 	r.GET("/users/{id}", func(c *Context) {
 		s.set("id:" + c.Param("id"))
 	})
 	mockRequest(r, GET, "/users/23", nil)
-	is.Equal("id:23", s.str)
+	is.Eq("id:23", s.str)
 	mockRequest(r, GET, "/users/tom", nil)
-	is.Equal("id:tom", s.str)
+	is.Eq("id:tom", s.str)
 
 	// not exist
 	s.reset()
 	mockRequest(r, GET, "/users", nil)
-	is.Equal("", s.str)
+	is.Eq("", s.str)
 
 	// receive input data
 	r.POST("/users", func(c *Context) {
@@ -124,31 +124,31 @@ func TestRouter_ServeHTTP(t *testing.T) {
 		}
 
 		n := c.Query("no-key", "defVal")
-		is.Equal("defVal", n)
+		is.Eq("defVal", n)
 		is.False(c.IsGet())
 		is.True(c.IsPost())
 	})
 	s.reset()
 	mockRequest(r, POST, "/users", &md{B: "data"})
-	is.Equal("body:data", s.str)
+	is.Eq("body:data", s.str)
 	s.reset()
 	w = mockRequest(r, POST, "/users?page=2", &md{B: "data"})
-	is.Equal("body:data,page=2", s.str)
-	is.Equal(200, w.Code)
+	is.Eq("body:data,page=2", s.str)
+	is.Eq(200, w.Code)
 
 	// no handler for NotFound
 	s.reset()
 	w = mockRequest(r, GET, "/not-exist", nil)
-	is.Equal("", s.str)
-	is.Equal(404, w.Code)
+	is.Eq("", s.str)
+	is.Eq(404, w.Code)
 
 	// add not found handler
 	r.NotFound(func(c *Context) {
 		s.set("not-found")
 	})
 	w = mockRequest(r, GET, "/not-exist", nil)
-	is.Equal("not-found", s.str)
-	is.Equal(200, w.Code)
+	is.Eq("not-found", s.str)
+	is.Eq(200, w.Code)
 
 	// enable handle method not allowed
 	r = New(HandleMethodNotAllowed)
@@ -157,13 +157,13 @@ func TestRouter_ServeHTTP(t *testing.T) {
 	// no handler for NotAllowed
 	s.reset()
 	w = mockRequest(r, POST, "/users/21", nil)
-	is.Equal("", s.str)
-	is.Equal(405, w.Code)
+	is.Eq("", s.str)
+	is.Eq(405, w.Code)
 	is.Contains(w.Header().Get("allow"), "GET")
 
 	// but allow OPTIONS request
 	w = mockRequest(r, OPTIONS, "/users/21", nil)
-	is.Equal(200, w.Code)
+	is.Eq(200, w.Code)
 
 	// add handler
 	r.NotAllowed(func(c *Context) {
@@ -171,11 +171,11 @@ func TestRouter_ServeHTTP(t *testing.T) {
 	})
 	s.reset()
 	mockRequest(r, POST, "/users/23", nil)
-	is.Equal("not-allowed", s.str)
+	is.Eq("not-allowed", s.str)
 
 	s.reset()
 	mockRequest(r, OPTIONS, "/users/23", nil)
-	is.Equal("not-allowed", s.str)
+	is.Eq("not-allowed", s.str)
 }
 
 func TestRouter_WrapHttpHandlers(t *testing.T) {
@@ -205,8 +205,8 @@ func TestRouter_WrapHttpHandlers(t *testing.T) {
 
 	h := r.WrapHTTPHandlers(gh, gh1)
 	w := mockRequest(h, "GET", "/", nil)
-	is.Equal(503, w.Code)
-	is.Equal("ab-O-cd", w.Body.String())
+	is.Eq(503, w.Code)
+	is.Eq("ab-O-cd", w.Body.String())
 }
 
 func TestContext(t *testing.T) {
@@ -226,7 +226,7 @@ func TestContext(t *testing.T) {
 		is.False(c.IsPost())
 		is.True(c.IsGet())
 		is.True(c.IsMethod("GET"))
-		is.Equal("github.com/gookit/rux.namedHandler", c.HandlerName())
+		is.Eq("github.com/gookit/rux.namedHandler", c.HandlerName())
 		// set a new context data
 		c.Set("newKey", "val")
 
@@ -234,14 +234,14 @@ func TestContext(t *testing.T) {
 
 		// STEP 4 ->:
 		name, _ := c.Get("name")
-		is.Equal("namedHandler1", name.(string))
+		is.Eq("namedHandler1", name.(string))
 	}, func(c *Context) { // middle 2
 		// -> STEP 2:
 		_, ok := c.Data()["newKey"]
 		is.True(ok)
 		is.Nil(c.Err())
-		is.Equal("val", c.MustGet("newKey").(string))
-		is.Equal("val", c.Value("newKey").(string))
+		is.Eq("val", c.MustGet("newKey").(string))
+		is.Eq("val", c.Value("newKey").(string))
 		is.Nil(c.Value("not-exists"))
 
 		_, ok = c.Value(nil).(*http.Request)
@@ -250,7 +250,7 @@ func TestContext(t *testing.T) {
 		c.Next()
 
 		// STEP 3 ->:
-		is.Equal("namedHandler", c.MustGet("name").(string))
+		is.Eq("namedHandler", c.MustGet("name").(string))
 		c.Set("name", "namedHandler1") // change value
 	})
 
@@ -275,32 +275,32 @@ func TestContext_ClientIP(t *testing.T) {
 		c.WriteString(c.ClientIP())
 	})
 	w := mockRequest(r, GET, uri, &md{H: m{"X-Forwarded-For": "127.0.0.1"}})
-	is.Equal(200, w.Code)
-	is.Equal("127.0.0.1", w.Body.String())
+	is.Eq(200, w.Code)
+	is.Eq("127.0.0.1", w.Body.String())
 
 	uri = "/ClientIP1"
 	r.GET(uri, func(c *Context) {
 		c.WriteString(c.ClientIP())
 	})
 	w = mockRequest(r, GET, uri, &md{H: m{"X-Forwarded-For": "127.0.0.2,localhost"}})
-	is.Equal(200, w.Code)
-	is.Equal("127.0.0.2", w.Body.String())
+	is.Eq(200, w.Code)
+	is.Eq("127.0.0.2", w.Body.String())
 
 	uri = "/ClientIP2"
 	r.GET(uri, func(c *Context) {
 		c.WriteString(c.ClientIP())
 	})
 	w = mockRequest(r, GET, uri, &md{H: m{"X-Real-Ip": "127.0.0.3"}})
-	is.Equal(200, w.Code)
-	is.Equal("127.0.0.3", w.Body.String())
+	is.Eq(200, w.Code)
+	is.Eq("127.0.0.3", w.Body.String())
 
 	uri = "/ClientIP3"
 	r.GET(uri, func(c *Context) {
 		c.WriteString(c.ClientIP())
 	})
 	w = mockRequest(r, GET, uri, &md{H: m{}})
-	is.Equal(200, w.Code)
-	is.Equal("", w.Body.String())
+	is.Eq(200, w.Code)
+	is.Eq("", w.Body.String())
 }
 
 func TestContext_Write(t *testing.T) {
@@ -312,82 +312,82 @@ func TestContext_Write(t *testing.T) {
 		c.WriteBytes([]byte("hello"))
 	})
 	w := mockRequest(r, GET, uri, nil)
-	is.Equal(200, w.Code)
-	is.Equal("hello", w.Body.String())
+	is.Eq(200, w.Code)
+	is.Eq("hello", w.Body.String())
 
 	uri = "/WriteString"
 	r.GET(uri, func(c *Context) {
 		c.WriteString("hello")
 	})
 	w = mockRequest(r, GET, uri, nil)
-	is.Equal(200, w.Code)
-	is.Equal("hello", w.Body.String())
+	is.Eq(200, w.Code)
+	is.Eq("hello", w.Body.String())
 
 	uri = "/Text"
 	r.GET(uri, func(c *Context) {
 		c.Text(200, "hello")
 	})
 	w = mockRequest(r, GET, uri, nil)
-	is.Equal(200, w.Code)
-	is.Equal("hello", w.Body.String())
-	is.Equal(httpctype.Text, w.Header().Get(httpctype.Key))
+	is.Eq(200, w.Code)
+	is.Eq("hello", w.Body.String())
+	is.Eq(httpctype.Text, w.Header().Get(httpctype.Key))
 
 	uri = "/HTML"
 	r.GET(uri, func(c *Context) {
 		c.HTML(200, []byte("html"))
 	})
 	w = mockRequest(r, GET, uri, nil)
-	is.Equal(200, w.Code)
-	is.Equal(httpctype.HTML, w.Header().Get(httpctype.Key))
-	is.Equal(`html`, w.Body.String())
+	is.Eq(200, w.Code)
+	is.Eq(httpctype.HTML, w.Header().Get(httpctype.Key))
+	is.Eq(`html`, w.Body.String())
 
 	uri = "/JSON"
 	r.GET(uri, func(c *Context) {
 		c.JSON(200, M{"name": "inhere"})
 	})
 	w = mockRequest(r, GET, uri, nil)
-	is.Equal(200, w.Code)
-	is.Equal(httpctype.JSON, w.Header().Get(httpctype.Key))
-	is.Equal("{\"name\":\"inhere\"}\n", w.Body.String())
+	is.Eq(200, w.Code)
+	is.Eq(httpctype.JSON, w.Header().Get(httpctype.Key))
+	is.Eq("{\"name\":\"inhere\"}\n", w.Body.String())
 
 	uri = "/JSONBytes"
 	r.GET(uri, func(c *Context) {
 		c.JSONBytes(200, []byte(`{"name": "inhere"}`))
 	})
 	w = mockRequest(r, GET, uri, nil)
-	is.Equal(200, w.Code)
-	is.Equal(httpctype.JSON, w.Header().Get(httpctype.Key))
-	is.Equal(`{"name": "inhere"}`, w.Body.String())
+	is.Eq(200, w.Code)
+	is.Eq(httpctype.JSON, w.Header().Get(httpctype.Key))
+	is.Eq(`{"name": "inhere"}`, w.Body.String())
 
 	uri = "/NoContent"
 	r.GET(uri, func(c *Context) {
 		c.NoContent()
 	})
 	w = mockRequest(r, GET, uri, nil)
-	is.Equal(204, w.Code)
+	is.Eq(204, w.Code)
 
 	uri = "/HTTPError"
 	r.GET(uri, func(c *Context) {
 		c.HTTPError("error", 503)
 	})
 	w = mockRequest(r, GET, uri, nil)
-	is.Equal(503, w.Code)
-	is.Equal("error\n", w.Body.String())
+	is.Eq(503, w.Code)
+	is.Eq("error\n", w.Body.String())
 
 	uri = "/SetHeader"
 	r.GET(uri, func(c *Context) {
 		c.SetHeader("new-key", "val")
 	})
 	w = mockRequest(r, GET, uri, nil)
-	is.Equal(200, w.Code)
-	is.Equal("val", w.Header().Get("new-key"))
+	is.Eq(200, w.Code)
+	is.Eq("val", w.Header().Get("new-key"))
 
 	uri = "/SetStatus"
 	r.GET(uri, func(c *Context) {
 		c.SetStatus(504)
 	})
 	w = mockRequest(r, GET, uri, nil)
-	is.Equal(504, w.Code)
+	is.Eq(504, w.Code)
 }
 
 func TestRepeatSetStatusCode(t *testing.T) {
@@ -401,7 +401,7 @@ func TestRepeatSetStatusCode(t *testing.T) {
 	})
 
 	w := mockRequest(rux, GET, "/test-status-code", nil)
-	is.Equal(201, w.Code)
+	is.Eq(201, w.Code)
 }
 
 func TestHandleError(t *testing.T) {
@@ -409,8 +409,8 @@ func TestHandleError(t *testing.T) {
 	is := assert.New(t)
 
 	r.OnError = func(c *Context) {
-		is.Error(c.FirstError())
-		is.Equal("oo, has an error", c.FirstError().Error())
+		is.Err(c.FirstError())
+		is.Eq("oo, has an error", c.FirstError().Error())
 	}
 
 	r.GET("/test-error", func(c *Context) {
@@ -419,7 +419,7 @@ func TestHandleError(t *testing.T) {
 	})
 
 	w := mockRequest(r, GET, "/test-error", nil)
-	is.Equal(200, w.Code)
+	is.Eq(200, w.Code)
 }
 
 func TestHandlePanic(t *testing.T) {
@@ -429,7 +429,7 @@ func TestHandlePanic(t *testing.T) {
 	r.OnPanic = func(c *Context) {
 		err, ok := c.Get(CTXRecoverResult)
 		is.True(ok)
-		is.Equal("panic test", err)
+		is.Eq("panic test", err)
 	}
 
 	r.GET("/test-panic", func(c *Context) {
@@ -437,7 +437,7 @@ func TestHandlePanic(t *testing.T) {
 	})
 
 	w := mockRequest(r, GET, "/test-panic", nil)
-	is.Equal(200, w.Code)
+	is.Eq(200, w.Code)
 }
 
 func TestHandleIsPost(t *testing.T) {
@@ -454,9 +454,9 @@ func TestHandleIsPost(t *testing.T) {
 	}, GET, POST)
 
 	w := mockRequest(r, GET, "/test-is-post", nil)
-	is.Equal(204, w.Code)
+	is.Eq(204, w.Code)
 	w = mockRequest(r, POST, "/test-is-post", nil)
-	is.Equal(200, w.Code)
+	is.Eq(200, w.Code)
 }
 
 func TestHandleBack(t *testing.T) {
@@ -473,9 +473,9 @@ func TestHandleBack(t *testing.T) {
 	})
 
 	w := mockRequest(r, GET, "/test-back", nil)
-	is.Equal(302, w.Code)
+	is.Eq(302, w.Code)
 	w = mockRequest(r, GET, "/test-back-301", nil)
-	is.Equal(301, w.Code)
+	is.Eq(301, w.Code)
 }
 
 func TestHandleRender(t *testing.T) {
@@ -484,7 +484,7 @@ func TestHandleRender(t *testing.T) {
 
 	r.GET("/test-render", func(c *Context) {
 		if err := c.Render(200, "", nil); err != nil {
-			is.Equal(err.Error(), "renderer not registered")
+			is.Eq(err.Error(), "renderer not registered")
 		}
 	})
 
@@ -499,7 +499,7 @@ func TestHandleValidate(t *testing.T) {
 		var form struct{}
 
 		if err := c.Validate(&form); err != nil {
-			is.Equal(err.Error(), "validator not registered")
+			is.Eq(err.Error(), "validator not registered")
 		}
 	})
 
@@ -526,13 +526,13 @@ func TestHandleXML(t *testing.T) {
 	})
 
 	w := mockRequest(r, GET, "/test-xml", nil)
-	is.Equal(httpctype.XML, w.Header().Get("Content-Type"))
-	is.Equal(`<?xml version="1.0" encoding="UTF-8"?>
+	is.Eq(httpctype.XML, w.Header().Get("Content-Type"))
+	is.Eq(`<?xml version="1.0" encoding="UTF-8"?>
 <User><Name>test</Name></User>`, w.Body.String())
 
 	w = mockRequest(r, GET, "/test-xml2", nil)
-	is.Equal(httpctype.XML, w.Header().Get("Content-Type"))
-	is.Equal(`<?xml version="1.0" encoding="UTF-8"?>
+	is.Eq(httpctype.XML, w.Header().Get("Content-Type"))
+	is.Eq(`<?xml version="1.0" encoding="UTF-8"?>
 <User>
   <Name>test</Name>
 </User>`, w.Body.String())
@@ -556,7 +556,7 @@ func TestHandleJSONP(t *testing.T) {
 	})
 
 	w := mockRequest(r, GET, "/test-jsonp", nil)
-	is.Equal(httpctype.JSONP, w.Header().Get(httpctype.Key))
-	is.Equal(`jquery-jsonp({"Name":"test"}
+	is.Eq(httpctype.JSONP, w.Header().Get(httpctype.Key))
+	is.Eq(`jquery-jsonp({"Name":"test"}
 );`, w.Body.String())
 }

@@ -8,8 +8,8 @@ import (
 
 	"github.com/gookit/goutil/netutil/httpctype"
 	"github.com/gookit/goutil/testutil"
+	"github.com/gookit/goutil/testutil/assert"
 	"github.com/gookit/rux/binding"
-	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -50,7 +50,7 @@ func TestAuto(t *testing.T) {
 			httpctype.Key: httpctype.MIMEPOSTForm,
 		},
 	})
-	is.Equal(http.StatusOK, w.Code)
+	is.Eq(http.StatusOK, w.Code)
 
 	// post JSON body
 	w = testutil.MockRequest(r, http.MethodPost, "/AutoBind", &testutil.MD{
@@ -59,7 +59,7 @@ func TestAuto(t *testing.T) {
 			httpctype.Key: httpctype.MIMEJSON,
 		},
 	})
-	is.Equal(http.StatusOK, w.Code)
+	is.Eq(http.StatusOK, w.Code)
 
 	// post XML body
 	w = testutil.MockRequest(r, http.MethodPost, "/AutoBind", &testutil.MD{
@@ -68,17 +68,17 @@ func TestAuto(t *testing.T) {
 			httpctype.Key: httpctype.MIMEXML,
 		},
 	})
-	is.Equal(http.StatusOK, w.Code)
+	is.Eq(http.StatusOK, w.Code)
 
 	// URL query string
 	w = testutil.MockRequest(r, http.MethodGet, "/AutoBind?"+userQuery, nil)
-	is.Equal(http.StatusOK, w.Code)
+	is.Eq(http.StatusOK, w.Code)
 }
 
 func TestHeaderBinder_Bind(t *testing.T) {
 	req, err := http.NewRequest("POST", "/", nil)
 	is := assert.New(t)
-	is.NoError(err)
+	is.NoErr(err)
 
 	req.Header.Set("age", "12")
 	req.Header.Set("name", "inhere")
@@ -93,8 +93,8 @@ func TestHeaderBinder_Bind(t *testing.T) {
 }
 
 func testBoundedUserIsOK(is *assert.Assertions, err error, u *User) {
-	is.NoError(err)
+	is.NoErr(err)
 	is.NotEmpty(u)
-	is.Equal(12, u.Age)
-	is.Equal("inhere", u.Name)
+	is.Eq(12, u.Age)
+	is.Eq("inhere", u.Name)
 }

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/gookit/goutil/testutil/assert"
 )
 
 func TestCachedRoutes_Delete(t *testing.T) {
@@ -14,7 +14,7 @@ func TestCachedRoutes_Delete(t *testing.T) {
 	c.Set("cache1", NewRoute("/cache1", nil))
 	c.Delete("cache1")
 
-	is.Equal(0, c.Len())
+	is.Eq(0, c.Len())
 	is.False(c.Delete("cache2"))
 
 	c.hashMap = nil
@@ -45,11 +45,11 @@ func TestCacheRoutes(t *testing.T) {
 	})
 
 	w1 := mockRequest(r, "GET", "/cache3/1234", nil)
-	is.Equal("cache3", w1.Body.String())
+	is.Eq("cache3", w1.Body.String())
 	w2 := mockRequest(r, "GET", "/cache4/1234", nil)
-	is.Equal("cache4", w2.Body.String())
+	is.Eq("cache4", w2.Body.String())
 
-	is.Equal(2, r.cachedRoutes.Len())
+	is.Eq(2, r.cachedRoutes.Len())
 }
 
 func TestCachedRoutes_Set(t *testing.T) {
@@ -58,12 +58,12 @@ func TestCachedRoutes_Set(t *testing.T) {
 
 	ok := c.Set("cache1", NewRoute("/cache1", nil))
 	is.True(ok)
-	is.Equal(1, c.Len())
+	is.Eq(1, c.Len())
 
 	// repeat set same key
 	ok = c.Set("cache1", NewRoute("/cache1", nil))
 	is.True(ok)
-	is.Equal(1, c.Len())
+	is.Eq(1, c.Len())
 
 	// test delete elements
 	cr := NewCachedRoutes(3)
@@ -72,7 +72,7 @@ func TestCachedRoutes_Set(t *testing.T) {
 		cr.Set(key, NewRoute("/"+key, emptyHandler))
 	}
 
-	is.Equal(3, cr.Len())
+	is.Eq(3, cr.Len())
 }
 
 func TestCachedRoutes_Get(t *testing.T) {
@@ -81,11 +81,11 @@ func TestCachedRoutes_Get(t *testing.T) {
 
 	ok := c.Set("cache1", NewRoute("/cache1", nil))
 
-	if is.True(ok) {
+	if is.True(ok).IsOk() {
 		is.True(c.Has("cache1"))
 		route, ok := c.Get("cache1")
 		is.True(ok)
-		is.Equal("/cache1", route.Path())
+		is.Eq("/cache1", route.Path())
 	}
 
 	is.Nil(c.Get("not-exists"))

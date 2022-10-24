@@ -6,28 +6,28 @@ import (
 	"os"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/gookit/goutil/testutil/assert"
 )
 
 func TestHelper(t *testing.T) {
 	// resolveAddress
 	_ = os.Setenv("PORT", "")
 	addr := resolveAddress(nil)
-	assert.Equal(t, "0.0.0.0:8080", addr)
+	assert.Eq(t, "0.0.0.0:8080", addr)
 
 	addr = resolveAddress([]string{"9090"})
-	assert.Equal(t, "0.0.0.0:9090", addr)
+	assert.Eq(t, "0.0.0.0:9090", addr)
 
 	addr = resolveAddress([]string{":9090"})
-	assert.Equal(t, "0.0.0.0:9090", addr)
+	assert.Eq(t, "0.0.0.0:9090", addr)
 
 	addr = resolveAddress([]string{"127.0.0.1:9090"})
-	assert.Equal(t, "127.0.0.1:9090", addr)
+	assert.Eq(t, "127.0.0.1:9090", addr)
 
 	// use ENV for resolveAddress
 	mockEnvValue("PORT", "1234", func() {
 		addr = resolveAddress(nil)
-		assert.Equal(t, "0.0.0.0:1234", addr)
+		assert.Eq(t, "0.0.0.0:1234", addr)
 	})
 
 	// debugPrintError
@@ -42,61 +42,61 @@ func TestHelper(t *testing.T) {
 
 	ss = parseAccept("application/json")
 	assert.Len(t, ss, 1)
-	assert.Equal(t, []string{"application/json"}, ss)
+	assert.Eq(t, []string{"application/json"}, ss)
 
 	ts := toString("test-string")
-	assert.Equal(t, ts, "test-string")
+	assert.Eq(t, ts, "test-string")
 
 	ts = toString(20)
-	assert.Equal(t, ts, "20")
+	assert.Eq(t, ts, "20")
 
 	ts = toString(int(30))
-	assert.Equal(t, ts, "30")
+	assert.Eq(t, ts, "30")
 
 	ts = toString(int8(30))
-	assert.Equal(t, ts, "30")
+	assert.Eq(t, ts, "30")
 
 	ts = toString(int16(30))
-	assert.Equal(t, ts, "30")
+	assert.Eq(t, ts, "30")
 
 	ts = toString(int32(30))
-	assert.Equal(t, ts, "30")
+	assert.Eq(t, ts, "30")
 
 	ts = toString(int64(30))
-	assert.Equal(t, ts, "30")
+	assert.Eq(t, ts, "30")
 
 	ts = toString(uint(30))
-	assert.Equal(t, ts, "30")
+	assert.Eq(t, ts, "30")
 
 	ts = toString(uint8(30))
-	assert.Equal(t, ts, "30")
+	assert.Eq(t, ts, "30")
 
 	ts = toString(uint16(30))
-	assert.Equal(t, ts, "30")
+	assert.Eq(t, ts, "30")
 
 	ts = toString(uint32(30))
-	assert.Equal(t, ts, "30")
+	assert.Eq(t, ts, "30")
 
 	ts = toString(uint64(30))
-	assert.Equal(t, ts, "30")
+	assert.Eq(t, ts, "30")
 
 	ts = toString(float32(30.00))
-	assert.Equal(t, ts, "30")
+	assert.Eq(t, ts, "30")
 
 	ts = toString(float64(30.00))
-	assert.Equal(t, ts, "30")
+	assert.Eq(t, ts, "30")
 
 	ts = toString(true)
-	assert.Equal(t, ts, "true")
+	assert.Eq(t, ts, "true")
 
 	ts = toString(false)
-	assert.Equal(t, ts, "false")
+	assert.Eq(t, ts, "false")
 
 	ts = toString([]byte{'t', 'e', 's', 't'})
-	assert.Equal(t, ts, "test")
+	assert.Eq(t, ts, "test")
 
 	ts = toString(nil)
-	assert.Equal(t, ts, "")
+	assert.Eq(t, ts, "")
 
 	testUsername := struct {
 		Username string
@@ -108,5 +108,5 @@ func TestHelper(t *testing.T) {
 
 	ts = toString(testUsername)
 	assert.Nil(t, err)
-	assert.Equal(t, ts, string(testUsernameJSON))
+	assert.Eq(t, ts, string(testUsernameJSON))
 }
