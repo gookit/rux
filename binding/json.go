@@ -16,16 +16,16 @@ func (JSONBinder) Name() string {
 }
 
 // Bind JSON data from http.Request
-func (JSONBinder) Bind(r *http.Request, ptr interface{}) error {
+func (JSONBinder) Bind(r *http.Request, ptr any) error {
 	return decodeJSON(r.Body, ptr)
 }
 
 // BindBytes raw JSON data to struct
-func (JSONBinder) BindBytes(bts []byte, ptr interface{}) error {
+func (JSONBinder) BindBytes(bts []byte, ptr any) error {
 	return decodeJSON(strings.NewReader(string(bts)), ptr)
 }
 
-func decodeJSON(r io.Reader, ptr interface{}) error {
+func decodeJSON(r io.Reader, ptr any) error {
 	err := json.NewDecoder(r).Decode(ptr)
 	if err != nil {
 		return err

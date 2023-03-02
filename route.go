@@ -80,7 +80,7 @@ type Route struct {
 	handlers HandlersChain
 
 	// Opts some options data for the route
-	Opts map[string]interface{}
+	Opts map[string]any
 
 	// defaults
 }
@@ -192,7 +192,7 @@ func (r *Route) Info() RouteInfo {
 }
 
 // ToURL build request URL, can with path vars
-func (r *Route) ToURL(buildArgs ...interface{}) *url.URL {
+func (r *Route) ToURL(buildArgs ...any) *url.URL {
 	var URLBuilder *BuildRequestURL
 	//noinspection GoNilness
 	path := r.path
@@ -229,12 +229,12 @@ func (r *Route) ToURL(buildArgs ...interface{}) *url.URL {
 }
 
 // BuildRequestURL alias of the method BuildRequestURL()
-func (r *Router) BuildRequestURL(name string, buildArgs ...interface{}) *url.URL {
+func (r *Router) BuildRequestURL(name string, buildArgs ...any) *url.URL {
 	return r.BuildURL(name, buildArgs...)
 }
 
 // BuildURL build Request URL one arg can be set buildRequestURL or rux.M
-func (r *Router) BuildURL(name string, buildArgs ...interface{}) *url.URL {
+func (r *Router) BuildURL(name string, buildArgs ...any) *url.URL {
 	route := r.GetRoute(name)
 	if route == nil {
 		panicf("BuildRequestURL get route is nil(name: %s)", name)
@@ -264,11 +264,13 @@ func (r *Route) goodInfo() {
 
 // check custom var regex string.
 // ERROR:
-// 	"{id:(\d+)}" -> "(\d+)"
+//
+//	"{id:(\d+)}" -> "(\d+)"
 //
 // RIGHT:
-// 	"{id:\d+}"
-// 	"{id:(?:\d+)}"
+//
+//	"{id:\d+}"
+//	"{id:(?:\d+)}"
 func (r *Route) goodRegexString(n, v string) {
 	pos := strings.IndexByte(v, '(')
 

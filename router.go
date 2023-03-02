@@ -129,7 +129,7 @@ func New(options ...func(*Router)) *Router {
 
 	// with some options
 	router.WithOptions(options...)
-	router.ctxPool.New = func() interface{} {
+	router.ctxPool.New = func() any {
 		return &Context{index: -1, router: router}
 	}
 
@@ -273,7 +273,7 @@ func (r *Router) Controller(basePath string, controller ControllerFace, middles 
 //	GET        /resource/{id}/edit  edit     resource_edit
 //	PUT/PATCH  /resource/{id}       update   resource_update
 //	DELETE     /resource/{id}       delete   resource_delete
-func (r *Router) Resource(basePath string, controller interface{}, middles ...HandlerFunc) {
+func (r *Router) Resource(basePath string, controller any, middles ...HandlerFunc) {
 	cv := reflect.ValueOf(controller)
 	ct := cv.Type()
 

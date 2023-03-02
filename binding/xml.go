@@ -17,16 +17,16 @@ func (XMLBinder) Name() string {
 }
 
 // Bind XML data binder
-func (XMLBinder) Bind(r *http.Request, obj interface{}) error {
+func (XMLBinder) Bind(r *http.Request, obj any) error {
 	return decodeXML(r.Body, obj)
 }
 
 // BindBytes raw JSON data to struct
-func (XMLBinder) BindBytes(bts []byte, ptr interface{}) error {
+func (XMLBinder) BindBytes(bts []byte, ptr any) error {
 	return decodeXML(strings.NewReader(string(bts)), ptr)
 }
 
-func decodeXML(r io.Reader, obj interface{}) error {
+func decodeXML(r io.Reader, obj any) error {
 	err := xml.NewDecoder(r).Decode(obj)
 	if err != nil {
 		return err

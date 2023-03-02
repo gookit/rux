@@ -21,7 +21,7 @@ func (FormBinder) Name() string {
 }
 
 // Bind Form data from http.Request
-func (b FormBinder) Bind(r *http.Request, ptr interface{}) error {
+func (b FormBinder) Bind(r *http.Request, ptr any) error {
 	err := r.ParseForm()
 	if err != nil {
 		return err
@@ -31,12 +31,12 @@ func (b FormBinder) Bind(r *http.Request, ptr interface{}) error {
 }
 
 // BindValues data from url.Values
-func (b FormBinder) BindValues(values url.Values, ptr interface{}) error {
+func (b FormBinder) BindValues(values url.Values, ptr any) error {
 	return DecodeUrlValues(values, ptr, b.TagName)
 }
 
 // DecodeUrlValues data to struct
-func DecodeUrlValues(values map[string][]string, ptr interface{}, tagName string) error {
+func DecodeUrlValues(values map[string][]string, ptr any, tagName string) error {
 	dec := formam.NewDecoder(&formam.DecoderOptions{
 		TagName: tagName,
 	})

@@ -49,7 +49,7 @@ func isFixedPath(s string) bool {
 	return strings.IndexByte(s, '{') < 0 && strings.IndexByte(s, '[') < 0
 }
 
-func simpleFmtPath(path string) string  {
+func simpleFmtPath(path string) string {
 	path = strings.TrimSpace(path)
 
 	if path == "" {
@@ -110,7 +110,7 @@ func quotePointChar(path string) string {
 	return path
 }
 
-func nameOfFunction(f interface{}) string {
+func nameOfFunction(f any) string {
 	return runtime.FuncForPC(reflect.ValueOf(f).Pointer()).Name()
 }
 
@@ -121,7 +121,7 @@ func debugPrintRoute(route *Route) {
 	debugPrint(route.String())
 }
 
-func panicf(f string, v ...interface{}) {
+func panicf(f string, v ...any) {
 	panic(fmt.Sprintf(f, v...))
 }
 
@@ -131,7 +131,7 @@ func debugPrintError(err error) {
 	}
 }
 
-func debugPrint(f string, v ...interface{}) {
+func debugPrint(f string, v ...any) {
 	if debug {
 		// fmt.Printf("[RUX-DEBUG] %s %s\n", time.Now().Format("2006-01-02 15:04:05"), msg)
 		color.Printf("<cyan>[RUX-DEBUG]</> %s\n", fmt.Sprintf(f, v...))
@@ -176,7 +176,7 @@ func formatMethodsWithDefault(methods []string, defMethod string) []string {
 	return methods
 }
 
-func toString(i interface{}) string {
+func toString(i any) string {
 	if i == nil {
 		return ""
 	}

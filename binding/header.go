@@ -18,11 +18,11 @@ func (HeaderBinder) Name() string {
 }
 
 // Bind Header data binding
-func (b HeaderBinder) Bind(r *http.Request, ptr interface{}) error {
+func (b HeaderBinder) Bind(r *http.Request, ptr any) error {
 	return DecodeUrlValues(r.Header, ptr, b.TagName)
 }
 
 // BindValues data from headers
-func (b HeaderBinder) BindValues(headers map[string][]string, ptr interface{}) error {
+func (b HeaderBinder) BindValues(headers map[string][]string, ptr any) error {
 	return DecodeUrlValues(headers, ptr, b.TagName)
 }

@@ -9,7 +9,7 @@ import (
 
 // JSONRenderer for response JSON content to client
 type JSONRenderer struct {
-	// Data interface{}
+	// Data any
 	// Indent string for encode
 	Indent string
 	// NotEscape HTML string
@@ -24,7 +24,7 @@ func NewJSONIndented() JSONRenderer {
 }
 
 // Render JSON to client
-func (r JSONRenderer) Render(w http.ResponseWriter, obj interface{}) (err error) {
+func (r JSONRenderer) Render(w http.ResponseWriter, obj any) (err error) {
 	writeContentType(w, httpctype.JSON)
 
 	enc := json.NewEncoder(w)
@@ -40,12 +40,12 @@ func (r JSONRenderer) Render(w http.ResponseWriter, obj interface{}) (err error)
 }
 
 // JSON response rendering
-func JSON(w http.ResponseWriter, obj interface{}) error {
+func JSON(w http.ResponseWriter, obj any) error {
 	return JSONRenderer{}.Render(w, obj)
 }
 
 // JSONIndented response rendering with indent
-func JSONIndented(w http.ResponseWriter, obj interface{}) error {
+func JSONIndented(w http.ResponseWriter, obj any) error {
 	return JSONRenderer{Indent: PrettyIndent}.Render(w, obj)
 }
 
@@ -55,7 +55,7 @@ type JSONPRenderer struct {
 }
 
 // Render JSONP to client
-func (r JSONPRenderer) Render(w http.ResponseWriter, obj interface{}) (err error) {
+func (r JSONPRenderer) Render(w http.ResponseWriter, obj any) (err error) {
 	writeContentType(w, httpctype.JSONP)
 
 	if _, err = w.Write([]byte(r.Callback + "(")); err != nil {
@@ -72,6 +72,6 @@ func (r JSONPRenderer) Render(w http.ResponseWriter, obj interface{}) (err error
 }
 
 // JSONP response rendering
-func JSONP(callback string, obj interface{}, w http.ResponseWriter) error {
+func JSONP(callback string, obj any, w http.ResponseWriter) error {
 	return JSONPRenderer{Callback: callback}.Render(w, obj)
 }

@@ -17,14 +17,14 @@ var FallbackType = httpctype.MIMEText
 
 // Renderer interface
 type Renderer interface {
-	Render(w http.ResponseWriter, obj interface{}) error
+	Render(w http.ResponseWriter, obj any) error
 }
 
 // RendererFunc definition
-type RendererFunc func(w http.ResponseWriter, obj interface{}) error
+type RendererFunc func(w http.ResponseWriter, obj any) error
 
 // Render to http.ResponseWriter
-func (fn RendererFunc) Render(w http.ResponseWriter, obj interface{}) error {
+func (fn RendererFunc) Render(w http.ResponseWriter, obj any) error {
 	return fn(w, obj)
 }
 
@@ -64,7 +64,7 @@ func Blob(w http.ResponseWriter, contentType string, data []byte) (err error) {
 }
 
 // Auto render data to response
-func Auto(w http.ResponseWriter, r *http.Request, obj interface{}) (err error) {
+func Auto(w http.ResponseWriter, r *http.Request, obj any) (err error) {
 	accepts := parseAccept(r.Header.Get("Accept"))
 
 	// fallback use FallbackType
@@ -107,7 +107,7 @@ func Auto(w http.ResponseWriter, r *http.Request, obj interface{}) (err error) {
 	return
 }
 
-func responseText(w http.ResponseWriter, obj interface{}) error {
+func responseText(w http.ResponseWriter, obj any) error {
 	switch typVal := obj.(type) {
 	case string:
 		return Text(w, typVal)

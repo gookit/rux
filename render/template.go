@@ -12,7 +12,7 @@ type ViewRenderer struct {
 }
 
 // Render template to client
-func (r ViewRenderer) Render(w http.ResponseWriter, obj interface{}) (err error) {
+func (r ViewRenderer) Render(w http.ResponseWriter, obj any) (err error) {
 	writeContentType(w, httpctype.HTML)
 	return
 }

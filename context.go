@@ -24,8 +24,8 @@ const (
 	abortIndex int8 = 63
 )
 
-// M a short name for `map[string]interface{}`
-type M map[string]interface{}
+// M a short name for `map[string]any`
+type M map[string]any
 
 // Context for http server
 type Context struct {
@@ -41,7 +41,7 @@ type Context struct {
 	// current router instance
 	router *Router
 	// context data, you can save some custom data.
-	data map[string]interface{}
+	data map[string]any
 	// all handlers for current request.
 	// call priority: global -> group -> route -> main handler
 	// Notice: last always is main handler of the matched route.
@@ -123,27 +123,27 @@ func (c *Context) Copy() *Context {
 //	c.Set("key", "value")
 //	// ...
 //	val := c.Get("key") // "value"
-func (c *Context) Set(key string, val interface{}) {
+func (c *Context) Set(key string, val any) {
 	if c.data == nil {
-		c.data = make(map[string]interface{})
+		c.data = make(map[string]any)
 	}
 
 	c.data[key] = val
 }
 
 // Get a value from context data
-func (c *Context) Get(key string) (v interface{}, ok bool) {
+func (c *Context) Get(key string) (v any, ok bool) {
 	v, ok = c.data[key]
 	return
 }
 
 // MustGet a value from context data
-func (c *Context) MustGet(key string) interface{} {
+func (c *Context) MustGet(key string) any {
 	return c.data[key]
 }
 
 // Data get all context data
-func (c *Context) Data() map[string]interface{} {
+func (c *Context) Data() map[string]any {
 	return c.data
 }
 
@@ -357,7 +357,7 @@ func (c *Context) SaveFile(file *multipart.FileHeader, dst string) error {
 //	c.Req = r.WithContext(context.WithValue(r.Context(), "key", "value"))
 //	// ...
 //	val := c.ReqCtxValue("key") // "value"
-func (c *Context) ReqCtxValue(key interface{}) interface{} {
+func (c *Context) ReqCtxValue(key any) any {
 	return c.Req.Context().Value(key)
 }
 
@@ -365,7 +365,7 @@ func (c *Context) ReqCtxValue(key interface{}) interface{} {
 // Usage:
 //
 //	ctx.WithReqCtxValue()
-func (c *Context) WithReqCtxValue(key, val interface{}) {
+func (c *Context) WithReqCtxValue(key, val any) {
 	r := c.Req
 	c.Req = r.WithContext(context.WithValue(r.Context(), key, val))
 }
@@ -580,7 +580,7 @@ func (c *Context) Err() error {
 // Value returns the value associated with this context for key, or nil
 // if no value is associated with key. Successive calls to Value with
 // the same key returns the same result.
-func (c *Context) Value(key interface{}) interface{} {
+func (c *Context) Value(key any) any {
 	if key == 0 || key == nil {
 		return c.Req
 	}

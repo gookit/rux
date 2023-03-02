@@ -14,12 +14,12 @@ import (
 
 // Renderer interface
 type Renderer interface {
-	Render(io.Writer, string, interface{}, *Context) error
+	Render(io.Writer, string, any, *Context) error
 }
 
 // Validator interface
 type Validator interface {
-	Validate(i interface{}) error
+	Validate(i any) error
 }
 
 /*************************************************************
@@ -29,7 +29,7 @@ type Validator interface {
 // Render context template.
 //
 // please use ShouldRender() instead
-func (c *Context) Render(status int, name string, data interface{}) (err error) {
+func (c *Context) Render(status int, name string, data any) (err error) {
 	if c.router.Renderer == nil {
 		return errors.New("renderer not registered")
 	}
@@ -46,7 +46,7 @@ func (c *Context) Render(status int, name string, data interface{}) (err error) 
 // Validate context validator
 //
 // Deprecated: please use ShouldBind() instead, it will auto call validator.
-func (c *Context) Validate(i interface{}) error {
+func (c *Context) Validate(i any) error {
 	if c.Router().Validator == nil {
 		return errors.New("validator not registered")
 	}

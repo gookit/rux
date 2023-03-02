@@ -35,7 +35,7 @@ func (a *aStr) reset() {
 	a.str = ""
 }
 
-func (a *aStr) set(s ...interface{}) {
+func (a *aStr) set(s ...any) {
 	a.str = fmt.Sprint(s...)
 }
 

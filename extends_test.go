@@ -177,7 +177,7 @@ func TestBuildRequestUrl_ErrorArgs(t *testing.T) {
 
 type MyValidator string
 
-func (mv *MyValidator) Validate(v interface{}) error {
+func (mv *MyValidator) Validate(v any) error {
 	var rt = reflect.TypeOf(v)
 	var rv = reflect.ValueOf(v)
 	var field = rt.Elem().Field(0)
@@ -226,7 +226,7 @@ func TestContext_Validator(t *testing.T) {
 
 type MyRenderer string
 
-func (mr *MyRenderer) Render(w io.Writer, name string, data interface{}, ctx *Context) error {
+func (mr *MyRenderer) Render(w io.Writer, name string, data any, ctx *Context) error {
 	tpl, err := template.New(name).Funcs(template.FuncMap{
 		"Upper": strings.ToUpper,
 	}).Parse("{{.Name|Upper}}, ID is {{ .ID}}")
@@ -244,7 +244,7 @@ func TestContext_Renderer(t *testing.T) {
 	r.Renderer = new(MyRenderer)
 
 	r.Any("/renderer", func(c *Context) {
-		c.Render(200, "index", M{
+		_ = c.Render(200, "index", M{
 			"ID":   100,
 			"Name": "admin",
 		})

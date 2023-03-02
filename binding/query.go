@@ -19,11 +19,11 @@ func (QueryBinder) Name() string {
 }
 
 // Bind Query data binder
-func (b QueryBinder) Bind(r *http.Request, ptr interface{}) error {
+func (b QueryBinder) Bind(r *http.Request, ptr any) error {
 	return DecodeUrlValues(r.URL.Query(), ptr, b.TagName)
 }
 
 // BindValues data from url.Values
-func (b QueryBinder) BindValues(values url.Values, ptr interface{}) error {
+func (b QueryBinder) BindValues(values url.Values, ptr any) error {
 	return DecodeUrlValues(values, ptr, b.TagName)
 }

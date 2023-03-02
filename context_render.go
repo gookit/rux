@@ -13,18 +13,18 @@ import (
 )
 
 // ShouldRender render and response to client
-func (c *Context) ShouldRender(status int, obj interface{}, renderer render.Renderer) error {
+func (c *Context) ShouldRender(status int, obj any, renderer render.Renderer) error {
 	c.SetStatus(status)
 	return renderer.Render(c.Resp, obj)
 }
 
 // MustRender render and response to client
-func (c *Context) MustRender(status int, obj interface{}, renderer render.Renderer) {
+func (c *Context) MustRender(status int, obj any, renderer render.Renderer) {
 	c.Respond(status, obj, renderer)
 }
 
 // Respond render and response to client
-func (c *Context) Respond(status int, obj interface{}, renderer render.Renderer) {
+func (c *Context) Respond(status int, obj any, renderer render.Renderer) {
 	c.SetStatus(status)
 
 	err := renderer.Render(c.Resp, obj)
@@ -104,7 +104,7 @@ func (c *Context) Stream(status int, contentType string, r io.Reader) {
 }
 
 // JSON writes out a JSON response.
-func (c *Context) JSON(status int, obj interface{}) {
+func (c *Context) JSON(status int, obj any) {
 	c.Respond(status, obj, render.JSONRenderer{})
 }
 
@@ -114,7 +114,7 @@ func (c *Context) JSONBytes(status int, bs []byte) {
 }
 
 // XML output xml response.
-func (c *Context) XML(status int, obj interface{}, indents ...string) {
+func (c *Context) XML(status int, obj any, indents ...string) {
 	var indent string
 	if len(indents) > 0 && indents[0] != "" {
 		indent = indents[0]
@@ -124,7 +124,7 @@ func (c *Context) XML(status int, obj interface{}, indents ...string) {
 }
 
 // JSONP is JSONP response.
-func (c *Context) JSONP(status int, callback string, obj interface{}) {
+func (c *Context) JSONP(status int, callback string, obj any) {
 	c.Respond(status, obj, render.JSONPRenderer{Callback: callback})
 }
 
@@ -156,7 +156,8 @@ func (c *Context) FileContent(file string, names ...string) {
 
 // Attachment a file to response.
 // Usage:
-// 	c.Attachment("path/to/some.zip", "new-name.zip")
+//
+//	c.Attachment("path/to/some.zip", "new-name.zip")
 func (c *Context) Attachment(srcFile, outName string) {
 	c.dispositionContent(c.Resp, http.StatusOK, outName, false)
 	c.FileContent(srcFile)
@@ -164,7 +165,8 @@ func (c *Context) Attachment(srcFile, outName string) {
 
 // Inline file content.
 // Usage:
-// 	c.Inline("testdata/site.md", "new-name.md")
+//
+//	c.Inline("testdata/site.md", "new-name.md")
 func (c *Context) Inline(srcFile, outName string) {
 	c.dispositionContent(c.Resp, http.StatusOK, outName, true)
 	c.FileContent(srcFile)
@@ -172,8 +174,9 @@ func (c *Context) Inline(srcFile, outName string) {
 
 // Binary serve data as Binary response.
 // Usage:
-// 	in, _ := os.Open("./README.md")
-// 	r.Binary(http.StatusOK, in, "readme.md", true)
+//
+//	in, _ := os.Open("./README.md")
+//	r.Binary(http.StatusOK, in, "readme.md", true)
 func (c *Context) Binary(status int, in io.ReadSeeker, outName string, inline bool) {
 	c.dispositionContent(c.Resp, status, outName, inline)
 

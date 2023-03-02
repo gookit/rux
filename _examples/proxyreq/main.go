@@ -31,7 +31,7 @@ func doHandle(w http.ResponseWriter, r *http.Request) {
 	// get target url. eg: https://baidu.com/ss/yy
 	apiUrl := r.Header.Get("Target-Url")
 	if apiUrl == "" {
-		responseJSON(w, 200, map[string]interface{}{
+		responseJSON(w, 200, map[string]any{
 			"code": 400,
 			"msg":  "remote target url cannot be empty",
 			"data": map[string]string{},
@@ -44,7 +44,7 @@ func doHandle(w http.ResponseWriter, r *http.Request) {
 	// create request
 	req, err := http.NewRequest(r.Method, apiUrl, r.Body)
 	if err != nil {
-		responseJSON(w, 200, map[string]interface{}{
+		responseJSON(w, 200, map[string]any{
 			"code": 400,
 			"msg":  "create request fail, error: " + err.Error(),
 			"data": map[string]string{},
@@ -90,16 +90,16 @@ func createHttpClient() *http.Client {
 		return url.Parse(apiUrl) // 127.0.0.1:8099
 	}
 
-	dialCtx := (&net.Dialer{
+	dialCtx := &net.Dialer{
 		Timeout:   30 * time.Second,
 		KeepAlive: 30 * time.Second,
 		// DualStack: true,
 		// FallbackDelay: 5 * time.Second,
-	}).DialContext
+	}
 	transport := &http.Transport{
 		Proxy: proxy,
 
-		DialContext:  dialCtx,
+		DialContext:  dialCtx.DialContext,
 		MaxIdleConns: 100,
 
 		IdleConnTimeout:       90 * time.Second,
@@ -112,7 +112,7 @@ func createHttpClient() *http.Client {
 	return &http.Client{Transport: transport}
 }
 
-func responseJSON(w http.ResponseWriter, status int, data interface{}) {
+func responseJSON(w http.ResponseWriter, status int, data any) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(status)
 

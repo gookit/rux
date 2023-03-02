@@ -8,15 +8,15 @@ type (
 	// Binder interface
 	Binder interface {
 		Name() string
-		Bind(r *http.Request, obj interface{}) error
+		Bind(r *http.Request, obj any) error
 	}
 
 	// BinderFunc bind func, implement the Binder() interface
-	BinderFunc func(r *http.Request, obj interface{}) error
+	BinderFunc func(r *http.Request, obj any) error
 
 	// DataValidator interface
 	DataValidator interface {
-		Validate(i interface{}) error
+		Validate(i any) error
 	}
 )
 
@@ -53,7 +53,7 @@ func (fn BinderFunc) Name() string {
 }
 
 // BinderFunc implements the Binder interface
-func (fn BinderFunc) Bind(r *http.Request, obj interface{}) error {
+func (fn BinderFunc) Bind(r *http.Request, obj any) error {
 	return fn(r, obj)
 }
 

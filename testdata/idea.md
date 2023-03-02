@@ -37,7 +37,7 @@ func (*MyController) About(c *rux.Context) {
 
 ```text
 // AutoLoad auto register routes by a controller struct
-func (r *Router) AutoLoad(prefix string, obj interface{}, middles ...HandlerFunc) {
+func (r *Router) AutoLoad(prefix string, obj any, middles ...HandlerFunc) {
 	cv := reflect.ValueOf(obj)
 	if cv.Kind() != reflect.Ptr {
 		panic("autoload controller must type ptr")

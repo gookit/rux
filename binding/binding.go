@@ -11,7 +11,7 @@ import (
 var DefaultMaxMemory int64 = 32 << 20 // 32 MB
 
 // MustBind auto bind request data to an struct ptr
-func MustBind(r *http.Request, obj interface{}) {
+func MustBind(r *http.Request, obj any) {
 	err := Auto(r, obj)
 	if err != nil {
 		panic(err)
@@ -19,21 +19,20 @@ func MustBind(r *http.Request, obj interface{}) {
 }
 
 // Bind auto bind request data to an struct ptr
-func Bind(r *http.Request, obj interface{}) error {
+func Bind(r *http.Request, obj any) error {
 	return Auto(r, obj)
 }
 
 // Auto bind request data to an struct ptr
 //
-//		body, err := ioutil.ReadAll(c.Request().Body)
-//		if err != nil {
-//			c.Logger().Errorf("could not read request body: %v", err)
-//		}
-//		c.Set("request_body", body)
-//		// fix: can not read request body multiple times
-//		c.Request().Body = ioutil.NopCloser(bytes.NewReader(body))
-//
-func Auto(r *http.Request, obj interface{}) (err error) {
+//	body, err := ioutil.ReadAll(c.Request().Body)
+//	if err != nil {
+//		c.Logger().Errorf("could not read request body: %v", err)
+//	}
+//	c.Set("request_body", body)
+//	// fix: can not read request body multiple times
+//	c.Request().Body = ioutil.NopCloser(bytes.NewReader(body))
+func Auto(r *http.Request, obj any) (err error) {
 	method := r.Method
 
 	// no body, query data binding. like GET DELETE OPTION ....
