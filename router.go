@@ -17,6 +17,8 @@ import (
 type Router struct {
 	// router name
 	Name string
+	// server start error
+	err error
 	// count routes
 	counter int
 	// context pool
@@ -96,22 +98,23 @@ type Router struct {
 	// Extends tools
 	//
 	// Renderer template(view) interface
-	// Deprecated
+	// Deprecated: will be removed
 	Renderer Renderer
 	// Validator validator interface
-	// Deprecated
+	// Deprecated: will be removed
 	Validator Validator
 }
 
 // New router instance, can with some options.
 // Quick start:
-// 	r := New()
-// 	r.GET("/path", MyAction)
+//
+//	r := New()
+//	r.GET("/path", MyAction)
 //
 // With options:
-// 	r := New(EnableCaching, MaxNumCaches(1000))
-// 	r.GET("/path", MyAction)
 //
+//	r := New(EnableCaching, MaxNumCaches(1000))
+//	r.GET("/path", MyAction)
 func New(options ...func(*Router)) *Router {
 	router := &Router{
 		Name: "default",
@@ -203,8 +206,9 @@ func (r *Router) Any(path string, handler HandlerFunc, middles ...HandlerFunc) {
 
 // Add a route to router, allow set multi method
 // Usage:
-// 	r.Add("/path", myHandler)
-// 	r.Add("/path1", myHandler, "GET", "POST")
+//
+//	r.Add("/path", myHandler)
+//	r.Add("/path1", myHandler, "GET", "POST")
 func (r *Router) Add(path string, handler HandlerFunc, methods ...string) *Route {
 	route := NewRoute(path, handler, methods...)
 	return r.AddRoute(route)
@@ -261,15 +265,14 @@ func (r *Router) Controller(basePath string, controller ControllerFace, middles 
 
 // Resource register RESTFul style routes by a controller
 //
-// 	Methods     Path                Action    Route Name
-// 	GET        /resource            index    resource_index
-// 	GET        /resource/create     create   resource_create
-// 	POST       /resource            store    resource_store
-// 	GET        /resource/{id}       show     resource_show
-// 	GET        /resource/{id}/edit  edit     resource_edit
-// 	PUT/PATCH  /resource/{id}       update   resource_update
-// 	DELETE     /resource/{id}       delete   resource_delete
-//
+//	Methods     Path                Action    Route Name
+//	GET        /resource            index    resource_index
+//	GET        /resource/create     create   resource_create
+//	POST       /resource            store    resource_store
+//	GET        /resource/{id}       show     resource_show
+//	GET        /resource/{id}/edit  edit     resource_edit
+//	PUT/PATCH  /resource/{id}       update   resource_update
+//	DELETE     /resource/{id}       delete   resource_delete
 func (r *Router) Resource(basePath string, controller interface{}, middles ...HandlerFunc) {
 	cv := reflect.ValueOf(controller)
 	ct := cv.Type()
@@ -369,8 +372,9 @@ func (r *Router) StaticFS(prefixURL string, fs http.FileSystem) {
 // StaticDir add a static asset file handle
 //
 // Usage:
-// 	r.StaticDir("/assets", "/static")
-// 	// access GET /assets/css/site.css -> will find /static/css/site.css
+//
+//	r.StaticDir("/assets", "/static")
+//	// access GET /assets/css/site.css -> will find /static/css/site.css
 func (r *Router) StaticDir(prefixURL string, fileDir string) {
 	fsHandler := http.StripPrefix(prefixURL, http.FileServer(http.Dir(fileDir)))
 
@@ -383,7 +387,8 @@ func (r *Router) StaticDir(prefixURL string, fileDir string) {
 // StaticFiles static files from the given file system root. and allow limit extensions.
 //
 // Usage:
-// 	router.ServeFiles("/src", "/var/www", "css|js|html")
+//
+//	router.ServeFiles("/src", "/var/www", "css|js|html")
 //
 // Notice: if the rootDir is relation path, it is relative the server runtime dir.
 func (r *Router) StaticFiles(prefixURL string, rootDir string, exts string) {
@@ -561,4 +566,9 @@ func (r *Router) appendGroupInfo(route *Route) {
 
 	// re-set formatted path
 	route.path = path
+}
+
+// Err get
+func (r *Router) Err() error {
+	return r.err
 }

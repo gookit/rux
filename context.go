@@ -3,7 +3,6 @@ package rux
 import (
 	"context"
 	"io"
-	"io/ioutil"
 	"mime/multipart"
 	"net"
 	"net/http"
@@ -120,9 +119,10 @@ func (c *Context) Copy() *Context {
 
 // Set a value to context by key.
 // Usage:
-// 		c.Set("key", "value")
-// 		// ...
-// 		val := c.Get("key") // "value"
+//
+//	c.Set("key", "value")
+//	// ...
+//	val := c.Get("key") // "value"
 func (c *Context) Set(key string, val interface{}) {
 	if c.data == nil {
 		c.data = make(map[string]interface{})
@@ -187,10 +187,11 @@ func (c *Context) FirstError() error {
  *************************************************************/
 
 // Param returns the value of the URL param.
-// 		router.GET("/user/{id}", func(c *rux.Context) {
-// 			// a GET request to /user/john
-// 			id := c.Param("id") // id == "john"
-// 		})
+//
+//	router.GET("/user/{id}", func(c *rux.Context) {
+//		// a GET request to /user/john
+//		id := c.Param("id") // id == "john"
+//	})
 func (c *Context) Param(key string) string {
 	return c.Params.String(key)
 }
@@ -297,9 +298,10 @@ func (c *Context) FormParams(excepts ...[]string) (url.Values, error) {
 
 // ParseMultipartForm parse multipart forms.
 // Tips:
-// 	c.Req.PostForm = POST(PUT,PATCH) body data
-// 	c.Req.Form = c.Req.PostForm + GET queries data
-// 	c.Req.MultipartForm = uploaded files data + other body fields data(will append to Req.Form and Req.PostForm)
+//
+//	c.Req.PostForm = POST(PUT,PATCH) body data
+//	c.Req.Form = c.Req.PostForm + GET queries data
+//	c.Req.MultipartForm = uploaded files data + other body fields data(will append to Req.Form and Req.PostForm)
 func (c *Context) ParseMultipartForm(maxMemory ...int) error {
 	max := defaultMaxMemory
 	if len(maxMemory) > 0 {
@@ -349,18 +351,20 @@ func (c *Context) SaveFile(file *multipart.FileHeader, dst string) error {
 // ReqCtxValue get context value from http.Request.ctx
 //
 // Example:
-// 		// record value to Request.ctx
-// 		r := c.Req
-// 		c.Req = r.WithContext(context.WithValue(r.Context(), "key", "value"))
-// 		// ...
-// 		val := c.ReqCtxValue("key") // "value"
+//
+//	// record value to Request.ctx
+//	r := c.Req
+//	c.Req = r.WithContext(context.WithValue(r.Context(), "key", "value"))
+//	// ...
+//	val := c.ReqCtxValue("key") // "value"
 func (c *Context) ReqCtxValue(key interface{}) interface{} {
 	return c.Req.Context().Value(key)
 }
 
 // WithReqCtxValue with request ctx Value.
 // Usage:
-// 	ctx.WithReqCtxValue()
+//
+//	ctx.WithReqCtxValue()
 func (c *Context) WithReqCtxValue(key, val interface{}) {
 	r := c.Req
 	c.Req = r.WithContext(context.WithValue(r.Context(), key, val))
@@ -368,7 +372,7 @@ func (c *Context) WithReqCtxValue(key, val interface{}) {
 
 // RawBodyData get raw body data
 func (c *Context) RawBodyData() ([]byte, error) {
-	return ioutil.ReadAll(c.Req.Body)
+	return io.ReadAll(c.Req.Body)
 }
 
 /*************************************************************

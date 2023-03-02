@@ -16,6 +16,13 @@ type JSONRenderer struct {
 	NotEscape bool
 }
 
+// NewJSONIndented instance
+func NewJSONIndented() JSONRenderer {
+	return JSONRenderer{
+		Indent: PrettyIndent,
+	}
+}
+
 // Render JSON to client
 func (r JSONRenderer) Render(w http.ResponseWriter, obj interface{}) (err error) {
 	writeContentType(w, httpctype.JSON)

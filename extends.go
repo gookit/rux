@@ -44,8 +44,8 @@ func (c *Context) Render(status int, name string, data interface{}) (err error) 
 }
 
 // Validate context validator
-// Deprecated
-// please use ShouldBind() instead, it will auto call validator.
+//
+// Deprecated: please use ShouldBind() instead, it will auto call validator.
 func (c *Context) Validate(i interface{}) error {
 	if c.Router().Validator == nil {
 		return errors.New("validator not registered")

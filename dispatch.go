@@ -38,14 +38,20 @@ var internal405Handler HandlerFunc = func(c *Context) {
  *************************************************************/
 
 // Listen quick create a HTTP server with the router
+//
+// Usage:
+//
+//	r.Listen("8090")
+//	r.Listen("IP:PORT")
 func (r *Router) Listen(addr ...string) {
-	var err error
-	defer func() { debugPrintError(err) }()
+	defer func() {
+		debugPrintError(r.err)
+	}()
 
 	address := resolveAddress(addr)
 
 	fmt.Printf("Serve listen on %s. Go to http://%s\n", address, address)
-	err = http.ListenAndServe(address, r)
+	r.err = http.ListenAndServe(address, r)
 }
 
 // ListenTLS attaches the router to a http.Server and starts listening and serving HTTPS (secure) requests.
@@ -59,7 +65,7 @@ func (r *Router) ListenTLS(addr, certFile, keyFile string) {
 }
 
 // ListenUnix attaches the router to a http.Server and starts listening and serving HTTP requests
-// through the specified unix socket (ie. a file)
+// through the specified unix socket (i.e. a file)
 func (r *Router) ListenUnix(file string) {
 	var err error
 	defer func() { debugPrintError(err) }()
@@ -80,12 +86,14 @@ func (r *Router) ListenUnix(file string) {
 }
 
 // WrapHTTPHandlers apply some pre http handlers for the router.
+//
 // Usage:
-// 	import "github.com/gookit/rux/handlers"
-// 	r := rux.New()
-//  // ... add routes
-// 	handler := r.WrapHTTPHandlers(handlers.HTTPMethodOverrideHandler)
-// 	http.ListenAndServe(":8080", handler)
+//
+//		import "github.com/gookit/rux/handlers"
+//		r := rux.New()
+//	 // ... add routes
+//		handler := r.WrapHTTPHandlers(handlers.HTTPMethodOverrideHandler)
+//		http.ListenAndServe(":8080", handler)
 func (r *Router) WrapHTTPHandlers(preHandlers ...func(h http.Handler) http.Handler) http.Handler {
 	var wrapped http.Handler
 	max := len(preHandlers)
