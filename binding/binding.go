@@ -23,7 +23,7 @@ func Bind(r *http.Request, obj any) error {
 	return Auto(r, obj)
 }
 
-// Auto bind request data to an struct ptr
+// Auto bind request data to a ptr value
 //
 //	body, err := ioutil.ReadAll(c.Request().Body)
 //	if err != nil {

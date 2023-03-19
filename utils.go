@@ -55,7 +55,6 @@ func simpleFmtPath(path string) string {
 	if path == "" {
 		return "/"
 	}
-
 	return "/" + strings.TrimLeft(path, "/")
 }
 
@@ -84,6 +83,8 @@ func resolveAddress(addr []string) (fullAddr string) {
 		}
 
 		return ip + ":" + port
+	case 2:
+		return addr[0] + ":" + addr[1]
 	default:
 		panic("too much parameters")
 	}
