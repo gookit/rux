@@ -50,7 +50,7 @@ func (w *responseWriter) WriteHeader(status int) {
 	if status > 0 && w.status != status {
 		if w.Written() {
 			debugPrint(
-				"[WARNING] Headers were already written. Wanted to override status code %d with %d",
+				"[WARNING] HeaderM were already written. Wanted to override status code %d with %d",
 				w.status,
 				status,
 			)

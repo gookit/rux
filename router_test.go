@@ -623,7 +623,7 @@ func TestOther(t *testing.T) {
 func TestRouter_WithOptions(t *testing.T) {
 	is := assert.New(t)
 
-	// Option: StrictLastSlash
+	// Options: StrictLastSlash
 	r := New(StrictLastSlash)
 	is.True(r.strictLastSlash)
 
@@ -639,7 +639,7 @@ func TestRouter_WithOptions(t *testing.T) {
 	w = mockRequest(r, "GET", "/users/", nil)
 	is.Eq("val1", w.Body.String())
 
-	// Option: UseEncodedPath
+	// Options: UseEncodedPath
 	r = New()
 	r.WithOptions(UseEncodedPath)
 	r.GET("/users/with spaces", func(c *Context) {
@@ -654,7 +654,7 @@ func TestRouter_WithOptions(t *testing.T) {
 	w = mockRequest(r, "GET", "/users/with spaces", nil)
 	is.Eq("val1", w.Body.String())
 
-	// Option: InterceptAll
+	// Options: InterceptAll
 	r = New(InterceptAll("/coming-soon"))
 	// Notice: must add a route and path equals to 'InterceptAll' and use Any()
 	r.Any("/coming-soon", func(c *Context) {
@@ -671,7 +671,7 @@ func TestRouter_WithOptions(t *testing.T) {
 	w = mockRequest(r, "POST", "/not-exist", nil)
 	is.Eq("coming-soon", w.Body.String())
 
-	// Option: EnableCaching, MaxNumCaches
+	// Options: EnableCaching, MaxNumCaches
 	r = New(EnableCaching, MaxNumCaches(10))
 	simpleHandler := func(c *Context) {
 		c.Text(200, "id:"+c.Param("id"))
@@ -689,7 +689,7 @@ func TestRouter_WithOptions(t *testing.T) {
 		is.Eq("id:"+idStr, w.Body.String())
 	}
 
-	// Option: MaxMultipisMemory 8M
+	// Options: MaxMultipisMemory 8M
 	// r = New(MaxMultipisMemory(8 << 20))
 	// is.Eq(8 << 20, r.maxMultipisMemory)
 }
