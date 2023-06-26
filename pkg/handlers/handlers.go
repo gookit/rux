@@ -27,7 +27,7 @@ const (
 	HTTPMethodOverrideHeader = "X-HTTP-Method-Override"
 	// HTTPMethodOverrideFormKey is a commonly used HTML form key to override a request method
 	HTTPMethodOverrideFormKey = "_method"
-	// OriginalMethodContextKey is a commonly for record old original request method
+	// OriginalMethodContextKey record old original request method
 	OriginalMethodContextKey contextKey = "originalMethod"
 )
 
@@ -35,7 +35,7 @@ const (
 // the X-HTTP-Method-Override header or the _method form key, and overrides (if
 // valid) request.Method with its value.
 //
-// It is ref from the https://github.com/gorilla/handlers
+// Refer from the https://github.com/gorilla/handlers
 func HTTPMethodOverrideHandler(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" {
@@ -67,6 +67,6 @@ type (
 )
 
 // DefaultSkipper returns false which processes the middleware.
-func DefaultSkipper(*rux.Context) bool {
+func DefaultSkipper(_ *rux.Context) bool {
 	return false
 }

@@ -47,12 +47,12 @@ var (
 	}
 )
 
-// BinderFunc implements the Binder interface
+// Name implements the Binder interface
 func (fn BinderFunc) Name() string {
 	return "unknown"
 }
 
-// BinderFunc implements the Binder interface
+// Bind implements the Binder interface
 func (fn BinderFunc) Bind(r *http.Request, obj any) error {
 	return fn(r, obj)
 }

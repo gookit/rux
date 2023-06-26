@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/gookit/goutil/dump"
 	"github.com/gookit/goutil/testutil"
 	"github.com/gookit/goutil/testutil/assert"
 	"github.com/gookit/rux"
@@ -22,10 +23,11 @@ func TestSomeMiddleware(t *testing.T) {
 
 	// add reqID to context
 	r.GET("/rid", func(c *rux.Context) {
-		rid, ok := c.Get("reqID")
+		rid, ok := c.Get("req_id")
 		art.True(ok)
-		art.Len(rid.(string), 32)
-	}).Use(GenRequestID())
+		art.NotEmpty(rid.(string))
+		dump.P(rid)
+	}).Use(GenRequestID("req_id"))
 
 	w := mockRequest(r, "GET", "/rid", nil)
 	art.Eq(200, w.Code)

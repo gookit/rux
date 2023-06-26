@@ -44,6 +44,5 @@ func DecodeUrlValues(values map[string][]string, ptr any, tagName string) error 
 	if err := dec.Decode(values, ptr); err != nil {
 		return err
 	}
-
 	return validating(ptr)
 }

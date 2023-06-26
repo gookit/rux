@@ -8,13 +8,21 @@ import (
 	"github.com/gookit/rux"
 )
 
-// RequestLogger middleware.
-func RequestLogger() rux.HandlerFunc {
-	skip := map[string]int{
-		// "/": 1,
-		"/health": 1,
-		"/status": 1,
+// RequestLogger middleware. alias of ConsoleLogger
+var RequestLogger = ConsoleLogger
+var IgnorePaths = []string{
+	"/health",
+	"/status",
+}
+
+// ConsoleLogger middleware.
+func ConsoleLogger(ignorePaths ...string) rux.HandlerFunc {
+	IgnorePaths = append(IgnorePaths, ignorePaths...)
+	skipPathMap := map[string]int{}
+	for _, path := range IgnorePaths {
+		skipPathMap[path] = 1
 	}
+
 	// open color
 	color.ForceOpenColor()
 
@@ -28,11 +36,10 @@ func RequestLogger() rux.HandlerFunc {
 
 		// Process request
 		c.Next()
-
 		path := c.URL().Path
 
 		// Log only when path is not being skipped
-		if _, ok := skip[path]; ok {
+		if _, ok := skipPathMap[path]; ok {
 			return
 		}
 
@@ -47,10 +54,10 @@ func RequestLogger() rux.HandlerFunc {
 		codeColor := colorForStatus(c.StatusCode())
 
 		color.Printf(
-			// 2006-01-02T15:04:05 [rux] GET /articles 200 10.0.0.1 "use-agent" 0.034ms
+			// 2006/01/02T15:04:05 [rux] GET /articles 200 10.0.0.1 "use-agent" 0.034ms
 			// `%s %s %s %d %s "%s" %sms` + "\n",
 			"%s [%s] %s [%s] %s %sms\n",
-			start.Format("2006/01/02T15:04:05"),
+			start.Format("2006/01/02T15:04:05.000"),
 			c.ClientIP(),
 			mColor.Render(c.Req.Method),
 			codeColor.Render(c.StatusCode()),

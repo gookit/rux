@@ -2,12 +2,11 @@ package handlers
 
 import (
 	"context"
-	"crypto/md5"
-	"encoding/hex"
 	"fmt"
 	"net/http"
 	"time"
 
+	"github.com/gookit/goutil/mathutil"
 	"github.com/gookit/rux"
 )
 
@@ -25,21 +24,22 @@ func IgnoreFavIcon() rux.HandlerFunc {
 }
 
 // GenRequestID for the request
-func GenRequestID() rux.HandlerFunc {
+func GenRequestID(key string) rux.HandlerFunc {
 	return func(c *rux.Context) {
-		reqID := genMd5(fmt.Sprintf("rux-%d", time.Now().Nanosecond()))
+		now := time.Now()
+		val := fmt.Sprintf("r%xq%d", now.UnixMicro(), mathutil.RandIntWithSeed(1000, 9999, int64(now.Nanosecond())))
 		// add reqID to context
-		c.Set("reqID", reqID)
+		c.Set(key, val)
 	}
 }
 
 // HTTPBasicAuth for the request
+//
 // Usage:
 //
 //	r.GET("/auth", func(c *rux.Context) {
 //		c.WriteString("hello")
 //	}, HTTPBasicAuth(map[string]string{"testuser": "123"}))
-//
 func HTTPBasicAuth(accounts map[string]string) rux.HandlerFunc {
 	return func(c *rux.Context) {
 		user, pwd, ok := c.Req.BasicAuth()
@@ -79,28 +79,28 @@ func PanicsHandler() rux.HandlerFunc {
 }
 
 // Timeout is a middleware for handle logic.
-// the method is refer from "github.com/go-chi/chi/middleware"
+// the method is referred from "github.com/go-chi/chi/middleware"
 //
 // It's required that you select the ctx.Done() channel to check for the signal
 // if the context has reached its deadline and return, otherwise the timeout
 // signal will be just ignored.
 //
-// ie. a route/handler may look like:
+// a route/handler may look like:
 //
-//  r.GET("/long", func(c *rux.Context) {
-// 	 ctx := c.Req.Context()
-// 	 processTime := time.Duration(rand.Intn(4)+1) * time.Second
+//	 r.GET("/long", func(c *rux.Context) {
+//		 ctx := c.Req.Context()
+//		 processTime := time.Duration(rand.Intn(4)+1) * time.Second
 //
-// 	 select {
-// 	 case <-ctx.Done():
-// 	 	return
+//		 select {
+//		 case <-ctx.Done():
+//		 	return
 //
-// 	 case <-time.After(processTime):
-// 	 	 // The above channel simulates some hard work.
-// 	 }
+//		 case <-time.After(processTime):
+//		 	 // The above channel simulates some hard work.
+//		 }
 //
-// 	 c.WriteBytes([]byte("done"))
-//  })
+//		 c.WriteBytes([]byte("done"))
+//	 })
 func Timeout(timeout time.Duration) rux.HandlerFunc {
 	return func(c *rux.Context) {
 		ctx, cancel := context.WithTimeout(c.Req.Context(), timeout)
@@ -115,12 +115,4 @@ func Timeout(timeout time.Duration) rux.HandlerFunc {
 		c.Req = c.Req.WithContext(ctx)
 		c.Next()
 	}
-}
-
-// genMd5 生成32位md5字串
-func genMd5(s string) string {
-	h := md5.New()
-	h.Write([]byte(s))
-
-	return hex.EncodeToString(h.Sum(nil))
 }
