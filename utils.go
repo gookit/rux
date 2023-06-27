@@ -1,12 +1,8 @@
 package rux
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
-	"reflect"
-	"runtime"
-	"strconv"
 	"strings"
 
 	"github.com/gookit/color"
@@ -36,7 +32,6 @@ func getGlobalVar(name, def string) string {
 	if val, ok := globalVars[name]; ok {
 		return val
 	}
-
 	return def
 }
 
@@ -107,12 +102,7 @@ func quotePointChar(path string) string {
 		// "about.html" -> "about\.html"
 		return strings.Replace(path, ".", `\.`, -1)
 	}
-
 	return path
-}
-
-func nameOfFunction(f any) string {
-	return runtime.FuncForPC(reflect.ValueOf(f).Pointer()).Name()
 }
 
 func debugPrintRoute(route *Route) {
@@ -120,10 +110,6 @@ func debugPrintRoute(route *Route) {
 	// 	fmt.Println("[SUX-DEBUG]", route.String())
 	// }
 	debugPrint(route.String())
-}
-
-func panicf(f string, v ...any) {
-	panic(fmt.Sprintf(f, v...))
 }
 
 func debugPrintError(err error) {
@@ -139,7 +125,7 @@ func debugPrint(f string, v ...any) {
 	}
 }
 
-// from gin framework
+// from gin framework. TODO use httpreq.ParseAccept() instead.
 func parseAccept(acceptHeader string) []string {
 	if acceptHeader == "" {
 		return []string{}
@@ -156,6 +142,15 @@ func parseAccept(acceptHeader string) []string {
 	return outs
 }
 
+func formatMethodsWithDefault(methods []string, defMethod string) []string {
+	if len(methods) == 0 {
+		methods = []string{defMethod}
+	} else {
+		methods = formatMethods(methods)
+	}
+	return methods
+}
+
 func formatMethods(methods []string) (formatted []string) {
 	for _, method := range methods {
 		method = strings.TrimSpace(method)
@@ -165,57 +160,4 @@ func formatMethods(methods []string) (formatted []string) {
 		}
 	}
 	return
-}
-
-func formatMethodsWithDefault(methods []string, defMethod string) []string {
-	if len(methods) == 0 {
-		methods = []string{defMethod}
-	} else {
-		methods = formatMethods(methods)
-	}
-
-	return methods
-}
-
-func toString(i any) string {
-	if i == nil {
-		return ""
-	}
-
-	switch value := i.(type) {
-	case int:
-		return strconv.Itoa(value)
-	case int8:
-		return strconv.Itoa(int(value))
-	case int16:
-		return strconv.Itoa(int(value))
-	case int32:
-		return strconv.Itoa(int(value))
-	case int64:
-		return strconv.Itoa(int(value))
-	case uint:
-		return strconv.FormatUint(uint64(value), 10)
-	case uint8:
-		return strconv.FormatUint(uint64(value), 10)
-	case uint16:
-		return strconv.FormatUint(uint64(value), 10)
-	case uint32:
-		return strconv.FormatUint(uint64(value), 10)
-	case uint64:
-		return strconv.FormatUint(value, 10)
-	case float32:
-		return strconv.FormatFloat(float64(value), 'f', -1, 32)
-	case float64:
-		return strconv.FormatFloat(value, 'f', -1, 64)
-	case bool:
-		return strconv.FormatBool(value)
-	case string:
-		return value
-	case []byte:
-		return string(value)
-	default:
-		// String conversion using JSON by default
-		jsonContent, _ := json.Marshal(value)
-		return string(jsonContent)
-	}
 }

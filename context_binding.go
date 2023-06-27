@@ -1,8 +1,8 @@
 package rux
 
-import "github.com/gookit/rux/binding"
+import "github.com/gookit/rux/pkg/binding"
 
-// ShouldBind bind request data to an struct, will auto call validator
+// ShouldBind bind request data to a struct, will auto call validator
 //
 // Usage:
 //
@@ -11,7 +11,7 @@ func (c *Context) ShouldBind(obj any, binder binding.Binder) error {
 	return binder.Bind(c.Req, obj)
 }
 
-// MustBind bind request data to an struct, will auto call validator
+// MustBind bind request data to a struct, will auto call validator
 //
 // Usage:
 //
@@ -23,7 +23,7 @@ func (c *Context) MustBind(obj any, binder binding.Binder) {
 	}
 }
 
-// AutoBind auto bind request data to an struct, will auto select binding.Binder by content-type
+// AutoBind auto bind request data to a struct, will auto select binding.Binder by content-type
 //
 // Usage:
 //

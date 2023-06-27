@@ -7,6 +7,8 @@ import (
 	"reflect"
 	"strings"
 	"sync"
+
+	"github.com/gookit/goutil"
 )
 
 /*************************************************************
@@ -560,7 +562,7 @@ func (r *Router) appendGroupInfo(route *Route) {
 		route.handlers = combineHandlers(r.currentGroupHandlers, route.handlers)
 
 		if finalSize := len(route.handlers); finalSize >= int(abortIndex) {
-			panicf("too many handlers(number: %d)", finalSize)
+			goutil.Panicf("too many handlers(number: %d)", finalSize)
 		}
 	}
 

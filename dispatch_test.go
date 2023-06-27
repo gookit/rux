@@ -240,7 +240,7 @@ func TestContext(t *testing.T) {
 		_, ok := c.Data()["newKey"]
 		is.True(ok)
 		is.Nil(c.Err())
-		is.Eq("val", c.MustGet("newKey").(string))
+		is.Eq("val", c.SafeGet("newKey").(string))
 		is.Eq("val", c.Value("newKey").(string))
 		is.Nil(c.Value("not-exists"))
 
@@ -250,7 +250,7 @@ func TestContext(t *testing.T) {
 		c.Next()
 
 		// STEP 3 ->:
-		is.Eq("namedHandler", c.MustGet("name").(string))
+		is.Eq("namedHandler", c.SafeGet("name").(string))
 		c.Set("name", "namedHandler1") // change value
 	})
 

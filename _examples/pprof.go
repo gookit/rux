@@ -6,13 +6,16 @@ import (
 	"net/http"
 
 	"github.com/gookit/rux"
-	"github.com/gookit/rux/pprof"
+	"github.com/gookit/rux/pkg/pprof"
 )
 
 // run serve:
-// 	go run ./_examples/pprof.go
+//
+//	go run ./_examples/pprof.go
+//
 // access page:
-// 	http://localhost:3000/debug/pprof
+//
+//	http://localhost:3000/debug/pprof
 func main() {
 	// debug
 	rux.Debug(true)

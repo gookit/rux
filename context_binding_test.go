@@ -9,7 +9,7 @@ import (
 	"github.com/gookit/goutil/netutil/httpctype"
 	"github.com/gookit/goutil/testutil"
 	"github.com/gookit/goutil/testutil/assert"
-	"github.com/gookit/rux/binding"
+	"github.com/gookit/rux/pkg/binding"
 )
 
 var (

@@ -1,29 +1,19 @@
 package server
 
 import (
+	"github.com/gookit/goutil/testutil"
 	"github.com/gookit/rux"
-	"github.com/gookit/rux/render"
+	"github.com/gookit/rux/pkg/render"
 )
 
 // NewEchoServer instance
 func NewEchoServer() *Server {
 	s := &Server{
-		Router: *rux.New(),
+		Router: rux.New(),
 	}
 
 	s.Any("/{all}", func(c *rux.Context) {
-		bs, err := c.RawBodyData()
-		if err != nil {
-			c.AbortThen().AddError(err)
-			return
-		}
-
-		data := rux.M{
-			"headers": c.Req.Header,
-			"uri":     c.Req.RequestURI,
-			"query":   c.QueryValues(),
-			"body":    string(bs),
-		}
+		data := testutil.BuildEchoReply(c.Req)
 
 		// c.JSON(200, data)
 		c.Respond(200, data, render.NewJSONIndented())

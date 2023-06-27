@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gookit/goutil"
 	"github.com/gookit/goutil/netutil/httpctype"
 )
 
@@ -35,7 +36,7 @@ type Context struct {
 	writer responseWriter
 	// current route Params, if route has var Params
 	Params Params
-	Errors []*error
+	Errors []error
 
 	index int8
 	// current router instance
@@ -46,6 +47,7 @@ type Context struct {
 	// call priority: global -> group -> route -> main handler
 	// Notice: last always is main handler of the matched route.
 	handlers HandlersChain
+	// components for context
 }
 
 // Init a context
@@ -127,7 +129,6 @@ func (c *Context) Set(key string, val any) {
 	if c.data == nil {
 		c.data = make(map[string]any)
 	}
-
 	c.data[key] = val
 }
 
@@ -137,47 +138,35 @@ func (c *Context) Get(key string) (v any, ok bool) {
 	return
 }
 
-// MustGet a value from context data
-func (c *Context) MustGet(key string) any {
-	return c.data[key]
-}
+// SafeGet a value from context data
+func (c *Context) SafeGet(key string) any { return c.data[key] }
 
 // Data get all context data
-func (c *Context) Data() map[string]any {
-	return c.data
-}
+func (c *Context) Data() map[string]any { return c.data }
 
 // Handler returns the main handler.
-func (c *Context) Handler() HandlerFunc {
-	return c.handlers.Last()
-}
+func (c *Context) Handler() HandlerFunc { return c.handlers.Last() }
 
 // HandlerName get the main handler name
-func (c *Context) HandlerName() string {
-	return nameOfFunction(c.handlers.Last())
-}
+func (c *Context) HandlerName() string { return goutil.FuncName(c.handlers.Last()) }
 
 // SetHandlers set handlers
-func (c *Context) SetHandlers(handlers HandlersChain) {
-	c.handlers = handlers
-}
+func (c *Context) SetHandlers(handlers HandlersChain) { c.handlers = handlers }
 
 // Router get router instance
-func (c *Context) Router() *Router {
-	return c.router
-}
+func (c *Context) Router() *Router { return c.router }
 
 // AddError add a error to context
 func (c *Context) AddError(err error) {
 	if err != nil {
-		c.Errors = append(c.Errors, &err)
+		c.Errors = append(c.Errors, err)
 	}
 }
 
 // FirstError get first error
 func (c *Context) FirstError() error {
 	if len(c.Errors) > 0 {
-		return *c.Errors[0]
+		return c.Errors[0]
 	}
 	return nil
 }
@@ -192,9 +181,7 @@ func (c *Context) FirstError() error {
 //		// a GET request to /user/john
 //		id := c.Param("id") // id == "john"
 //	})
-func (c *Context) Param(key string) string {
-	return c.Params.String(key)
-}
+func (c *Context) Param(key string) string { return c.Params.String(key) }
 
 // Header return header value by key
 func (c *Context) Header(key string) string {
@@ -205,9 +192,7 @@ func (c *Context) Header(key string) string {
 }
 
 // URL get URL instance from request
-func (c *Context) URL() *url.URL {
-	return c.Req.URL
-}
+func (c *Context) URL() *url.URL { return c.Req.URL }
 
 // Query return query value by key, and allow with default value
 func (c *Context) Query(key string, defVal ...string) string {
@@ -239,9 +224,7 @@ func (c *Context) QueryParams(key string) ([]string, bool) {
 }
 
 // QueryValues get URL query data
-func (c *Context) QueryValues() url.Values {
-	return c.Req.URL.Query()
-}
+func (c *Context) QueryValues() url.Values { return c.Req.URL.Query() }
 
 // Post return body value by key, and allow with default value
 func (c *Context) Post(key string, defVal ...string) string {
@@ -297,6 +280,7 @@ func (c *Context) FormParams(excepts ...[]string) (url.Values, error) {
 }
 
 // ParseMultipartForm parse multipart forms.
+//
 // Tips:
 //
 //	c.Req.PostForm = POST(PUT,PATCH) body data
@@ -362,6 +346,7 @@ func (c *Context) ReqCtxValue(key any) any {
 }
 
 // WithReqCtxValue with request ctx Value.
+//
 // Usage:
 //
 //	ctx.WithReqCtxValue()
@@ -371,18 +356,14 @@ func (c *Context) WithReqCtxValue(key, val any) {
 }
 
 // RawBodyData get raw body data
-func (c *Context) RawBodyData() ([]byte, error) {
-	return io.ReadAll(c.Req.Body)
-}
+func (c *Context) RawBodyData() ([]byte, error) { return io.ReadAll(c.Req.Body) }
 
 /*************************************************************
  * Context: request extra info
  *************************************************************/
 
 // IsTLS request check
-func (c *Context) IsTLS() bool {
-	return c.Req.TLS != nil
-}
+func (c *Context) IsTLS() bool { return c.Req.TLS != nil }
 
 // IsAjax check request is ajax request
 func (c *Context) IsAjax() bool {
@@ -390,19 +371,13 @@ func (c *Context) IsAjax() bool {
 }
 
 // IsGet check request is post request
-func (c *Context) IsGet() bool {
-	return c.Req.Method == GET
-}
+func (c *Context) IsGet() bool { return c.Req.Method == GET }
 
 // IsPost check request is post request
-func (c *Context) IsPost() bool {
-	return c.Req.Method == POST
-}
+func (c *Context) IsPost() bool { return c.Req.Method == POST }
 
 // IsMethod returns true if current is equal to input method name
-func (c *Context) IsMethod(method string) bool {
-	return c.Req.Method == method
-}
+func (c *Context) IsMethod(method string) bool { return c.Req.Method == method }
 
 // IsWebSocket returns true if the request headers indicate that a webSocket
 // handshake is being initiated by the client.
@@ -415,9 +390,7 @@ func (c *Context) IsWebSocket() bool {
 }
 
 // ContentType get content type.
-func (c *Context) ContentType() string {
-	return c.Req.Header.Get(ContentType)
-}
+func (c *Context) ContentType() string { return c.Req.Header.Get(ContentType) }
 
 // AcceptedTypes get Accepted Types.
 func (c *Context) AcceptedTypes() []string {
@@ -450,7 +423,6 @@ func (c *Context) ClientIP() string {
 	if ip, _, err := net.SplitHostPort(strings.TrimSpace(c.Req.RemoteAddr)); err == nil {
 		return ip
 	}
-
 	return ""
 }
 
@@ -512,24 +484,16 @@ func (c *Context) Cookie(name string) string {
  *************************************************************/
 
 // SetStatus code for the response
-func (c *Context) SetStatus(status int) {
-	c.writer.WriteHeader(status)
-}
+func (c *Context) SetStatus(status int) { c.writer.WriteHeader(status) }
 
 // SetStatusCode code for the response. alias of the SetStatus()
-func (c *Context) SetStatusCode(status int) {
-	c.writer.WriteHeader(status)
-}
+func (c *Context) SetStatusCode(status int) { c.writer.WriteHeader(status) }
 
 // StatusCode get status code from the response
-func (c *Context) StatusCode() int {
-	return c.writer.Status()
-}
+func (c *Context) StatusCode() int { return c.writer.Status() }
 
 // Length get length from the response
-func (c *Context) Length() int {
-	return c.writer.Length()
-}
+func (c *Context) Length() int { return c.writer.Length() }
 
 // SetHeader for the response
 func (c *Context) SetHeader(key, value string) {
@@ -545,9 +509,7 @@ func (c *Context) WriteBytes(bt []byte) {
 }
 
 // WriteString write string to response
-func (c *Context) WriteString(str string) {
-	c.WriteBytes([]byte(str))
-}
+func (c *Context) WriteString(str string) { c.WriteBytes([]byte(str)) }
 
 /*************************************************************
  * Context: implement the context.Context
@@ -556,16 +518,12 @@ func (c *Context) WriteString(str string) {
 // Deadline returns the time when work done on behalf of this context
 // should be canceled. Deadline returns ok==false when no deadline is
 // set. Successive calls to Deadline return the same results.
-func (c *Context) Deadline() (deadline time.Time, ok bool) {
-	return
-}
+func (c *Context) Deadline() (deadline time.Time, ok bool) { return }
 
 // Done returns a channel that's closed when work done on behalf of this
 // context should be canceled. Done may return nil if this context can
 // never be canceled. Successive calls to Done return the same value.
-func (c *Context) Done() <-chan struct{} {
-	return nil
-}
+func (c *Context) Done() <-chan struct{} { return nil }
 
 // Err returns a non-nil error value after Done is closed,
 // successive calls to Err return the same error.
@@ -573,9 +531,7 @@ func (c *Context) Done() <-chan struct{} {
 // If Done is closed, Err returns a non-nil error explaining why:
 // Canceled if the context was canceled
 // or DeadlineExceeded if the context's deadline passed.
-func (c *Context) Err() error {
-	return nil
-}
+func (c *Context) Err() error { return nil }
 
 // Value returns the value associated with this context for key, or nil
 // if no value is associated with key. Successive calls to Value with
@@ -586,7 +542,7 @@ func (c *Context) Value(key any) any {
 	}
 
 	if keyAsString, ok := key.(string); ok {
-		return c.MustGet(keyAsString)
+		return c.SafeGet(keyAsString)
 	}
 	return nil
 }

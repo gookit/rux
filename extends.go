@@ -1,11 +1,12 @@
 package rux
 
 import (
-	"bytes"
 	"errors"
 	"io"
 	"net/url"
 	"strings"
+
+	"github.com/gookit/goutil"
 )
 
 /*************************************************************
@@ -26,23 +27,6 @@ type Validator interface {
  * Context function extends()
  *************************************************************/
 
-// Render context template.
-//
-// please use ShouldRender() instead
-func (c *Context) Render(status int, name string, data any) (err error) {
-	if c.router.Renderer == nil {
-		return errors.New("renderer not registered")
-	}
-
-	var buf = new(bytes.Buffer)
-	if err = c.router.Renderer.Render(buf, name, data, c); err != nil {
-		return err
-	}
-
-	c.HTML(status, buf.Bytes())
-	return
-}
-
 // Validate context validator
 //
 // Deprecated: please use ShouldBind() instead, it will auto call validator.
@@ -50,7 +34,6 @@ func (c *Context) Validate(i any) error {
 	if c.Router().Validator == nil {
 		return errors.New("validator not registered")
 	}
-
 	return c.Router().Validator.Validate(i)
 }
 
@@ -79,55 +62,49 @@ func NewBuildRequestURL() *BuildRequestURL {
 // Queries set Queries
 func (b *BuildRequestURL) Queries(queries url.Values) *BuildRequestURL {
 	b.queries = queries
-
 	return b
 }
 
 // Params set Params
 func (b *BuildRequestURL) Params(params M) *BuildRequestURL {
 	b.params = params
-
 	return b
 }
 
 // Scheme set Scheme
 func (b *BuildRequestURL) Scheme(scheme string) *BuildRequestURL {
 	b.scheme = scheme
-
 	return b
 }
 
 // User set User
 func (b *BuildRequestURL) User(username, password string) *BuildRequestURL {
 	b.user = url.UserPassword(username, password)
-
 	return b
 }
 
 // Host set Host
 func (b *BuildRequestURL) Host(host string) *BuildRequestURL {
 	b.host = host
-
 	return b
 }
 
 // Path set Path
 func (b *BuildRequestURL) Path(path string) *BuildRequestURL {
 	b.path = path
-
 	return b
 }
 
-// Build build url
+// Build url
 func (b *BuildRequestURL) Build(withParams ...M) *url.URL {
 	var path = b.path
 
 	if len(withParams) > 0 {
 		for k, d := range withParams[0] {
 			if strings.IndexByte(k, '{') == -1 && strings.IndexByte(k, '}') == -1 {
-				b.queries.Add(k, toString(d))
+				b.queries.Add(k, goutil.String(d))
 			} else {
-				b.params[k] = toString(d)
+				b.params[k] = goutil.String(d)
 			}
 		}
 	}
@@ -163,7 +140,7 @@ func (b *BuildRequestURL) Build(withParams ...M) *url.URL {
 	}
 
 	for paramRegex, name := range varParams {
-		path = strings.NewReplacer(paramRegex, toString(b.params[name])).Replace(path)
+		path = strings.NewReplacer(paramRegex, goutil.String(b.params[name])).Replace(path)
 	}
 
 	u.Path = path

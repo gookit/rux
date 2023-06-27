@@ -8,9 +8,19 @@ import (
 	"path"
 	"time"
 
+	"github.com/gookit/goutil/basefn"
 	"github.com/gookit/goutil/netutil/httpctype"
-	"github.com/gookit/rux/render"
+	"github.com/gookit/rux/pkg/render"
 )
+
+// Render context template.
+//
+// please use ShouldRender() instead
+func (c *Context) Render(status int, name string, data any) (err error) {
+	// c.SetStatus(status)
+	// return renderer.Render(c.Resp, obj)
+	return nil // TODO
+}
 
 // ShouldRender render and response to client
 func (c *Context) ShouldRender(status int, obj any, renderer render.Renderer) error {
@@ -29,7 +39,6 @@ func (c *Context) Respond(status int, obj any, renderer render.Renderer) {
 
 	err := renderer.Render(c.Resp, obj)
 	if err != nil {
-		// panic(err) // TODO or use AddError()
 		c.AddError(err)
 	}
 }
@@ -59,14 +68,10 @@ func (c *Context) Redirect(path string, optionalCode ...int) {
 	http.Redirect(c.Resp, c.Req, path, code)
 }
 
-// Back Redirect back url
+// Back redirect to referer url
 func (c *Context) Back(optionalCode ...int) {
 	// default is 302
-	code := http.StatusFound
-	if len(optionalCode) > 0 {
-		code = optionalCode[0]
-	}
-
+	code := basefn.FirstOr(optionalCode, http.StatusFound)
 	c.Redirect(c.Req.Referer(), code)
 }
 
@@ -97,8 +102,6 @@ func (c *Context) Stream(status int, contentType string, r io.Reader) {
 	_, err := io.Copy(c.Resp, r)
 
 	if err != nil {
-		// TODO use AddError()
-		// panic(err)
 		c.AddError(err)
 	}
 }
@@ -155,6 +158,7 @@ func (c *Context) FileContent(file string, names ...string) {
 }
 
 // Attachment a file to response.
+//
 // Usage:
 //
 //	c.Attachment("path/to/some.zip", "new-name.zip")
@@ -164,6 +168,7 @@ func (c *Context) Attachment(srcFile, outName string) {
 }
 
 // Inline file content.
+//
 // Usage:
 //
 //	c.Inline("testdata/site.md", "new-name.md")
@@ -173,6 +178,7 @@ func (c *Context) Inline(srcFile, outName string) {
 }
 
 // Binary serve data as Binary response.
+//
 // Usage:
 //
 //	in, _ := os.Open("./README.md")

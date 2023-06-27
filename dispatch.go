@@ -22,7 +22,7 @@ var internal404Handler HandlerFunc = func(c *Context) {
 }
 
 var internal405Handler HandlerFunc = func(c *Context) {
-	allowed := c.MustGet(CTXAllowedMethods).([]string)
+	allowed := c.SafeGet(CTXAllowedMethods).([]string)
 	sort.Strings(allowed)
 	c.SetHeader("Allow", strings.Join(allowed, ", "))
 
@@ -43,6 +43,7 @@ var internal405Handler HandlerFunc = func(c *Context) {
 //
 //	r.Listen("8090")
 //	r.Listen("IP:PORT")
+//	r.Listen("IP", "PORT")
 func (r *Router) Listen(addr ...string) {
 	defer func() {
 		debugPrintError(r.err)

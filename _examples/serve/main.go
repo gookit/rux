@@ -10,16 +10,19 @@ import (
 	"time"
 
 	"github.com/gookit/rux"
-	"github.com/gookit/rux/handlers"
+	"github.com/gookit/rux/pkg/handlers"
 )
 
 //go:embed static
 var embAssets embed.FS
 
 // start:
-// 	go run ./_examples/serve
+//
+//	go run ./_examples/serve
+//
 // access:
-// 	http://127.0.0.1:18080
+//
+//	http://127.0.0.1:18080
 func main() {
 	// open debug
 	rux.Debug(true)

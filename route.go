@@ -6,6 +6,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/gookit/goutil"
 )
 
 /*************************************************************
@@ -116,7 +118,7 @@ func NewNamedRoute(name, path string, handler HandlerFunc, methods ...string) *R
 func (r *Route) Use(middleware ...HandlerFunc) *Route {
 	finalSize := len(r.handlers) + len(middleware)
 	if finalSize >= int(abortIndex) {
-		panicf("too many handlers(number: %d)", finalSize)
+		goutil.Panicf("too many handlers(number: %d)", finalSize)
 	}
 
 	r.handlers = append(r.handlers, middleware...)
@@ -169,7 +171,7 @@ func (r *Route) Handlers() HandlersChain {
 
 // HandlerName get the main handler name
 func (r *Route) HandlerName() string {
-	return nameOfFunction(r.handler)
+	return goutil.FuncName(r.handler)
 }
 
 // String route info to string
@@ -219,7 +221,7 @@ func (r *Route) ToURL(buildArgs ...any) *url.URL {
 		}
 
 		for i := 0; i < len(buildArgs); i += 2 {
-			withParams[toString(buildArgs[i])] = buildArgs[i+1]
+			withParams[goutil.String(buildArgs[i])] = buildArgs[i+1]
 		}
 
 		URLBuilder = NewBuildRequestURL()
@@ -237,7 +239,7 @@ func (r *Router) BuildRequestURL(name string, buildArgs ...any) *url.URL {
 func (r *Router) BuildURL(name string, buildArgs ...any) *url.URL {
 	route := r.GetRoute(name)
 	if route == nil {
-		panicf("BuildRequestURL get route is nil(name: %s)", name)
+		goutil.Panicf("BuildRequestURL get route is nil(name: %s)", name)
 	}
 
 	//noinspection GoNilness
@@ -247,17 +249,17 @@ func (r *Router) BuildURL(name string, buildArgs ...any) *url.URL {
 // check route info
 func (r *Route) goodInfo() {
 	if r.handler == nil {
-		panicf("the route handler cannot be empty.(path: '%s')", r.path)
+		goutil.Panicf("the route handler cannot be empty.(path: '%s')", r.path)
 	}
 
 	if len(r.methods) == 0 {
-		panicf("the route allowed methods cannot be empty.(path: '%s')", r.path)
+		goutil.Panicf("the route allowed methods cannot be empty.(path: '%s')", r.path)
 	}
 
-	mstr := MethodsString()
+	str := MethodsString()
 	for _, method := range r.methods {
-		if strings.Index(","+mstr, ","+method) == -1 {
-			panicf("invalid method name '%s', must in: %s", method, mstr)
+		if strings.Index(","+str, ","+method) == -1 {
+			goutil.Panicf("invalid method name '%s', must in: %s", method, str)
 		}
 	}
 }
@@ -275,7 +277,7 @@ func (r *Route) goodRegexString(n, v string) {
 	pos := strings.IndexByte(v, '(')
 
 	if pos != -1 && pos < len(v) && v[pos+1] != '?' {
-		panicf("invalid path var regex string, dont allow char '('. var: %s, regex: %s", n, v)
+		goutil.Panicf("invalid path var regex string, dont allow char '('. var: %s, regex: %s", n, v)
 	}
 }
 
