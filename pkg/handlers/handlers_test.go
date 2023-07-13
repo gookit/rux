@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/gookit/goutil"
 	"github.com/gookit/goutil/testutil"
 	"github.com/gookit/goutil/testutil/assert"
 	"github.com/gookit/rux"
@@ -14,11 +15,14 @@ func ExampleHTTPMethodOverrideHandler() {
 	r := rux.New()
 
 	h := HTTPMethodOverrideHandler(r)
-	http.ListenAndServe(":8080", h)
+	err := http.ListenAndServe(":8080", h)
+	if err != nil {
+		panic(err)
+	}
 
 	// can also:
 	h1 := r.WrapHTTPHandlers(HTTPMethodOverrideHandler)
-	http.ListenAndServe(":8080", h1)
+	goutil.PanicErr(http.ListenAndServe(":8080", h1))
 }
 
 func TestDumpRoutesHandler(t *testing.T) {

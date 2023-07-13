@@ -9,7 +9,7 @@ import (
 	"github.com/gookit/goutil/netutil/httpctype"
 	"github.com/gookit/goutil/testutil"
 	"github.com/gookit/goutil/testutil/assert"
-	"github.com/gookit/rux/binding"
+	"github.com/gookit/rux/pkg/binding"
 )
 
 var (
@@ -31,7 +31,7 @@ func TestAuto(t *testing.T) {
 	is := assert.New(t)
 	r := http.NewServeMux()
 
-	r.HandleFunc("/AutoBind", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/AutoBind", func(w http.ResponseWriter, r *http.Request) {
 		u := &User{}
 		if ctype := r.Header.Get(httpctype.Key); ctype != "" {
 			fmt.Printf(" - auto bind data by content type: %s\n", ctype)
@@ -41,7 +41,7 @@ func TestAuto(t *testing.T) {
 
 		err := binding.Bind(r, u)
 		testBoundedUserIsOK(is, err, u)
-	}))
+	})
 
 	// post Form body
 	w := testutil.MockRequest(r, http.MethodPost, "/AutoBind", &testutil.MD{

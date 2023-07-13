@@ -10,7 +10,11 @@ type stdValidator struct{}
 // Validate the struct data, if fail return error
 func (sv *stdValidator) Validate(obj any) error {
 	v := validate.New(obj)
-	return v.ValidateE()
+
+	if v.Validate() {
+		return nil
+	}
+	return v.Errors.OneError()
 }
 
 // DisableValidator for data binding

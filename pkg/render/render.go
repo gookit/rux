@@ -4,16 +4,18 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"strings"
 
 	"github.com/gookit/goutil/netutil/httpctype"
+	"github.com/gookit/goutil/netutil/httpreq"
 )
 
-// PrettyIndent indent string for  render JSON or XML
-var PrettyIndent = "  "
+var (
+	// PrettyIndent indent string for render JSON or XML
+	PrettyIndent = "  "
 
-// FallbackType for auto response
-var FallbackType = httpctype.MIMEText
+	// FallbackType for auto response
+	FallbackType = httpctype.MIMEText
+)
 
 // Renderer interface
 type Renderer interface {
@@ -65,7 +67,7 @@ func Blob(w http.ResponseWriter, contentType string, data []byte) (err error) {
 
 // Auto render data to response
 func Auto(w http.ResponseWriter, r *http.Request, obj any) (err error) {
-	accepts := parseAccept(r.Header.Get("Accept"))
+	accepts := httpreq.ParseAccept(r.Header.Get("Accept"))
 
 	// fallback use FallbackType
 	if len(accepts) == 0 {
@@ -121,23 +123,6 @@ func responseText(w http.ResponseWriter, obj any) error {
 
 		return TextBytes(w, jsonBs)
 	}
-}
-
-// from gin framework
-func parseAccept(acceptHeader string) []string {
-	if acceptHeader == "" {
-		return []string{}
-	}
-
-	parts := strings.Split(acceptHeader, ",")
-	outs := make([]string, 0, len(parts))
-
-	for _, part := range parts {
-		if part = strings.TrimSpace(strings.Split(part, ";")[0]); part != "" {
-			outs = append(outs, part)
-		}
-	}
-	return outs
 }
 
 func writeContentType(w http.ResponseWriter, value string) {

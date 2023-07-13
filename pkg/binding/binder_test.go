@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/gookit/goutil/testutil/assert"
-	"github.com/gookit/rux/binding"
+	"github.com/gookit/rux/pkg/binding"
 )
 
 func TestBinder_Name(t *testing.T) {
