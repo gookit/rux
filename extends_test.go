@@ -201,7 +201,7 @@ func TestContext_Validator(t *testing.T) {
 	ris := assert.New(t)
 	r := New()
 
-	r.Validator = new(MyValidator)
+	// r.Validator = new(MyValidator)
 
 	r.Any("/validator", func(c *Context) {
 		var form = new(struct {
@@ -226,7 +226,7 @@ func TestContext_Validator(t *testing.T) {
 
 type MyRenderer string
 
-func (mr *MyRenderer) Render(w io.Writer, name string, data any, ctx *Context) error {
+func (mr *MyRenderer) Render(w io.Writer, name string, data any, _ *Context) error {
 	tpl, err := template.New(name).Funcs(template.FuncMap{
 		"Upper": strings.ToUpper,
 	}).Parse("{{.Name|Upper}}, ID is {{ .ID}}")
@@ -238,7 +238,7 @@ func (mr *MyRenderer) Render(w io.Writer, name string, data any, ctx *Context) e
 }
 
 func TestContext_Renderer(t *testing.T) {
-	ris := assert.New(t)
+	is := assert.New(t)
 	r := New()
 
 	r.Renderer = new(MyRenderer)
@@ -252,6 +252,6 @@ func TestContext_Renderer(t *testing.T) {
 
 	w := mockRequest(r, GET, "/renderer", nil)
 
-	ris.Eq(200, w.Code)
-	ris.Eq(w.Body.String(), `ADMIN, ID is 100`)
+	is.Eq(200, w.Code)
+	is.Eq(`ADMIN, ID is 100`, w.Body.String())
 }

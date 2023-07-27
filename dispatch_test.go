@@ -51,7 +51,7 @@ func TestRouterListen(t *testing.T) {
 
 	// multi params
 	is.Panics(func() {
-		r.Listen(":8080", "9090")
+		r.Listen(":8080", "9090", "3745")
 	})
 
 	if runtime.GOOS == "windows" {
@@ -484,7 +484,7 @@ func TestHandleRender(t *testing.T) {
 
 	r.GET("/test-render", func(c *Context) {
 		if err := c.Render(200, "", nil); err != nil {
-			is.Eq(err.Error(), "renderer not registered")
+			is.ErrMsg(err, "rux: renderer not registered")
 		}
 	})
 

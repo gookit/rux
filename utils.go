@@ -78,10 +78,10 @@ func resolveAddress(addr []string) (fullAddr string) {
 		}
 
 		return ip + ":" + port
-	case 2:
+	case 2: // "IP" + "PORT"
 		return addr[0] + ":" + addr[1]
 	default:
-		panic("too much parameters")
+		panic("too many addr parameters")
 	}
 }
 

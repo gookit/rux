@@ -1,6 +1,8 @@
 package rux
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -13,13 +15,23 @@ import (
 	"github.com/gookit/rux/pkg/render"
 )
 
-// Render context template.
+// Render html template.
 //
 // please use ShouldRender() instead
 func (c *Context) Render(status int, name string, data any) (err error) {
-	// c.SetStatus(status)
+	// TODO refactoring...
 	// return renderer.Render(c.Resp, obj)
-	return nil // TODO
+	if c.router.Renderer == nil {
+		return errors.New("rux: renderer not registered")
+	}
+
+	var buf = new(bytes.Buffer)
+	if err = c.router.Renderer.Render(buf, name, data, c); err != nil {
+		return err
+	}
+
+	c.HTML(status, buf.Bytes())
+	return
 }
 
 // ShouldRender render and response to client

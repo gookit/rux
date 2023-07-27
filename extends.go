@@ -1,7 +1,6 @@
 package rux
 
 import (
-	"errors"
 	"io"
 	"net/url"
 	"strings"
@@ -21,20 +20,6 @@ type Renderer interface {
 // Validator interface
 type Validator interface {
 	Validate(i any) error
-}
-
-/*************************************************************
- * Context function extends()
- *************************************************************/
-
-// Validate context validator
-//
-// Deprecated: please use ShouldBind() instead, it will auto call validator.
-func (c *Context) Validate(i any) error {
-	if c.Router().Validator == nil {
-		return errors.New("validator not registered")
-	}
-	return c.Router().Validator.Validate(i)
 }
 
 /*************************************************************
