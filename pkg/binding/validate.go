@@ -27,7 +27,8 @@ func ResetValidator() {
 	Validator = &stdValidator{}
 }
 
-func validating(obj any) error {
+// Validate bounded data
+func Validate(obj any) error {
 	// if Validator is nil, dont validate.
 	if Validator == nil {
 		return nil

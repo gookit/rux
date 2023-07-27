@@ -32,5 +32,5 @@ func decodeXML(r io.Reader, obj any) error {
 		return err
 	}
 
-	return validating(obj)
+	return Validate(obj)
 }

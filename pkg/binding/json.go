@@ -31,5 +31,5 @@ func decodeJSON(r io.Reader, ptr any) error {
 		return err
 	}
 
-	return validating(ptr)
+	return Validate(ptr)
 }

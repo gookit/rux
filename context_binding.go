@@ -1,6 +1,9 @@
 package rux
 
-import "github.com/gookit/rux/pkg/binding"
+import (
+	"github.com/gookit/goutil"
+	"github.com/gookit/rux/pkg/binding"
+)
 
 // ShouldBind bind request data to a struct, will auto call validator
 //
@@ -17,10 +20,7 @@ func (c *Context) ShouldBind(obj any, binder binding.Binder) error {
 //
 //	c.MustBind(&user, binding.Json)
 func (c *Context) MustBind(obj any, binder binding.Binder) {
-	err := binder.Bind(c.Req, obj)
-	if err != nil {
-		panic(err)
-	}
+	goutil.PanicErr(binder.Bind(c.Req, obj))
 }
 
 // AutoBind auto bind request data to a struct, will auto select binding.Binder by content-type
@@ -32,14 +32,21 @@ func (c *Context) AutoBind(obj any) error {
 	return binding.Auto(c.Req, obj)
 }
 
-// Bind auto bind request data to an struct, will auto select binding.Binder by content-type
-// Alias method of the Bind()
+// Bind auto bind request data to a struct, will auto select binding.Binder by content-type.
+// Alias method of the AutoBind()
 //
 // Usage:
 //
 //	err := c.Bind(&user)
 func (c *Context) Bind(obj any) error {
 	return binding.Auto(c.Req, obj)
+}
+
+// Validate input struct or map data. should call Bind() before validate.
+//
+// Recommended use ShouldBind() instead, it will binding and validate.
+func (c *Context) Validate(obj any) error {
+	return binding.Validate(obj)
 }
 
 /*************************************************************

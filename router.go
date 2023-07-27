@@ -99,15 +99,14 @@ type Router struct {
 	//
 	// Extends tools
 	//
+
 	// Renderer template(view) interface
 	// Deprecated: will be removed
 	Renderer Renderer
-	// Validator validator interface
-	// Deprecated: will be removed
-	Validator Validator
 }
 
 // New router instance, can with some options.
+//
 // Quick start:
 //
 //	r := New()
