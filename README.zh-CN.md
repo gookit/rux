@@ -1,7 +1,7 @@
 # Rux
 
 ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/gookit/rux?style=flat-square)
-[![Actions Status](https://github.com/gookit/rux/workflows/unit-tests/badge.svg)](https://github.com/gookit/rux/actions)
+[![Actions Status](https://github.com/gookit/rux/workflows/Unit-Tests/badge.svg)](https://github.com/gookit/rux/actions)
 [![GitHub tag (latest SemVer)](https://img.shields.io/github/tag/gookit/rux)](https://github.com/gookit/rux)
 [![GoDoc](https://godoc.org/github.com/gookit/rux?status.svg)](https://pkg.go.dev/github.com/gookit/rux?tab=doc)
 [![Coverage Status](https://coveralls.io/repos/github/gookit/rux/badge.svg?branch=master)](https://coveralls.io/github/gookit/rux?branch=master)
@@ -33,8 +33,6 @@ go get github.com/gookit/rux
 ```
 
 ## 快速开始
-
-> NOTICE: `v1.3.x` 不完全兼容 `v1.2.x` 版本
 
 ```go
 package main
