@@ -6,7 +6,7 @@ require (
 	github.com/gookit/color v1.5.4
 	github.com/gookit/goutil v0.6.15
 	github.com/gookit/validate v1.5.2
-	github.com/gorilla/websocket v1.5.1
+	github.com/gorilla/websocket v1.5.2
 	github.com/monoculum/formam v3.5.5+incompatible
 )
 
