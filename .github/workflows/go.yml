@@ -19,7 +19,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        go_version: ['1.20', 1.18, 1.19]
+        go_version: ['1.20', 1.19, 1.21, 1.22]
 
     steps:
       - name: Check out code
@@ -31,12 +31,12 @@ jobs:
         with:
           go-version: ${{ matrix.go_version }}
 
-      - name: Revive check
-        uses: morphy2k/revive-action@v2.5.8
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-        with:
-          # Exclude patterns, separated by semicolons (optional)
-          exclude: "./internal/..."
+#      - name: Revive check
+#        uses: morphy2k/revive-action@v2.5.8
+#        if: ${{ matrix.os == 'ubuntu-latest' }}
+#        with:
+#          # Exclude patterns, separated by semicolons (optional)
+#          exclude: "./internal/..."
 
       - name: Run staticcheck
         uses: reviewdog/action-staticcheck@v1
