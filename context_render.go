@@ -97,6 +97,11 @@ func (c *Context) HTML(status int, data []byte) {
 	c.Blob(status, httpctype.HTML, data)
 }
 
+// HTMLString writes out as html text. if data is empty, only write headers
+func (c *Context) HTMLString(status int, data string) {
+	c.Blob(status, httpctype.HTML, []byte(data))
+}
+
 // Blob writes out []byte
 func (c *Context) Blob(status int, contentType string, data []byte) {
 	c.Resp.WriteHeader(status)
