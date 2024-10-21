@@ -1,12 +1,12 @@
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/gookit/color v1.5.4 h1:FZmqs7XOyGgCAxmWyPslpiok1k05wmY3SJTytgvYFs0=
 github.com/gookit/color v1.5.4/go.mod h1:pZJOeOS8DM43rXbp4AZo1n9zCU2qjpcRko0b6/QJi9w=
-github.com/gookit/filter v1.2.0 h1:r7E01dHVkysb5WgzooiGsfblHGShEZCeGcyYM+5IpYU=
-github.com/gookit/filter v1.2.0/go.mod h1:bXs9RcB4Blxwny970opiwABeIEqQ/gzOMmHBhKwBdms=
+github.com/gookit/filter v1.2.1 h1:37XivkBm2E5qe1KaGdJ5ZfF5l9NYdGWfLEeQadJD8O4=
+github.com/gookit/filter v1.2.1/go.mod h1:rxynQFr793x+XDwnRmJFEb53zDw0Zqx3OD7TXWoR9mQ=
 github.com/gookit/goutil v0.6.17 h1:SxmbDz2sn2V+O+xJjJhJT/sq1/kQh6rCJ7vLBiRPZjI=
 github.com/gookit/goutil v0.6.17/go.mod h1:rSw1LchE1I3TDWITZvefoAC9tS09SFu3lHXLCV7EaEY=
-github.com/gookit/validate v1.5.0 h1:aTy974I1vPDYPFzoFH4vtJONrK4oRDvjUxteUan7beE=
-github.com/gookit/validate v1.5.0/go.mod h1:SskOHUQokzMNt6T3r7N+N/4me/6fxDx+tmoXf/3ZQog=
+github.com/gookit/validate v1.5.2 h1:i5I2OQ7WYHFRPRATGu9QarR9snnNHydvwSuHXaRWAV0=
+github.com/gookit/validate v1.5.2/go.mod h1:yuPy2WwDlwGRa06fFJ5XIO8QEwhRnTC2LmxmBa5SE14=
 github.com/gorilla/websocket v1.5.3 h1:saDtZ6Pbx/0u+bgYQ3q96pZgCzfhKXGPqt7kZ72aNNg=
 github.com/gorilla/websocket v1.5.3/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
 github.com/monoculum/formam v3.5.5+incompatible h1:iPl5csfEN96G2N2mGu8V/ZB62XLf9ySTpC8KRH6qXec=
