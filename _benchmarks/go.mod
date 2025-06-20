@@ -1,11 +1,12 @@
 module ruxbench
 
-go 1.21.0
+go 1.23.0
+
 toolchain go1.24.1
 
 require (
 	github.com/gin-gonic/gin v1.10.0
-	github.com/go-chi/chi/v5 v5.1.0
+	github.com/go-chi/chi/v5 v5.2.2
 	github.com/gookit/rux v1.4.0
 	github.com/gorilla/mux v1.8.1
 	github.com/julienschmidt/httprouter v1.3.0
@@ -29,7 +30,7 @@ require (
 	github.com/gookit/color v1.5.4 // indirect
 	github.com/gookit/filter v1.2.2 // indirect
 	github.com/gookit/goutil v0.6.18 // indirect
-	github.com/gookit/validate v1.5.4 // indirect
+	github.com/gookit/validate v1.5.5 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.17.11 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.9 // indirect
