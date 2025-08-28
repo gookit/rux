@@ -10,8 +10,8 @@ import (
 	"path"
 	"time"
 
-	"github.com/gookit/goutil/basefn"
 	"github.com/gookit/goutil/netutil/httpctype"
+	"github.com/gookit/goutil/x/basefn"
 	"github.com/gookit/rux/pkg/render"
 )
 

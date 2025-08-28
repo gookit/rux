@@ -3,7 +3,7 @@
 ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/gookit/rux?style=flat-square)
 [![Actions Status](https://github.com/gookit/rux/workflows/Unit-Tests/badge.svg)](https://github.com/gookit/rux/actions)
 [![GitHub tag (latest SemVer)](https://img.shields.io/github/tag/gookit/rux)](https://github.com/gookit/rux)
-[![GoDoc](https://godoc.org/github.com/gookit/rux?status.svg)](https://pkg.go.dev/github.com/gookit/rux?tab=doc)
+[![GoDoc](https://pkg.go.dev/badge/github.com/gookit/rux.svg)](https://pkg.go.dev/github.com/gookit/rux?tab=doc)
 [![Coverage Status](https://coveralls.io/repos/github/gookit/rux/badge.svg?branch=master)](https://coveralls.io/github/gookit/rux?branch=master)
 [![Go Report Card](https://goreportcard.com/badge/github.com/gookit/rux)](https://goreportcard.com/report/github.com/gookit/rux)
 

@@ -23,7 +23,7 @@ jobs:
 
     steps:
       - name: Check out code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Go Faster
         uses: WillAbides/setup-go-faster@v1.14.0
@@ -61,6 +61,7 @@ jobs:
         with:
           path-to-profile: profile.cov
           flag-name: Go-${{ matrix.go_version }}
+          shallow: true
           parallel: true
 
   # notifies that all test jobs are finished.
@@ -71,4 +72,5 @@ jobs:
     steps:
       - uses: shogo82148/actions-goveralls@v1
         with:
+          shallow: true
           parallel-finished: true
