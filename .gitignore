@@ -4,3 +4,8 @@
 *.prof
 
 oryxBuildBinary
+.iflow/
+IFLOW.md
+AGENTS.md
+.xenv.toml
+openspec/

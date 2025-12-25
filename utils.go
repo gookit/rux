@@ -100,7 +100,7 @@ func checkAndParseOptional(path string) string {
 func quotePointChar(path string) string {
 	if strings.IndexByte(path, '.') > 0 {
 		// "about.html" -> "about\.html"
-		return strings.Replace(path, ".", `\.`, -1)
+		return strings.ReplaceAll(path, ".", `\.`)
 	}
 	return path
 }
