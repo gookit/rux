@@ -101,10 +101,6 @@ func (r *Router) Match(method, path string) (route *Route, ps Params, alm []stri
 // ps  - route path Params, when has path vars.
 // alm - allowed request methods
 func (r *Router) QuickMatch(method, path string) (route *Route, ps Params, alm []string) {
-	// Use hybrid mode if enabled
-	if r.useHybridMode {
-		return r.QuickMatchWithHybrid(method, path)
-	}
 
 	// Legacy matching logic
 	if r.interceptAll != "" {
