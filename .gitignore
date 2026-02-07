@@ -2,10 +2,13 @@
 .idea/
 .DS_Store
 *.prof
+*.exe
 
 oryxBuildBinary
+.codebuddy/
 .iflow/
 IFLOW.md
 AGENTS.md
 .xenv.toml
 openspec/
+tmp/
