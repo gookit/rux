@@ -27,8 +27,11 @@ type radixNode struct {
 	// 节点类型
 	nType nodeType
 
-	// HTTP 方法 -> 处理器映射（仅叶子节点有值）
+	// HTTP 方法 -> 路由处理器映射（仅叶子节点有值）
 	handlers map[string]HandlersChain
+
+	// HTTP 方法 -> Route 引用映射（用于快速访问 Route 对象）
+	routes map[string]*Route
 
 	// 静态子节点 map[路径前缀]节点
 	children map[string]*radixNode
@@ -113,13 +116,23 @@ func newRadixTree() *radixTree {
  * 路由插入实现
  *************************************************************/
 
-// AddRoute 添加路由到 Radix Tree
+// AddRoute 添加路由到 Radix Tree（用于测试，不传 Route）
 // 支持可选参数展开：/posts[/{id}] 会展开为 /posts 和 /posts/{id}
 func (t *radixTree) AddRoute(path string, handlers HandlersChain, methods []string) {
+	t.addRouteInternal(path, handlers, methods, nil)
+}
+
+// AddRouteWithRoute 添加路由到 Radix Tree，同时存储 Route 引用
+func (t *radixTree) AddRouteWithRoute(path string, handlers HandlersChain, methods []string, route *Route) {
+	t.addRouteInternal(path, handlers, methods, route)
+}
+
+// addRouteInternal 内部路由添加方法
+func (t *radixTree) addRouteInternal(path string, handlers HandlersChain, methods []string, route *Route) {
 	path = normalizePath(path)
 
-	// 检查并处理可选参数
-	if strings.Contains(path, "[") {
+	// 检查并处理可选参数（[ 不在 {} 内）
+	if hasOptionalSegment(path) {
 		validateOptionalSegments(path)
 		expandedPaths := parseOptionalSegments(path)
 
@@ -127,22 +140,51 @@ func (t *radixTree) AddRoute(path string, handlers HandlersChain, methods []stri
 		for _, expandedPath := range expandedPaths {
 			expandedPath = normalizePath(expandedPath)
 			for _, method := range methods {
-				t.addHandler(method, expandedPath, handlers)
+				t.addHandlerWithRoute(method, expandedPath, handlers, route)
 			}
 		}
 		return
 	}
 
 	for _, method := range methods {
-		t.addHandler(method, path, handlers)
+		t.addHandlerWithRoute(method, path, handlers, route)
 	}
+}
+
+// hasOptionalSegment 检查路径是否包含可选段
+// 可选段格式：[/{param}] 或 [/static]
+// 不包括 regex 模式如 [1-9]
+func hasOptionalSegment(path string) bool {
+	inBraces := false
+	for i := 0; i < len(path); i++ {
+		switch path[i] {
+		case '{':
+			inBraces = true
+		case '}':
+			inBraces = false
+		case '[':
+			if !inBraces {
+				// 检查是否是可选段格式 [/{...}] 或 [/...]
+				// 可选段应该以 "/" 开头
+				if i+1 < len(path) && path[i+1] == '/' {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }
 
 // addHandler 添加单个方法的路由处理器
 func (t *radixTree) addHandler(method, path string, handlers HandlersChain) {
+	t.addHandlerWithRoute(method, path, handlers, nil)
+}
+
+// addHandlerWithRoute 添加单个方法的路由处理器，同时存储 Route 引用
+func (t *radixTree) addHandlerWithRoute(method, path string, handlers HandlersChain, route *Route) {
 	// 特殊情况：根路径
 	if path == "/" {
-		t.root.setHandler(method, handlers)
+		t.root.setHandlerWithRoute(method, handlers, route)
 		return
 	}
 
@@ -164,7 +206,7 @@ func (t *radixTree) addHandler(method, path string, handlers HandlersChain) {
 
 			// 路径已用完，在当前节点设置 handler
 			if len(remaining) == 0 {
-				node.setHandler(method, handlers)
+				node.setHandlerWithRoute(method, handlers, route)
 				return
 			}
 
@@ -176,7 +218,7 @@ func (t *radixTree) addHandler(method, path string, handlers HandlersChain) {
 			}
 
 			// 没有匹配的子节点，创建新子节点（迭代处理剩余路径）
-			node = t.createChildIterative(node, remaining, method, handlers)
+			node = t.createChildIterativeWithRoute(node, remaining, method, handlers, route)
 			return
 		}
 
@@ -190,12 +232,12 @@ func (t *radixTree) addHandler(method, path string, handlers HandlersChain) {
 
 			if len(remaining) == 0 {
 				// 在当前（分裂后的）节点设置 handler
-				node.parent.setHandler(method, handlers)
+				node.parent.setHandlerWithRoute(method, handlers, route)
 				return
 			}
 
 			// 创建新子节点存放剩余路径（迭代处理）
-			node = t.createChildIterative(node.parent, remaining, method, handlers)
+			node = t.createChildIterativeWithRoute(node.parent, remaining, method, handlers, route)
 			return
 		}
 
@@ -240,6 +282,12 @@ func (t *radixTree) findNextNode(node *radixNode, path string) *radixNode {
 // createChildIterative 迭代创建子节点（避免递归）
 // 返回最后一个创建的节点
 func (t *radixTree) createChildIterative(parent *radixNode, path string, method string, handlers HandlersChain) *radixNode {
+	return t.createChildIterativeWithRoute(parent, path, method, handlers, nil)
+}
+
+// createChildIterativeWithRoute 迭代创建子节点（避免递归），同时存储 Route 引用
+// 返回最后一个创建的节点
+func (t *radixTree) createChildIterativeWithRoute(parent *radixNode, path string, method string, handlers HandlersChain, route *Route) *radixNode {
 	currentParent := parent
 	currentPath := path
 
@@ -267,7 +315,7 @@ func (t *radixTree) createChildIterative(parent *radixNode, path string, method 
 				paramName: paramName,
 				parent:    currentParent,
 			}
-			node.setHandler(method, handlers)
+			node.setHandlerWithRoute(method, handlers, route)
 			currentParent.wildcardChild = node
 			return node
 		}
@@ -292,7 +340,7 @@ func (t *radixTree) createChildIterative(parent *radixNode, path string, method 
 			}
 
 			remaining := currentPath[paramEnd:]
-			node.setHandler(method, handlers)
+			node.setHandlerWithRoute(method, handlers, route)
 			currentParent.paramChild = node
 
 			// 如果参数后还有路径，继续迭代
@@ -352,6 +400,7 @@ func (t *radixTree) splitNode(node *radixNode, splitIndex int) {
 		prefix:   splitPrefix,
 		nType:    nodeTypeStatic,
 		handlers: make(map[string]HandlersChain),
+		routes:   make(map[string]*Route),
 		children: make(map[string]*radixNode),
 		parent:   node.parent,
 	}
@@ -391,10 +440,19 @@ func (t *radixTree) splitNode(node *radixNode, splitIndex int) {
 
 // setHandler 设置处理器
 func (n *radixNode) setHandler(method string, handlers HandlersChain) {
+	n.setHandlerWithRoute(method, handlers, nil)
+}
+
+// setHandlerWithRoute 设置处理器和 Route 引用
+func (n *radixNode) setHandlerWithRoute(method string, handlers HandlersChain, route *Route) {
 	if n.handlers == nil {
 		n.handlers = make(map[string]HandlersChain)
 	}
+	if n.routes == nil {
+		n.routes = make(map[string]*Route)
+	}
 	n.handlers[method] = handlers
+	n.routes[method] = route
 	n.isLeaf = true
 }
 
@@ -404,15 +462,22 @@ func (n *radixNode) setHandler(method string, handlers HandlersChain) {
 
 // FindRoute 查找路由
 func (t *radixTree) FindRoute(method, path string) (handlers HandlersChain, params Params, found bool) {
+	handlers, params, _, found = t.FindRouteWithRoute(method, path)
+	return
+}
+
+// FindRouteWithRoute 查找路由并返回 Route 引用
+func (t *radixTree) FindRouteWithRoute(method, path string) (handlers HandlersChain, params Params, route *Route, found bool) {
 	params = make(Params)
 	path = normalizePath(path)
 
 	// 特殊情况：根路径
 	if path == "/" {
 		if h, exists := t.root.handlers[method]; exists {
-			return h, params, true
+			r := t.root.routes[method]
+			return h, params, r, true
 		}
-		return nil, params, false
+		return nil, params, nil, false
 	}
 
 	// 从根节点开始查找
@@ -428,7 +493,7 @@ func (t *radixTree) FindRoute(method, path string) (handlers HandlersChain, para
 		if isFirst {
 			nodeLen := len(node.prefix)
 			if len(remaining) < nodeLen || remaining[:nodeLen] != node.prefix {
-				return nil, params, false
+				return nil, params, nil, false
 			}
 			remaining = remaining[nodeLen:]
 			isFirst = false
@@ -444,16 +509,18 @@ func (t *radixTree) FindRoute(method, path string) (handlers HandlersChain, para
 		if node.wildcardChild != nil {
 			if h, exists := node.wildcardChild.handlers[method]; exists {
 				params[node.wildcardChild.paramName] = remaining
-				return h, params, true
+				r := node.wildcardChild.routes[method]
+				return h, params, r, true
 			}
 		}
 
 		// 路径已用完，检查当前节点是否有 handler
 		if len(remaining) == 0 {
 			if h, exists := node.handlers[method]; exists {
-				return h, params, true
+				r := node.routes[method]
+				return h, params, r, true
 			}
-			return nil, params, false
+			return nil, params, nil, false
 		}
 
 		// 跳过前导斜杠
@@ -462,9 +529,10 @@ func (t *radixTree) FindRoute(method, path string) (handlers HandlersChain, para
 			if len(remaining) == 0 {
 				// 路径以斜杠结尾
 				if h, exists := node.handlers[method]; exists {
-					return h, params, true
+					r := node.routes[method]
+					return h, params, r, true
 				}
-				return nil, params, false
+				return nil, params, nil, false
 			}
 		}
 
@@ -481,9 +549,10 @@ func (t *radixTree) FindRoute(method, path string) (handlers HandlersChain, para
 			// 检查是否是路径的最后部分
 			if paramEnd == len(remaining) {
 				if h, exists := node.paramChild.handlers[method]; exists {
-					return h, params, true
+					r := node.paramChild.routes[method]
+					return h, params, r, true
 				}
-				return nil, params, false
+				return nil, params, nil, false
 			}
 
 			// 继续在参数子树中查找（跳过已匹配的参数值）
@@ -501,7 +570,7 @@ func (t *radixTree) FindRoute(method, path string) (handlers HandlersChain, para
 
 		child, ok := node.children[segment]
 		if !ok {
-			return nil, params, false
+			return nil, params, nil, false
 		}
 
 		// 找到子节点，继续循环
@@ -511,7 +580,7 @@ func (t *radixTree) FindRoute(method, path string) (handlers HandlersChain, para
 		node = child
 	}
 
-	return nil, params, false
+	return nil, params, nil, false
 }
 
 // printTree 打印树结构（用于调试）

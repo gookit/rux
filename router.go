@@ -33,6 +33,12 @@ type Router struct {
 	// }
 	stableRoutes map[string]*Route
 
+	// Dynamic routes using Radix Tree for high-performance matching
+	dynamicTrees *methodTrees
+
+	// paramsPool for zero-allocation param extraction
+	paramsPool sync.Pool
+
 	// Cached dynamic routes
 	// {
 	// 	"GET/users/12": Route,
@@ -40,7 +46,7 @@ type Router struct {
 	// cachedRoutes map[string]*Route
 	cachedRoutes *cachedRoutes
 
-	// Regular dynamic routing
+	// Regular dynamic routing (legacy, will be removed)
 	// - key is METHOD + "first-node":
 	// - first node string in the route path. "/users/{id}" -> "user"
 	// Data example:
@@ -52,7 +58,7 @@ type Router struct {
 	// }
 	regularRoutes methodRoutes
 
-	// Irregular dynamic routing
+	// Irregular dynamic routing (legacy, will be removed)
 	// {
 	// 	"GET": [Route, ...],
 	// 	"POST": [Route, Route, ...],
@@ -123,6 +129,7 @@ func New(options ...func(*Router)) *Router {
 		maxNumCaches: 1000,
 		stableRoutes: make(map[string]*Route),
 		namedRoutes:  make(map[string]*Route),
+		dynamicTrees: newMethodTrees(),
 
 		regularRoutes:   make(methodRoutes),
 		irregularRoutes: make(methodRoutes),
@@ -132,6 +139,11 @@ func New(options ...func(*Router)) *Router {
 	router.WithOptions(options...)
 	router.ctxPool.New = func() any {
 		return &Context{index: -1, router: router}
+	}
+
+	// params pool for zero-allocation
+	router.paramsPool.New = func() any {
+		return make(Params)
 	}
 
 	return router
@@ -524,6 +536,16 @@ func (r *Router) appendRoute(route *Route) {
 		return
 	}
 
+	// Use Radix Tree for dynamic routes
+	// Convert path format: {param} -> :param
+	radixPath := convertParamSyntax(route.path)
+	for _, method := range route.methods {
+		tree := r.dynamicTrees.ensureTree(method)
+		tree.AddRoute(radixPath, route.handlers, route.methods)
+	}
+	r.counter++
+
+	// Keep legacy routes for backward compatibility during transition
 	// parsing route path with parameters
 	if first := r.parseParamRoute(route); first != "" {
 		for _, method := range route.methods {
@@ -533,7 +555,6 @@ func (r *Router) appendRoute(route *Route) {
 				rs = routes{}
 			}
 
-			r.counter++
 			r.regularRoutes[key] = append(rs, route)
 		}
 		return
@@ -546,7 +567,6 @@ func (r *Router) appendRoute(route *Route) {
 			rs = routes{}
 		}
 
-		r.counter++
 		r.irregularRoutes[method] = append(rs, route)
 	}
 }

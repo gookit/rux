@@ -160,6 +160,20 @@ func (r *Router) match(method, path string) (rt *Route, ps Params) {
 		}
 	}
 
+	// find in Radix Tree (new dynamic route matching)
+	if r.dynamicTrees != nil {
+		if tree, ok := r.dynamicTrees.getTree(method); ok {
+			if handlers, params, foundRoute, found := tree.FindRouteWithRoute(method, path); found {
+				// Reconstruct route from handlers if needed
+				_ = handlers
+				if foundRoute != nil {
+					return foundRoute, params
+				}
+			}
+		}
+	}
+
+	// Legacy matching logic (to be removed after full transition)
 	// find in regular routes
 	if pos := strings.IndexByte(path[1:], '/'); pos > 0 {
 		key := method + path[1:pos+1]

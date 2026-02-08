@@ -37,19 +37,43 @@
 - ❌ 不在最后：`/posts[/{category}]/{id}` - 非法（应 panic）
 - ❌ 多个可选参数：`/api[/{v1}]/users[/{v2}]` - 非法（应 panic）
 
-### Phase 3: Router 集成
-- [ ] 修改 Router 结构体，添加 dynamicTrees 字段
-- [ ] 添加 paramsPool 实现
-- [ ] 修改 AddRoute 方法，路由分发到静态/动态
-- [ ] 修改 match 方法，先查静态再查动态
+### Phase 3: Router 集成 🔄
+- [x] 修改 Router 结构体，添加 dynamicTrees 字段
+- [x] 添加 paramsPool 实现（使用 sync.Pool）
+- [x] 修改 AddRoute 方法，路由分发到静态/动态
+- [x] 修改 match 方法，先查静态再查动态
 - [ ] 参考 httprouter 的优先级机制
+
+## 第四阶段：
+
 - [ ] 移除 regularRoutes 和 irregularRoutes
 - [ ] 移除 cachedRoutes 相关代码
+- [ ] 移除 `route_cache.go` 文件
+- [ ] 移除 `route_cache_test.go` 文件
 
-### Phase 4: 测试与验证
-- [ ] 运行所有现有单元测试
-- [ ] 运行基准测试
-- [ ] 修复发现的问题
+## 第五阶段：测试与验证（⏳ 待开始）
+
+确保功能正确性和性能提升
+
+### 待完成任务
+- [ ] 运行现有单元测试（确保兼容性）
+- [ ] 添加可选参数测试用例
+- [ ] 添加 Radix Tree 测试用例
+- [ ] 运行性能基准测试
+- [ ] 对比重构前后的性能数据
+- [ ] 使用 `go test -race` 检测并发问题
+
+## 第六阶段：清理与文档（⏳ 待开始）
+
+完善代码库并准备发布
+
+### 待完成任务
+
+- [ ] 更新 README.md（新增 Radix Tree 说明）
+- [ ] 更新 CHANGELOG（记录重大变更）
+- [ ] 添加迁移指南（帮助用户平滑升级）
+- [ ] 更新 API 文档
+
 
 ---
 
@@ -104,4 +128,29 @@
 展开: ["/api/users/profile", "/api/users/:name/profile"]
 ```
 
-下一步：Phase 3 - Router 集成
+### 2026-02-08 (续)
+**Phase 3 完成 - Router 集成**
+
+已完成 Router 与 Radix Tree 的集成：
+- 修改 Router 结构体，添加 `dynamicTrees` 和 `paramsPool` 字段
+- 创建 `AddRouteWithRoute` 方法存储 Route 引用
+- 创建 `FindRouteWithRoute` 方法返回 Route 和参数
+- 修改 `appendRoute` 方法，动态路由使用 Radix Tree
+- 修改 `match` 方法，优先查找 Radix Tree
+- 修复可选段与 regex 模式 `[1-9]` 的冲突检测
+
+**核心实现：**
+```go
+// Router 结构体添加
+ dynamicTrees *methodTrees  // Radix Tree 动态路由
+ paramsPool   sync.Pool     // 参数池
+
+// 路由匹配流程
+1. stableRoutes (静态路由 O(1))
+2. cachedRoutes (缓存路由 O(1))
+3. dynamicTrees (Radix Tree O(m))
+4. regularRoutes/irregularRoutes (legacy 备选)
+```
+
+**Phase 3 完成，保留 legacy 路由作为备选。下一步可选择移除或继续优化。**
+
