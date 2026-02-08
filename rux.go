@@ -138,29 +138,9 @@ func InterceptAll(path string) func(*Router) {
 	}
 }
 
-// MaxNumCaches setting for the router
-func MaxNumCaches(num uint16) func(*Router) {
-	return func(r *Router) {
-		r.maxNumCaches = num
-	}
-}
-
-// CachingWithNum for the router
-func CachingWithNum(num uint16) func(*Router) {
-	return func(r *Router) {
-		r.maxNumCaches = num
-		r.enableCaching = true
-	}
-}
-
 // UseEncodedPath enable for the router
 func UseEncodedPath(r *Router) {
 	r.useEncodedPath = true
-}
-
-// EnableCaching for the router
-func EnableCaching(r *Router) {
-	r.enableCaching = true
 }
 
 // StrictLastSlash enable for the router

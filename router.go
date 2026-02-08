@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"sync"
@@ -39,32 +40,6 @@ type Router struct {
 	// paramsPool for zero-allocation param extraction
 	paramsPool sync.Pool
 
-	// Cached dynamic routes
-	// {
-	// 	"GET/users/12": Route,
-	// }
-	// cachedRoutes map[string]*Route
-	cachedRoutes *cachedRoutes
-
-	// Regular dynamic routing (legacy, will be removed)
-	// - key is METHOD + "first-node":
-	// - first node string in the route path. "/users/{id}" -> "user"
-	// Data example:
-	// {
-	// 	"GETblog": [ Route{path:"/blog/{id}"}, ...],
-	// 	"POSTblog": [ Route{path:"/blog/{user}/add"}, ...],
-	// 	"GETusers": [ Route{path:"/users/{id}"}, ...],
-	// 	...
-	// }
-	regularRoutes methodRoutes
-
-	// Irregular dynamic routing (legacy, will be removed)
-	// {
-	// 	"GET": [Route, ...],
-	// 	"POST": [Route, Route, ...],
-	// }
-	irregularRoutes methodRoutes
-
 	// storage named routes. {"name": Route}
 	namedRoutes map[string]*Route
 
@@ -86,10 +61,6 @@ type Router struct {
 	OnPanic HandlerFunc
 	// intercept all request, then redirect to the path. eg. "/coming-soon" "/in-maintenance"
 	interceptAll string
-	// maximum number of cached dynamic routes. default is 1000
-	maxNumCaches uint16
-	// cache recently accessed dynamic routes. default is False
-	enableCaching bool
 	// use encoded path for match route. default is False
 	useEncodedPath bool
 	// strict match last slash char('/'). If is True, will strict compare last '/'. default is False
@@ -125,14 +96,9 @@ type Router struct {
 func New(options ...func(*Router)) *Router {
 	router := &Router{
 		Name: "default",
-
-		maxNumCaches: 1000,
 		stableRoutes: make(map[string]*Route),
 		namedRoutes:  make(map[string]*Route),
 		dynamicTrees: newMethodTrees(),
-
-		regularRoutes:   make(methodRoutes),
-		irregularRoutes: make(methodRoutes),
 	}
 
 	// with some options
@@ -236,12 +202,6 @@ func (r *Router) AddNamed(name, path string, handler HandlerFunc, methods ...str
 // AddRoute add a route by Route instance. , methods ...string
 func (r *Router) AddRoute(route *Route) *Route {
 	r.appendRoute(route)
-
-	// init route cache container
-	if r.enableCaching && r.cachedRoutes == nil {
-		r.cachedRoutes = NewCachedRoutes(int(r.maxNumCaches))
-	}
-
 	return route
 }
 
@@ -407,9 +367,30 @@ func (r *Router) StaticDir(prefixURL string, fileDir string) {
 func (r *Router) StaticFiles(prefixURL string, rootDir string, exts string) {
 	fsHandler := http.FileServer(http.Dir(rootDir))
 
-	// eg "/assets/(?:.+\.(?:css|js|html))"
+	// 解析扩展名列表
+	extList := strings.Split(exts, "|")
+	for i := range extList {
+		extList[i] = strings.TrimSpace(extList[i])
+	}
+
+	// 由于 Radix Tree 不支持 regex，我们在 handler 内部校验扩展名
+	// 路径中的 regex 模式会被转换为参数 :file
 	r.GET(fmt.Sprintf(`%s/{file:.+\.(?:%s)}`, prefixURL, exts), func(c *Context) {
-		c.Req.URL.Path = c.Param("file")
+		fileName := c.Param("file")
+		// 校验文件扩展名
+		fileExt := strings.TrimPrefix(filepath.Ext(fileName), ".")
+		allowed := false
+		for _, ext := range extList {
+			if strings.EqualFold(fileExt, ext) {
+				allowed = true
+				break
+			}
+		}
+		if !allowed {
+			c.SetStatus(404)
+			return
+		}
+		c.Req.URL.Path = fileName
 		fsHandler.ServeHTTP(c.Resp, c.Req)
 	})
 }
@@ -441,18 +422,7 @@ func (r *Router) IterateRoutes(fn func(route *Route)) {
 	for _, route := range r.stableRoutes {
 		fn(route)
 	}
-
-	for _, routes := range r.regularRoutes {
-		for _, route := range routes {
-			fn(route)
-		}
-	}
-
-	for _, routes := range r.irregularRoutes {
-		for _, route := range routes {
-			fn(route)
-		}
-	}
+	// TODO: Add iteration for dynamic routes in Radix Tree
 }
 
 // String convert all routes to string
@@ -465,21 +435,8 @@ func (r *Router) String() string {
 		_, _ = fmt.Fprintf(buf, " %s\n", route)
 	}
 
-	_, _ = fmt.Fprint(buf, "Regular(dynamic):\n")
-	for pfx, routes := range r.regularRoutes {
-		_, _ = fmt.Fprintf(buf, " %s:\n", pfx)
-		for _, route := range routes {
-			_, _ = fmt.Fprintf(buf, "   %s\n", route.String())
-		}
-	}
-
-	_, _ = fmt.Fprint(buf, "Irregular(dynamic):\n")
-	for m, routes := range r.irregularRoutes {
-		_, _ = fmt.Fprintf(buf, " %s:\n", m)
-		for _, route := range routes {
-			_, _ = fmt.Fprintf(buf, "   %s\n", route.String())
-		}
-	}
+	_, _ = fmt.Fprint(buf, "Dynamic(Radix Tree): (see dynamicTrees)\n")
+	// TODO: Add string representation for Radix Tree routes
 
 	return buf.String()
 }
@@ -514,6 +471,12 @@ func (r *Router) formatPath(path string) string {
 func (r *Router) appendRoute(route *Route) {
 	// route check: methods, handler
 	route.goodInfo()
+
+	// Initialize handlers chain from handler if needed
+	if route.handler != nil && len(route.handlers) == 0 {
+		route.handlers = []HandlerFunc{route.handler}
+	}
+
 	// format path and append group info
 	r.appendGroupInfo(route)
 	// print debug info
@@ -541,34 +504,13 @@ func (r *Router) appendRoute(route *Route) {
 	radixPath := convertParamSyntax(route.path)
 	for _, method := range route.methods {
 		tree := r.dynamicTrees.ensureTree(method)
-		tree.AddRoute(radixPath, route.handlers, route.methods)
+		tree.AddRouteWithRoute(radixPath, route.handlers, route.methods, route)
 	}
 	r.counter++
 
-	// Keep legacy routes for backward compatibility during transition
-	// parsing route path with parameters
-	if first := r.parseParamRoute(route); first != "" {
-		for _, method := range route.methods {
-			key := method + first
-			rs, has := r.regularRoutes[key]
-			if !has {
-				rs = routes{}
-			}
-
-			r.regularRoutes[key] = append(rs, route)
-		}
-		return
-	}
-
-	// it's irregular param route
-	for _, method := range route.methods {
-		rs, has := r.irregularRoutes[method]
-		if has {
-			rs = routes{}
-		}
-
-		r.irregularRoutes[method] = append(rs, route)
-	}
+	// Parse param route for backward compatibility (sets up regex for route.match())
+	// This is needed for tests and direct route.match() calls
+	r.parseParamRoute(route)
 }
 
 func (r *Router) appendGroupInfo(route *Route) {

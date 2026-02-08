@@ -23,7 +23,7 @@ type Server struct {
 // New server instance
 func New(debugMode bool) *Server {
 	rux.Debug(debugMode)
-	r := rux.New(rux.EnableCaching)
+	r := rux.New()
 
 	r.Use(handlers.PanicsHandler())
 	if debugMode {

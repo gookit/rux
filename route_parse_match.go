@@ -148,71 +148,20 @@ func (r *Router) QuickMatch(method, path string) (route *Route, ps Params, alm [
 func (r *Router) match(method, path string) (rt *Route, ps Params) {
 	// find in stable routes
 	if route, ok := r.stableRoutes[method+path]; ok {
-		// return r.newMatchResult(route, nil)
 		return route, nil
 	}
 
-	// find in cached routes
-	if r.enableCaching {
-		route, ok := r.cachedRoutes.Get(method + path)
-		if ok {
-			return route, route.params
-		}
-	}
-
-	// find in Radix Tree (new dynamic route matching)
+	// find in Radix Tree (dynamic route matching)
 	if r.dynamicTrees != nil {
 		if tree, ok := r.dynamicTrees.getTree(method); ok {
-			if handlers, params, foundRoute, found := tree.FindRouteWithRoute(method, path); found {
-				// Reconstruct route from handlers if needed
-				_ = handlers
+			if _, params, foundRoute, found := tree.FindRouteWithRoute(method, path, r.strictLastSlash); found {
 				if foundRoute != nil {
 					return foundRoute, params
 				}
 			}
 		}
 	}
-
-	// Legacy matching logic (to be removed after full transition)
-	// find in regular routes
-	if pos := strings.IndexByte(path[1:], '/'); pos > 0 {
-		key := method + path[1:pos+1]
-
-		if rs, ok := r.regularRoutes[key]; ok {
-			for i := range rs {
-				if strings.Index(path, rs[i].start) != 0 {
-					continue
-				}
-
-				if ps, ok := rs[i].matchRegex(path); ok {
-					// ret = r.newMatchResult(route, ps)
-					r.cacheDynamicRoute(key, ps, rs[i])
-					return rs[i], ps
-				}
-			}
-		}
-	}
-
-	// find in irregular routes
-	if rs, ok := r.irregularRoutes[method]; ok {
-		for _, route := range rs {
-			if ps, ok := route.matchRegex(path); ok {
-				r.cacheDynamicRoute(method+path, ps, route)
-				return route, ps
-			}
-		}
-	}
 	return
-}
-
-// cache dynamic Params route when EnableRouteCache is true
-func (r *Router) cacheDynamicRoute(key string, ps Params, route *Route) {
-	if !r.enableCaching {
-		return
-	}
-
-	// copy new route instance. Notice: cache matched Params
-	r.cachedRoutes.Set(key, route.copyWithParams(ps))
 }
 
 // find allowed methods for current request

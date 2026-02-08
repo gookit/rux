@@ -369,7 +369,7 @@ func (t *radixTree) createChildIterativeWithRoute(parent *radixNode, path string
 		}
 
 		if len(remaining) == 0 {
-			node.setHandler(method, handlers)
+			node.setHandlerWithRoute(method, handlers, route)
 		}
 
 		currentParent.children[segment] = node
@@ -461,16 +461,46 @@ func (n *radixNode) setHandlerWithRoute(method string, handlers HandlersChain, r
  *************************************************************/
 
 // FindRoute 查找路由
-func (t *radixTree) FindRoute(method, path string) (handlers HandlersChain, params Params, found bool) {
-	handlers, params, _, found = t.FindRouteWithRoute(method, path)
+func (t *radixTree) FindRoute(method, path string, strictLastSlash ...bool) (handlers HandlersChain, params Params, found bool) {
+	handlers, params, _, found = t.FindRouteWithRoute(method, path, strictLastSlash...)
 	return
 }
 
 // FindRouteWithRoute 查找路由并返回 Route 引用
-func (t *radixTree) FindRouteWithRoute(method, path string) (handlers HandlersChain, params Params, route *Route, found bool) {
-	params = make(Params)
-	path = normalizePath(path)
+// strictLastSlash: 如果为 true，则严格匹配末尾斜杠（/path 和 /path/ 被视为不同）
+func (t *radixTree) FindRouteWithRoute(method, path string, strictLastSlash ...bool) (handlers HandlersChain, params Params, route *Route, found bool) {
+	strict := false
+	if len(strictLastSlash) > 0 {
+		strict = strictLastSlash[0]
+	}
 
+	params = make(Params)
+
+	// 在非严格模式下，尝试两种形式（有斜杠和没有斜杠）
+	if !strict {
+		// 先尝试 normalize 后的路径（无斜杠）
+		normalizedPath := normalizePath(path)
+		handlers, params, route, found = t.findRouteInternal(method, normalizedPath, params, strict)
+		if found {
+			return
+		}
+
+		// 尝试带斜杠的版本
+		if normalizedPath != "/" && !strings.HasSuffix(normalizedPath, "/") {
+			withSlash := normalizedPath + "/"
+			params = make(Params)
+			return t.findRouteInternal(method, withSlash, params, strict)
+		}
+		return nil, params, nil, false
+	}
+
+	// 严格模式：保留末尾斜杠
+	path = normalizePathStrict(path)
+	return t.findRouteInternal(method, path, params, strict)
+}
+
+// findRouteInternal 内部路由查找实现
+func (t *radixTree) findRouteInternal(method, path string, params Params, strict bool) (handlers HandlersChain, ps Params, route *Route, found bool) {
 	// 特殊情况：根路径
 	if path == "/" {
 		if h, exists := t.root.handlers[method]; exists {
@@ -528,6 +558,10 @@ func (t *radixTree) FindRouteWithRoute(method, path string) (handlers HandlersCh
 			remaining = remaining[1:]
 			if len(remaining) == 0 {
 				// 路径以斜杠结尾
+				// 如果 strictLastSlash 为 true，则不匹配（返回失败）
+				if strict {
+					return nil, params, nil, false
+				}
 				if h, exists := node.handlers[method]; exists {
 					r := node.routes[method]
 					return h, params, r, true
@@ -553,6 +587,15 @@ func (t *radixTree) FindRouteWithRoute(method, path string) (handlers HandlersCh
 					return h, params, r, true
 				}
 				return nil, params, nil, false
+			}
+
+			// 如果 strictLastSlash 为 true 且剩余部分只是斜杠，则不应匹配
+			if strict && paramEnd < len(remaining) && remaining[paramEnd] == '/' {
+				// 检查斜杠后是否还有其他内容
+				if paramEnd+1 == len(remaining) {
+					// 路径以斜杠结尾，且 strict 为 true，不匹配
+					return nil, params, nil, false
+				}
 			}
 
 			// 继续在参数子树中查找（跳过已匹配的参数值）

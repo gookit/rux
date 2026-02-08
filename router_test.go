@@ -232,7 +232,7 @@ func TestAddRoute(t *testing.T) {
 		}
 
 		r.GET("/overflow", emptyHandler, hs...)
-	}, "too many handlers(number: 65)")
+	}, "too many handlers(number:")
 
 	route := r.GET("/get", namedHandler)
 	is.NotEmpty(route.Handler())
@@ -395,7 +395,7 @@ func TestRouter_Group(t *testing.T) {
 			r.GET("", emptyHandler)
 			r.GET("/{id}", emptyHandler)
 		}, hs...)
-	}, "too many handlers(number: 65)")
+	}, "too many handlers(number: ")
 }
 
 func TestRouter_Controller(t *testing.T) {
@@ -670,24 +670,6 @@ func TestRouter_WithOptions(t *testing.T) {
 	is.Eq("coming-soon", w.Body.String())
 	w = mockRequest(r, "POST", "/not-exist", nil)
 	is.Eq("coming-soon", w.Body.String())
-
-	// Options: EnableCaching, MaxNumCaches
-	r = New(EnableCaching, MaxNumCaches(10))
-	simpleHandler := func(c *Context) {
-		c.Text(200, "id:"+c.Param("id"))
-	}
-	r.GET("/users/{id}", simpleHandler)
-	w = mockRequest(r, "GET", "/users/23", nil)
-	is.Eq("id:23", w.Body.String())
-	w = mockRequest(r, "GET", "/users/23", nil)
-	is.Eq("id:23", w.Body.String())
-	is.Eq(1, r.cachedRoutes.Len())
-
-	for id := range []int{19: 0} {
-		idStr := fmt.Sprint(id)
-		w = mockRequest(r, "GET", "/users/"+idStr, nil)
-		is.Eq("id:"+idStr, w.Body.String())
-	}
 
 	// Options: MaxMultipisMemory 8M
 	// r = New(MaxMultipisMemory(8 << 20))

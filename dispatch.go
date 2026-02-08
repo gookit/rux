@@ -165,8 +165,13 @@ func (r *Router) handleHTTPRequest(ctx *Context) {
 		ctx.Set(CTXCurrentRouteName, route.name)
 		ctx.Set(CTXCurrentRoutePath, path)
 
-		// append main handler to last
-		handlers = append(route.handlers, route.handler)
+		// Use handlers chain (already includes main handler from appendRoute)
+		// or append main handler if handlers is empty
+		if len(route.handlers) > 0 {
+			handlers = route.handlers
+		} else if route.handler != nil {
+			handlers = HandlersChain{route.handler}
+		}
 	} else if len(allowed) > 0 { // method not allowed
 		if len(r.noAllowed) == 0 {
 			r.noAllowed = HandlersChain{internal405Handler}

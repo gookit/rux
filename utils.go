@@ -34,6 +34,28 @@ func normalizePath(path string) string {
 	return path
 }
 
+// normalizePathStrict 标准化路径但保留末尾斜杠（用于 strictLastSlash 模式）
+func normalizePathStrict(path string) string {
+	if len(path) == 0 {
+		return "/"
+	}
+
+	path = strings.TrimSpace(path)
+
+	// 确保以 '/' 开头
+	if path[0] != '/' {
+		path = "/" + path
+	}
+
+	// 注意：在 strict 模式下，保留末尾斜杠
+	// 只处理连续的斜杠，压缩为单个斜杠
+	for strings.Contains(path, "//") {
+		path = strings.ReplaceAll(path, "//", "/")
+	}
+
+	return path
+}
+
 // longestCommonPrefix 查找最长公共前缀
 func longestCommonPrefix(a, b string) int {
 	maxLen := len(a)
@@ -121,8 +143,8 @@ func parseOptionalSegments(path string) []string {
 }
 
 // convertParamSyntax 转换参数语法 {param} -> :param
+// 支持正则表达式模式，如 {file:.+} -> :file
 func convertParamSyntax(path string) string {
-	// 将 {param} 替换为 :param
 	for {
 		start := strings.IndexByte(path, '{')
 		if start == -1 {
@@ -132,8 +154,13 @@ func convertParamSyntax(path string) string {
 		if end == -1 || end < start {
 			break
 		}
-		paramName := path[start+1 : end]
-		path = path[:start] + ":" + paramName + path[end+1:]
+		paramContent := path[start+1 : end]
+		// 如果包含冒号，只取参数名部分（去除正则表达式）
+		// 如 "file:.+" -> "file"
+		if colonIdx := strings.IndexByte(paramContent, ':'); colonIdx > 0 {
+			paramContent = paramContent[:colonIdx]
+		}
+		path = path[:start] + ":" + paramContent + path[end+1:]
 	}
 	return path
 }
