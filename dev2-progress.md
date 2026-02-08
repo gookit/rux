@@ -23,16 +23,26 @@
 - [x] 实现子节点创建逻辑 (createChildIterative)
 - [x] 运行单元测试验证 - **全部通过**
 
-### Phase 2: 可选参数展开支持
-- [ ] 实现 parseOptionalSegments 函数
-- [ ] 实现 validateOptionalSegments 函数
-- [ ] 支持 `/posts[/{id}]` 展开为 `/posts` 和 `/posts/{id}`
+### Phase 2: 可选参数展开支持 ✅
+- [x] 实现 validateOptionalSegments 函数
+- [x] 实现 parseOptionalSegments 函数
+- [x] 支持 `/posts[/{id}]` 展开为 `/posts` 和 `/posts/:id`
+- [x] 集成到 Radix Tree AddRoute 方法
+- [x] 单元测试可选参数展开
+- [x] 单元测试复杂场景
+
+### 可选参数规则
+- ✅ 只能在路径最后：`/posts[/{id}]` - 合法
+- ✅ 只能支持一个可选参数：`/api/users[/{id}]` - 合法
+- ❌ 不在最后：`/posts[/{category}]/{id}` - 非法（应 panic）
+- ❌ 多个可选参数：`/api[/{v1}]/users[/{v2}]` - 非法（应 panic）
 
 ### Phase 3: Router 集成
 - [ ] 修改 Router 结构体，添加 dynamicTrees 字段
 - [ ] 添加 paramsPool 实现
 - [ ] 修改 AddRoute 方法，路由分发到静态/动态
 - [ ] 修改 match 方法，先查静态再查动态
+- [ ] 参考 httprouter 的优先级机制
 - [ ] 移除 regularRoutes 和 irregularRoutes
 - [ ] 移除 cachedRoutes 相关代码
 
@@ -71,4 +81,27 @@
 - TestRadixTree_DifferentMethods ✅
 - TestRadixTree_MixedRoutes ✅
 
-下一步：Phase 2 - 可选参数展开支持 或 Phase 3 - Router 集成
+### 2026-02-08 (续)
+**Phase 2 完成 - 可选参数展开支持**
+
+已完成可选参数展开功能的完整实现：
+- `validateOptionalSegments`: 验证可选参数规则（只能在最后、只能有一个）
+- `parseOptionalSegments`: 展开 `/posts[/{id}]` 为 `/posts` 和 `/posts/:id`
+- `convertParamSyntax`: 自动转换 `{param}` 语法为 `:param` 语法
+- 集成到 Radix Tree 的 AddRoute 方法，自动展开可选参数
+
+**新增测试全部通过：**
+- TestValidateOptionalSegments ✅
+- TestParseOptionalSegments ✅
+- TestRadixTree_OptionalSegments ✅
+
+**示例：**
+```
+输入: /posts[/{id}]
+展开: ["/posts", "/posts/:id"]
+
+输入: /api/users[/{name}]/profile
+展开: ["/api/users/profile", "/api/users/:name/profile"]
+```
+
+下一步：Phase 3 - Router 集成

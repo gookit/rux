@@ -114,8 +114,24 @@ func newRadixTree() *radixTree {
  *************************************************************/
 
 // AddRoute 添加路由到 Radix Tree
+// 支持可选参数展开：/posts[/{id}] 会展开为 /posts 和 /posts/{id}
 func (t *radixTree) AddRoute(path string, handlers HandlersChain, methods []string) {
 	path = normalizePath(path)
+
+	// 检查并处理可选参数
+	if strings.Contains(path, "[") {
+		validateOptionalSegments(path)
+		expandedPaths := parseOptionalSegments(path)
+
+		// 为每个展开的路径注册路由
+		for _, expandedPath := range expandedPaths {
+			expandedPath = normalizePath(expandedPath)
+			for _, method := range methods {
+				t.addHandler(method, expandedPath, handlers)
+			}
+		}
+		return
+	}
 
 	for _, method := range methods {
 		t.addHandler(method, path, handlers)

@@ -49,6 +49,95 @@ func longestCommonPrefix(a, b string) int {
 	return i
 }
 
+// validateOptionalSegments 验证可选参数规则
+// 规则：
+// 1. 可选参数只能在路径最后
+// 2. 只能支持一个可选参数
+func validateOptionalSegments(path string) {
+	firstOptionalPos := strings.IndexByte(path, '[')
+	lastOptionalPos := strings.LastIndexByte(path, '[')
+
+	// 没有可选参数，直接返回
+	if firstOptionalPos == -1 {
+		return
+	}
+
+	// 规则 1：不能有多个可选参数
+	if firstOptionalPos != lastOptionalPos {
+		panic(fmt.Sprintf("route %s: only one optional segment is allowed", path))
+	}
+
+	// 规则 2：可选参数后不能有其他路径段
+	closingBracketPos := strings.IndexByte(path, ']')
+	afterOptionalPos := closingBracketPos + 1
+	if afterOptionalPos < len(path) {
+		panic(fmt.Sprintf("route %s: optional segment must be at the end of the path, found '%s' after ']'",
+			path, path[afterOptionalPos:]))
+	}
+}
+
+// parseOptionalSegments 解析可选段并展开为多条路由
+// 输入：/posts[/{id}]
+// 输出：["/posts", "/posts/:id"]
+//
+// 输入：/api/users[/{name}]/profile
+// 输出：["/api/users/profile", "/api/users/:name/profile"]
+func parseOptionalSegments(path string) []string {
+	var results []string
+
+	// 找到可选段的开始和结束位置
+	startIdx := strings.IndexByte(path, '[')
+	endIdx := strings.IndexByte(path, ']')
+
+	// 没有可选段，返回原路径（转换参数语法）
+	if startIdx == -1 || endIdx == -1 {
+		return []string{convertParamSyntax(path)}
+	}
+
+	// 可选段之前的部分（不包括 '['）
+	beforeOptional := path[:startIdx]
+	// 可选段内部的内容（不包括括号）
+	optionalContent := path[startIdx+1 : endIdx]
+	// 可选段之后的部分（不包括 ']'）
+	afterOptional := ""
+	if endIdx+1 < len(path) {
+		afterOptional = path[endIdx+1:]
+	}
+
+	// 转换参数语法 {param} -> :param
+	beforeOptional = convertParamSyntax(beforeOptional)
+	afterOptional = convertParamSyntax(afterOptional)
+	optionalContent = convertParamSyntax(optionalContent)
+
+	// 版本 1：跳过可选段
+	withoutOptional := beforeOptional + afterOptional
+	results = append(results, withoutOptional)
+
+	// 版本 2：包含可选段
+	withOptional := beforeOptional + optionalContent + afterOptional
+	results = append(results, withOptional)
+
+	return results
+}
+
+// convertParamSyntax 转换参数语法 {param} -> :param
+func convertParamSyntax(path string) string {
+	// 将 {param} 替换为 :param
+	for {
+		start := strings.IndexByte(path, '{')
+		if start == -1 {
+			break
+		}
+		end := strings.IndexByte(path, '}')
+		if end == -1 || end < start {
+			break
+		}
+		paramName := path[start+1 : end]
+		path = path[:start] + ":" + paramName + path[end+1:]
+	}
+	return path
+}
+
 /*************************************************************
  * global path params
  *************************************************************/

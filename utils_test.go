@@ -44,3 +44,89 @@ func TestHelper(t *testing.T) {
 	assert.Eq(t, []string{"application/json"}, ss)
 
 }
+
+/*************************************************************
+ * Optional Segment Tests
+ *************************************************************/
+
+func TestValidateOptionalSegments(t *testing.T) {
+	// Valid paths
+	t.Run("valid - optional at end", func(t *testing.T) {
+		defer func() {
+			if r := recover(); r != nil {
+				t.Errorf("Expected no panic, got: %v", r)
+			}
+		}()
+		validateOptionalSegments("/posts[/{id}]")
+	})
+
+	t.Run("valid - no optional segment", func(t *testing.T) {
+		defer func() {
+			if r := recover(); r != nil {
+				t.Errorf("Expected no panic, got: %v", r)
+			}
+		}()
+		validateOptionalSegments("/posts/{id}")
+	})
+
+	// Invalid paths - multiple optional
+	t.Run("invalid - multiple optional", func(t *testing.T) {
+		defer func() {
+			if r := recover(); r == nil {
+				t.Error("Expected panic for multiple optional segments")
+			}
+		}()
+		validateOptionalSegments("/api[/{v1}]/users[/{id}]")
+	})
+
+	// Invalid paths - optional not at end
+	t.Run("invalid - optional not at end", func(t *testing.T) {
+		defer func() {
+			if r := recover(); r == nil {
+				t.Error("Expected panic for optional segment not at end")
+			}
+		}()
+		validateOptionalSegments("/posts[/{category}]/{id}")
+	})
+}
+
+func TestParseOptionalSegments(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected []string
+	}{
+		{
+			name:     "simple optional param",
+			input:    "/posts[/{id}]",
+			expected: []string{"/posts", "/posts/:id"},
+		},
+		{
+			name:     "optional param with prefix",
+			input:    "/api/users[/{name}]",
+			expected: []string{"/api/users", "/api/users/:name"},
+		},
+		{
+			name:     "optional with content after",
+			input:    "/api/users[/{name}]/profile",
+			expected: []string{"/api/users/profile", "/api/users/:name/profile"},
+		},
+		{
+			name:     "no optional segment",
+			input:    "/posts/{id}",
+			expected: []string{"/posts/:id"},
+		},
+		{
+			name:     "empty optional",
+			input:    "/posts[]",
+			expected: []string{"/posts", "/posts"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := parseOptionalSegments(tt.input)
+			assert.Eq(t, tt.expected, result)
+		})
+	}
+}

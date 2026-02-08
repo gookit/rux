@@ -325,3 +325,37 @@ func TestRadixTree_MixedRoutes(t *testing.T) {
 		t.Errorf("Expected param filepath=css/style.css, got %q", params["filepath"])
 	}
 }
+
+func TestRadixTree_OptionalSegments(t *testing.T) {
+	tree := newRadixTree()
+
+	handler := func(c *Context) {}
+	handlers := HandlersChain{handler}
+
+	// 添加带可选参数的路由 /posts[/{id}]
+	tree.AddRoute("/posts[/{id}]", handlers, []string{"GET"})
+
+	// 测试不带可选参数的路径 /posts
+	h, params, found := tree.FindRoute("GET", "/posts")
+	if !found {
+		t.Errorf("Expected to find route /posts")
+	}
+	if h == nil {
+		t.Errorf("Expected handler to be set for /posts")
+	}
+	if len(params) != 0 {
+		t.Errorf("Expected empty params for /posts, got %v", params)
+	}
+
+	// 测试带可选参数的路径 /posts/123
+	h, params, found = tree.FindRoute("GET", "/posts/123")
+	if !found {
+		t.Errorf("Expected to find route /posts/123")
+	}
+	if h == nil {
+		t.Errorf("Expected handler to be set for /posts/123")
+	}
+	if params["id"] != "123" {
+		t.Errorf("Expected param id=123, got %q", params["id"])
+	}
+}
