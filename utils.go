@@ -8,6 +8,47 @@ import (
 	"github.com/gookit/color"
 )
 
+// normalizePath 标准化路径
+func normalizePath(path string) string {
+	if len(path) == 0 {
+		return "/"
+	}
+
+	path = strings.TrimSpace(path)
+
+	// 确保以 '/' 开头
+	if path[0] != '/' {
+		path = "/" + path
+	}
+
+	// 去除尾随 '/'（除非是根路径）
+	if len(path) > 1 && path[len(path)-1] == '/' {
+		path = path[:len(path)-1]
+	}
+
+	// 处理连续的斜杠，压缩为单个斜杠
+	for strings.Contains(path, "//") {
+		path = strings.ReplaceAll(path, "//", "/")
+	}
+
+	return path
+}
+
+// longestCommonPrefix 查找最长公共前缀
+func longestCommonPrefix(a, b string) int {
+	maxLen := len(a)
+	if len(b) < maxLen {
+		maxLen = len(b)
+	}
+
+	i := 0
+	for i < maxLen && a[i] == b[i] {
+		i++
+	}
+
+	return i
+}
+
 /*************************************************************
  * global path params
  *************************************************************/

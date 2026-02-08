@@ -12,3 +12,4 @@ AGENTS.md
 .xenv.toml
 openspec/
 tmp/
+_tmp/

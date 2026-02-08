@@ -86,26 +86,8 @@ func TestRadixTree_AddStaticRoute(t *testing.T) {
 	}
 }
 
-func newRadixTree() *radixTree {
-	return &radixTree{
-		root: &radixNode{
-			prefix:   "/",
-			nType:    nodeTypeRoot,
-			children: make(map[string]*radixNode),
-			handlers: make(map[string]HandlersChain),
-		},
-	}
-}
-
 func TestRadixTree_AddParamRoute(t *testing.T) {
-	tree := &radixTree{
-		root: &radixNode{
-			prefix:   "/",
-			nType:    nodeTypeRoot,
-			children: make(map[string]*radixNode),
-			handlers: make(map[string]HandlersChain),
-		},
-	}
+	tree := newRadixTree()
 
 	handler := func(c *Context) {}
 	handlers := HandlersChain{handler}
@@ -135,14 +117,7 @@ func TestRadixTree_AddParamRoute(t *testing.T) {
 }
 
 func TestRadixTree_AddWildcardRoute(t *testing.T) {
-	tree := &radixTree{
-		root: &radixNode{
-			prefix:   "/",
-			nType:    nodeTypeRoot,
-			children: make(map[string]*radixNode),
-			handlers: make(map[string]HandlersChain),
-		},
-	}
+	tree := newRadixTree()
 
 	handler := func(c *Context) {}
 	handlers := HandlersChain{handler}
@@ -172,14 +147,7 @@ func TestRadixTree_AddWildcardRoute(t *testing.T) {
 }
 
 func TestRadixTree_MultipleParams(t *testing.T) {
-	tree := &radixTree{
-		root: &radixNode{
-			prefix:   "/",
-			nType:    nodeTypeRoot,
-			children: make(map[string]*radixNode),
-			handlers: make(map[string]HandlersChain),
-		},
-	}
+	tree := newRadixTree()
 
 	handler := func(c *Context) {}
 	handlers := HandlersChain{handler}
@@ -207,14 +175,7 @@ func TestRadixTree_MultipleParams(t *testing.T) {
 }
 
 func TestRadixTree_PathCompression(t *testing.T) {
-	tree := &radixTree{
-		root: &radixNode{
-			prefix:   "/",
-			nType:    nodeTypeRoot,
-			children: make(map[string]*radixNode),
-			handlers: make(map[string]HandlersChain),
-		},
-	}
+	tree := newRadixTree()
 
 	handler := func(c *Context) {}
 	handlers := HandlersChain{handler}
@@ -246,14 +207,7 @@ func TestRadixTree_PathCompression(t *testing.T) {
 }
 
 func TestRadixTree_NodeSplit(t *testing.T) {
-	tree := &radixTree{
-		root: &radixNode{
-			prefix:   "/",
-			nType:    nodeTypeRoot,
-			children: make(map[string]*radixNode),
-			handlers: make(map[string]HandlersChain),
-		},
-	}
+	tree := newRadixTree()
 
 	handler := func(c *Context) {}
 	handlers := HandlersChain{handler}
@@ -283,14 +237,7 @@ func TestRadixTree_NodeSplit(t *testing.T) {
 }
 
 func TestRadixTree_NotFound(t *testing.T) {
-	tree := &radixTree{
-		root: &radixNode{
-			prefix:   "/",
-			nType:    nodeTypeRoot,
-			children: make(map[string]*radixNode),
-			handlers: make(map[string]HandlersChain),
-		},
-	}
+	tree := newRadixTree()
 
 	handler := func(c *Context) {}
 	handlers := HandlersChain{handler}
@@ -311,14 +258,7 @@ func TestRadixTree_NotFound(t *testing.T) {
 }
 
 func TestRadixTree_DifferentMethods(t *testing.T) {
-	tree := &radixTree{
-		root: &radixNode{
-			prefix:   "/",
-			nType:    nodeTypeRoot,
-			children: make(map[string]*radixNode),
-			handlers: make(map[string]HandlersChain),
-		},
-	}
+	tree := newRadixTree()
 
 	getHandler := func(c *Context) {}
 	postHandler := func(c *Context) {}
@@ -347,14 +287,7 @@ func TestRadixTree_DifferentMethods(t *testing.T) {
 }
 
 func TestRadixTree_MixedRoutes(t *testing.T) {
-	tree := &radixTree{
-		root: &radixNode{
-			prefix:   "/",
-			nType:    nodeTypeRoot,
-			children: make(map[string]*radixNode),
-			handlers: make(map[string]HandlersChain),
-		},
-	}
+	tree := newRadixTree()
 
 	handler := func(c *Context) {}
 	handlers := HandlersChain{handler}
