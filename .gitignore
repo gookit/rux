@@ -13,3 +13,5 @@ AGENTS.md
 openspec/
 tmp/
 _tmp/
+.omc/
+*.local.*
