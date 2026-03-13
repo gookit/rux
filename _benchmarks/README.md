@@ -5,14 +5,15 @@ Higher is better.
 install all:
 
 ```bash
-go get ./...
+go mod tidy
+
 # update all
 go get -u -v ./...
 ```
 
 ## Results
 
-- install bombardier: 
+- install bombardier:
 
 ```bash
 go get -u github.com/codesenberg/bombardier
