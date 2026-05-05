@@ -4,8 +4,8 @@ go 1.21
 
 require (
 	github.com/gookit/color v1.6.0
-	github.com/gookit/goutil v0.7.1
-	github.com/gookit/validate v1.5.5
+	github.com/gookit/goutil v0.7.4
+	github.com/gookit/validate v1.5.7
 	github.com/gorilla/websocket v1.5.3
 	github.com/monoculum/formam v3.5.5+incompatible
 )
