@@ -99,14 +99,27 @@ func InterceptAll(path string) func(*Router) {
 }
 
 // Freeze marks the router read-only. Subsequent registration calls panic.
-// Real chain-merge logic is added in Phase 4 — this is a stub so Phase 3
-// tests can exercise the frozen guard.
+// It merges globalChain into each route's finalChain and mirrors GET routes
+// onto HEAD. Idempotent — safe to call multiple times.
 func (r *Router) Freeze() {
 	if !r.frozen.CompareAndSwap(false, true) {
 		return
 	}
-	// TODO(Phase 4): merge globalChain into route.finalChain + mirror GET to HEAD.
+	for _, route := range r.routeList {
+		if len(r.globalChain) == 0 {
+			route.finalChain = route.chain
+			continue
+		}
+		merged := make(HandlersChain, 0, len(r.globalChain)+len(route.chain))
+		merged = append(merged, r.globalChain...)
+		merged = append(merged, route.chain...)
+		route.finalChain = merged
+	}
+	r.mirrorGetToHead()
 }
+
+// mirrorGetToHead is filled in by Task 4.2 (next commit).
+func (r *Router) mirrorGetToHead() {}
 
 /*************************************************************
  * Route registration (Task 3.2)

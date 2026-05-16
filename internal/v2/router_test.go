@@ -235,3 +235,36 @@ func TestRouter_Err(t *testing.T) {
 	r := New()
 	assert.NoErr(t, r.Err())
 }
+
+/*************************************************************
+ * Task 4.1: Freeze chain merge
+ *************************************************************/
+
+func TestFreeze_MergesGlobalChainIntoFinalChain(t *testing.T) {
+	r := New()
+	g1 := func(c *Context) {}
+	g2 := func(c *Context) {}
+	main := func(c *Context) {}
+	r.Use(g1, g2)
+	route := r.GET("/x", main)
+
+	r.Freeze()
+
+	assert.Eq(t, 3, len(route.finalChain))
+}
+
+func TestFreeze_NoGlobalChain_FinalChainIsRouteChain(t *testing.T) {
+	r := New()
+	main := func(c *Context) {}
+	route := r.GET("/x", main)
+	r.Freeze()
+	assert.Eq(t, 1, len(route.finalChain))
+}
+
+func TestFreeze_Idempotent(t *testing.T) {
+	r := New()
+	r.GET("/x", func(c *Context) {})
+	r.Freeze()
+	r.Freeze() // must not panic
+	assert.True(t, r.Frozen())
+}
