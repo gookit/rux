@@ -2,6 +2,7 @@ package v2
 
 import (
 	"fmt"
+	"net/http"
 	"reflect"
 	"strings"
 	"sync"
@@ -449,6 +450,42 @@ func (r *Router) Resource(basePath string, controller any, middles ...HandlerFun
 			}
 		}
 	}, middles...)
+}
+
+/*************************************************************
+ * Static file helpers (Task 3.6)
+ *************************************************************/
+
+// StaticFile registers a single static file under the given path.
+func (r *Router) StaticFile(path, filePath string) *Route {
+	return r.GET(path, func(c *Context) { c.File(filePath) })
+}
+
+// StaticDir serves files from rootDir under prefixURL using http.FileServer.
+func (r *Router) StaticDir(prefixURL, rootDir string) *Route {
+	fs := http.StripPrefix(prefixURL, http.FileServer(http.Dir(rootDir)))
+	return r.GET(prefixURL+"/*file", func(c *Context) {
+		fs.ServeHTTP(c.Resp, c.Req)
+	})
+}
+
+// StaticFS serves files from the given http.FileSystem under prefixURL.
+func (r *Router) StaticFS(prefixURL string, fs http.FileSystem) *Route {
+	handler := http.StripPrefix(prefixURL, http.FileServer(fs))
+	return r.GET(prefixURL+"/*file", func(c *Context) {
+		handler.ServeHTTP(c.Resp, c.Req)
+	})
+}
+
+// StaticFiles serves files from rootDir under prefixURL. The exts argument
+// is reserved for future extension filtering and is currently ignored.
+func (r *Router) StaticFiles(prefixURL, rootDir, exts string) *Route {
+	fs := http.FileServer(http.Dir(rootDir))
+	_ = exts // reserved for future extension filtering
+	return r.GET(fmt.Sprintf("%s/*file", prefixURL), func(c *Context) {
+		c.Req.URL.Path = c.Param("file")
+		fs.ServeHTTP(c.Resp, c.Req)
+	})
 }
 
 /*************************************************************
