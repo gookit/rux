@@ -293,6 +293,39 @@ func TestFreeze_MirrorsGetToHead_Dynamic(t *testing.T) {
 	assert.True(t, ok)
 }
 
+/*************************************************************
+ * Task 4.3: Match public API
+ *************************************************************/
+
+func TestMatch_Static(t *testing.T) {
+	r := New()
+	r.GET("/users", func(c *Context) {})
+	r.Freeze()
+	route, params, ok := r.Match(GET, "/users")
+	assert.True(t, ok)
+	assert.NotNil(t, route)
+	assert.Eq(t, 0, len(params))
+}
+
+func TestMatch_Dynamic(t *testing.T) {
+	r := New()
+	r.GET("/users/{id}", func(c *Context) {})
+	r.Freeze()
+	route, params, ok := r.Match(GET, "/users/42")
+	assert.True(t, ok)
+	assert.NotNil(t, route)
+	assert.Eq(t, 1, len(params))
+	assert.Eq(t, "id", params[0].Key)
+	assert.Eq(t, "42", params[0].Value)
+}
+
+func TestMatch_Miss(t *testing.T) {
+	r := New()
+	r.Freeze()
+	_, _, ok := r.Match(GET, "/nothing")
+	assert.False(t, ok)
+}
+
 func TestFreeze_DoesNotOverrideExplicitHead(t *testing.T) {
 	r := New()
 	var headExplicit, getExplicit bool

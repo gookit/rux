@@ -496,6 +496,33 @@ func (r *Router) String() string {
 //
 // TODO(Phase 5): func (r *Router) BuildURL(name string, args ...any) *url.URL
 
+// Match looks up route + params for an offline test or debugging.
+// The hot ServeHTTP path does NOT call this — it uses an internal
+// signature that writes params directly into Context with zero allocation.
+func (r *Router) Match(method, path string) (*Route, []Param, bool) {
+	if !r.frozen.Load() {
+		r.Freeze()
+	}
+	idx := methodIndex(strings.ToUpper(method))
+	if idx < 0 {
+		return nil, nil, false
+	}
+	path = r.formatPath(path)
+
+	if m := r.staticRoutes[idx]; m != nil {
+		if route, ok := m[path]; ok {
+			return route, nil, true
+		}
+	}
+	if tree := r.dynamicTrees[idx]; tree != nil {
+		var ps Params
+		if route, ok := tree.lookup(path, &ps); ok {
+			return route, ps.Snapshot(), true
+		}
+	}
+	return nil, nil, false
+}
+
 // formatPath applies the router's path policy.
 func (r *Router) formatPath(path string) string {
 	if path == "" || path == "/" {
