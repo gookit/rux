@@ -152,3 +152,46 @@ func TestRouter_NotFound(t *testing.T) {
 	r.NotFound(func(c *Context) {})
 	assert.Eq(t, 1, len(r.noRoute))
 }
+
+/*************************************************************
+ * Task 3.5: Controller / Resource
+ *************************************************************/
+
+type fakeController struct{}
+
+func (f *fakeController) AddRoutes(g *Router) {
+	g.GET("/", func(c *Context) {})
+	g.POST("/", func(c *Context) {})
+}
+
+func TestRouter_Controller(t *testing.T) {
+	r := New()
+	r.Controller("/api", &fakeController{})
+
+	idx := methodIndex(GET)
+	_, ok := r.staticRoutes[idx]["/api"]
+	assert.True(t, ok, "GET /api should be registered")
+
+	idxPost := methodIndex(POST)
+	_, ok = r.staticRoutes[idxPost]["/api"]
+	assert.True(t, ok, "POST /api should be registered")
+}
+
+type fakeResource struct{}
+
+func (f *fakeResource) Index(c *Context)  {}
+func (f *fakeResource) Show(c *Context)   {}
+func (f *fakeResource) Store(c *Context)  {}
+func (f *fakeResource) Update(c *Context) {}
+func (f *fakeResource) Delete(c *Context) {}
+
+func TestRouter_Resource(t *testing.T) {
+	r := New()
+	r.Resource("/", &fakeResource{})
+
+	paths := make(map[string]bool)
+	for _, ri := range r.Routes() {
+		paths[ri.Path] = true
+	}
+	assert.True(t, paths["/fakeresource"])
+}

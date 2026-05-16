@@ -1,6 +1,7 @@
 package v2
 
 import (
+	"reflect"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -300,6 +301,137 @@ func (r *Router) NotAllowed(handlers ...HandlerFunc) {
 
 // Handlers returns the global middleware chain.
 func (r *Router) Handlers() HandlersChain { return r.globalChain }
+
+/*************************************************************
+ * Task 3.5: Controller / Resource
+ *************************************************************/
+
+// ControllerFace is implemented by structs registered via Router.Controller.
+// Each implementation places its route registrations inside AddRoutes; the
+// Router applies the basePath as a group prefix.
+type ControllerFace interface {
+	AddRoutes(g *Router)
+}
+
+// RESTful action names, mapped to default HTTP methods.
+const (
+	IndexAction  = "Index"
+	CreateAction = "Create"
+	StoreAction  = "Store"
+	ShowAction   = "Show"
+	EditAction   = "Edit"
+	UpdateAction = "Update"
+	DeleteAction = "Delete"
+)
+
+// RESTFulActions maps action method names to their default HTTP verbs.
+var RESTFulActions = map[string][]string{
+	IndexAction:  {GET},
+	CreateAction: {GET},
+	StoreAction:  {POST},
+	ShowAction:   {GET},
+	EditAction:   {GET},
+	UpdateAction: {PUT, PATCH},
+	DeleteAction: {DELETE},
+}
+
+// Controller registers all routes from the controller's AddRoutes method
+// under the given basePath, with shared middlewares.
+func (r *Router) Controller(basePath string, c ControllerFace, middles ...HandlerFunc) {
+	r.Group(basePath, func() {
+		c.AddRoutes(r)
+	}, middles...)
+}
+
+// Resource registers RESTful routes for the given controller struct.
+//
+//	Methods     Path                Action    Route Name
+//	GET         /resource            Index    resource_index
+//	GET         /resource/create     Create   resource_create
+//	POST        /resource            Store    resource_store
+//	GET         /resource/{id}       Show     resource_show
+//	GET         /resource/{id}/edit  Edit     resource_edit
+//	PUT/PATCH   /resource/{id}       Update   resource_update
+//	DELETE      /resource/{id}       Delete   resource_delete
+//
+// If the controller has a Uses() map[string][]HandlerFunc method, per-action
+// middlewares are wired automatically.
+func (r *Router) Resource(basePath string, controller any, middles ...HandlerFunc) {
+	cv := reflect.ValueOf(controller)
+	if cv.Kind() != reflect.Ptr {
+		panic("rux: Resource controller must be a pointer")
+	}
+	ct := cv.Type()
+	if cv.Elem().Type().Kind() != reflect.Struct {
+		panic("rux: Resource controller must be a pointer to struct")
+	}
+
+	var perActionMW = map[string][]HandlerFunc{}
+	if m := cv.MethodByName("Uses"); m.IsValid() {
+		if uses, ok := m.Interface().(func() map[string][]HandlerFunc); ok {
+			perActionMW = uses()
+		}
+	}
+
+	resName := strings.ToLower(ct.Elem().Name())
+	basePath = strings.TrimRight(basePath, "/") + "/" + resName
+
+	r.Group(basePath, func() {
+		for action, methods := range RESTFulActions {
+			m := cv.MethodByName(action)
+			if !m.IsValid() {
+				continue
+			}
+			handler, ok := m.Interface().(func(*Context))
+			if !ok {
+				continue
+			}
+			routeName := resName + "_" + strings.ToLower(action)
+
+			var route *Route
+			switch action {
+			case IndexAction, StoreAction:
+				route = r.AddNamed(routeName, "/", handler, methods...)
+			case CreateAction:
+				route = r.AddNamed(routeName, "/"+strings.ToLower(action)+"/", handler, methods...)
+			case EditAction:
+				route = r.AddNamed(routeName, "{id}/"+strings.ToLower(action)+"/", handler, methods...)
+			default: // Show, Update, Delete
+				route = r.AddNamed(routeName, "{id}/", handler, methods...)
+			}
+
+			if mws, ok := perActionMW[action]; ok {
+				route.Use(mws...)
+			}
+		}
+	}, middles...)
+}
+
+/*************************************************************
+ * Inspection (Task 3.7 subset — used here by Resource tests)
+ *************************************************************/
+
+// GetRoute returns a named route or nil.
+func (r *Router) GetRoute(name string) *Route { return r.namedRoutes[name] }
+
+// NamedRoutes returns the map of named routes.
+func (r *Router) NamedRoutes() map[string]*Route { return r.namedRoutes }
+
+// Routes returns all routes as RouteInfo snapshots in registration order.
+func (r *Router) Routes() []RouteInfo {
+	out := make([]RouteInfo, 0, len(r.routeList))
+	for _, route := range r.routeList {
+		out = append(out, route.Info())
+	}
+	return out
+}
+
+// IterateRoutes calls fn for each registered route in registration order.
+func (r *Router) IterateRoutes(fn func(*Route)) {
+	for _, route := range r.routeList {
+		fn(route)
+	}
+}
 
 // formatPath applies the router's path policy.
 func (r *Router) formatPath(path string) string {
