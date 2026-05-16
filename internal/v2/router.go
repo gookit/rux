@@ -3,6 +3,7 @@ package v2
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"reflect"
 	"strings"
 	"sync"
@@ -226,6 +227,10 @@ func (r *Router) appendRoute(route *Route) {
 		r.namedRoutes[route.name] = route
 	}
 	r.routeList = append(r.routeList, route)
+
+	// Preserve the registered (group-prefixed) path with {name} placeholders
+	// so Route.ToURL can substitute them at URL-build time.
+	route.originalPath = route.path
 
 	// Expand optional segments into one or more concrete paths.
 	if hasOptionalSegment(route.path) {
@@ -527,11 +532,20 @@ func (r *Router) String() string {
 	return b.String()
 }
 
-// BuildURL is deferred to Phase 5 — it requires Route.ToURL and the
-// BuildRequestURL helper from extends.go, neither of which has been
-// ported to internal/v2 yet.
-//
-// TODO(Phase 5): func (r *Router) BuildURL(name string, args ...any) *url.URL
+// BuildURL builds a request URL for the named route. buildArgs are forwarded
+// to Route.ToURL; see that method for accepted shapes.
+func (r *Router) BuildURL(name string, buildArgs ...any) *url.URL {
+	route := r.GetRoute(name)
+	if route == nil {
+		panic("rux: BuildURL: unknown route " + name)
+	}
+	return route.ToURL(buildArgs...)
+}
+
+// BuildRequestURL is an alias of BuildURL retained for v1 compatibility.
+func (r *Router) BuildRequestURL(name string, buildArgs ...any) *url.URL {
+	return r.BuildURL(name, buildArgs...)
+}
 
 // Match looks up route + params for an offline test or debugging.
 // The hot ServeHTTP path does NOT call this — it uses an internal

@@ -2,6 +2,7 @@ package v2
 
 import (
 	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/gookit/goutil"
@@ -34,6 +35,10 @@ type Route struct {
 	name    string
 	path    string
 	methods []string
+
+	// originalPath preserves the registered path with {name} placeholders for
+	// URL-building. path is rewritten to colon syntax at registration time.
+	originalPath string
 
 	chain      HandlersChain
 	finalChain HandlersChain
@@ -159,4 +164,51 @@ func simpleFmtPath(path string) string {
 		path = "/" + path
 	}
 	return path
+}
+
+// ToURL builds a request URL for this route using the optional build args.
+// buildArgs may be:
+//   - empty:                 return the path as-is.
+//   - a single *BuildRequestURL: drive scheme/host/queries from the builder.
+//   - a single M:            populate path params and query string.
+//   - alternating k,v pairs: same as a single M built from the pairs.
+//
+// Path params are expressed using the v1 placeholder form (e.g. "{id}").
+// originalPath is used so the {name} placeholders are still present even
+// though the registered path has been rewritten to colon syntax.
+func (r *Route) ToURL(buildArgs ...any) *url.URL {
+	pathTpl := r.originalPath
+	if pathTpl == "" {
+		pathTpl = r.path
+	}
+
+	n := len(buildArgs)
+	if n == 0 {
+		return NewBuildRequestURL().Path(pathTpl).Build()
+	}
+
+	var URLBuilder *BuildRequestURL
+	var withParams = make(M)
+
+	if n == 1 {
+		switch v := buildArgs[0].(type) {
+		case *BuildRequestURL:
+			URLBuilder = v
+		case M:
+			URLBuilder = NewBuildRequestURL()
+			withParams = v
+		default:
+			panic("rux: BuildURL: unsupported single argument type")
+		}
+	} else {
+		if n%2 == 1 {
+			panic("rux: BuildURL: odd argument count for k,v pairs")
+		}
+		for i := 0; i < n; i += 2 {
+			withParams[fmt.Sprint(buildArgs[i])] = buildArgs[i+1]
+		}
+		URLBuilder = NewBuildRequestURL()
+	}
+
+	return URLBuilder.Path(pathTpl).Build(withParams)
 }
