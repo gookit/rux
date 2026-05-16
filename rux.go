@@ -1,158 +1,98 @@
 // Package rux is a high-performance HTTP router for Go.
 //
-// Source code and other details for the project are available at GitHub:
+// This package is the public API surface; all implementation lives in
+// internal/v2. Public symbols are type aliases / function vars over the
+// internal types so users get a single coherent import path.
 //
-//	https://github.com/gookit/rux
-//
-// Usage please ref examples and README
+// Source: https://github.com/gookit/rux
 package rux
 
 import (
-	"strings"
-
-	"github.com/gookit/color"
+	v2 "github.com/gookit/rux/internal/v2"
 )
 
-// All supported HTTP verb methods name
+// HTTP method constants.
 const (
-	GET     = "GET"
-	PUT     = "PUT"
-	HEAD    = "HEAD"
-	POST    = "POST"
-	PATCH   = "PATCH"
-	TRACE   = "TRACE"
-	DELETE  = "DELETE"
-	CONNECT = "CONNECT"
-	OPTIONS = "OPTIONS"
+	GET     = v2.GET
+	HEAD    = v2.HEAD
+	POST    = v2.POST
+	PUT     = v2.PUT
+	PATCH   = v2.PATCH
+	DELETE  = v2.DELETE
+	OPTIONS = v2.OPTIONS
+	CONNECT = v2.CONNECT
+	TRACE   = v2.TRACE
 )
 
+// Content-Type and disposition header constants.
 const (
-	// ContentType header key
-	ContentType = "Content-Type"
-	// ContentBinary represents content type application/octet-stream
-	ContentBinary = "application/octet-stream"
-
-	// ContentDisposition describes contentDisposition
-	ContentDisposition = "Content-Disposition"
-	// describes content disposition type
-	dispositionInline = "inline"
-	// describes content disposition type
-	dispositionAttachment = "attachment"
+	ContentType        = v2.ContentType
+	ContentBinary      = v2.ContentBinary
+	ContentDisposition = v2.ContentDisposition
 )
 
+// Context keys exposed by the dispatcher.
 const (
-	// CTXMatchResult key name in the context
-	// CTXMatchResult = "_matchResult"
-
-	// CTXRecoverResult key name in the context
-	CTXRecoverResult = "_recoverResult"
-	// CTXAllowedMethods key name in the context
-	CTXAllowedMethods = "_allowedMethods"
-	// CTXCurrentRouteName key name in the context
-	CTXCurrentRouteName = "_currentRouteName"
-	// CTXCurrentRoutePath key name in the context
-	CTXCurrentRoutePath = "_currentRoutePath"
+	CTXAllowedMethods = v2.CTXAllowedMethods
+	CTXRecoverResult  = v2.CTXRecoverResult
 )
 
-// ControllerFace a simple controller interface
-type ControllerFace interface {
-	// AddRoutes for support register routes in the controller.
-	AddRoutes(g *Router)
-}
+// Public types — all aliased to the internal/v2 implementation.
+type (
+	Router          = v2.Router
+	Context         = v2.Context
+	Route           = v2.Route
+	HandlerFunc     = v2.HandlerFunc
+	HandlersChain   = v2.HandlersChain
+	Param           = v2.Param
+	Params          = v2.Params
+	RouteInfo       = v2.RouteInfo
+	M               = v2.M
+	BuildRequestURL = v2.BuildRequestURL
+	Renderer        = v2.Renderer
+	Validator       = v2.Validator
+	ControllerFace  = v2.ControllerFace
+)
 
+// REST action names.
 var (
-	debug bool
-	// current supported HTTP method
-	// all supported methods string, use for method check
-	// more: ,COPY,PURGE,LINK,UNLINK,LOCK,UNLOCK,VIEW,SEARCH
-	anyMethods = []string{GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD, CONNECT, TRACE}
+	IndexAction  = v2.IndexAction
+	CreateAction = v2.CreateAction
+	StoreAction  = v2.StoreAction
+	ShowAction   = v2.ShowAction
+	EditAction   = v2.EditAction
+	UpdateAction = v2.UpdateAction
+	DeleteAction = v2.DeleteAction
+
+	RESTFulActions = v2.RESTFulActions
 )
 
-// RESTFul method names definition
+// Constructor and lifecycle helpers.
 var (
-	IndexAction  = "Index"
-	CreateAction = "Create"
-	StoreAction  = "Store"
-	ShowAction   = "Show"
-	EditAction   = "Edit"
-	UpdateAction = "Update"
-	DeleteAction = "Delete"
-
-	// RESTFulActions action methods definition
-	RESTFulActions = map[string][]string{
-		IndexAction:  {GET},
-		CreateAction: {GET},
-		StoreAction:  {POST},
-		ShowAction:   {GET},
-		EditAction:   {GET},
-		UpdateAction: {PUT, PATCH},
-		DeleteAction: {DELETE},
-	}
+	New                = v2.New
+	NewBuildRequestURL = v2.NewBuildRequestURL
+	Debug              = v2.Debug
+	IsDebug            = v2.IsDebug
+	AnyMethods         = v2.AnyMethods
+	AllMethods         = v2.AllMethods
+	MethodsString      = v2.MethodsString
 )
 
-// Debug switch debug mode
-func Debug(val bool) {
-	debug = val
-	if debug {
-		color.Info.Println("    NOTICE, rux DEBUG mode is opened by rux.Debug(true)")
-		color.Info.Println("===========================================================")
-	}
-}
+// Router options.
+var (
+	StrictLastSlash        = v2.StrictLastSlash
+	UseEncodedPath         = v2.UseEncodedPath
+	HandleMethodNotAllowed = v2.HandleMethodNotAllowed
+	HandleFallbackRoute    = v2.HandleFallbackRoute
+	InterceptAll           = v2.InterceptAll
+)
 
-// IsDebug return rux is debug mode.
-func IsDebug() bool {
-	return debug
-}
-
-// AnyMethods get all methods
-func AnyMethods() []string {
-	return anyMethods
-}
-
-// AllMethods get all methods
-func AllMethods() []string {
-	return anyMethods
-}
-
-// MethodsString of all supported methods
-func MethodsString() string {
-	return strings.Join(anyMethods, ",")
-}
-
-/*************************************************************
- * Router options
- *************************************************************/
-
-// InterceptAll setting for the router
-func InterceptAll(path string) func(*Router) {
-	return func(r *Router) {
-		r.interceptAll = strings.TrimSpace(path)
-	}
-}
-
-// UseEncodedPath enable for the router
-func UseEncodedPath(r *Router) {
-	r.useEncodedPath = true
-}
-
-// StrictLastSlash enable for the router
-func StrictLastSlash(r *Router) {
-	r.strictLastSlash = true
-}
-
-// MaxMultipartMemory set max memory limit for post forms
-// func MaxMultipartMemory(max int64) func(*Router) {
-// 	return func(r *Router) {
-// 		r.maxMultipartMemory = max
-// 	}
-// }
-
-// HandleFallbackRoute enable for the router
-func HandleFallbackRoute(r *Router) {
-	r.handleFallbackRoute = true
-}
-
-// HandleMethodNotAllowed enable for the router
-func HandleMethodNotAllowed(r *Router) {
-	r.handleMethodNotAllowed = true
-}
+// Middleware adapters (wrap http.Handler / http.HandlerFunc as HandlerFunc).
+var (
+	WrapH               = v2.WrapH
+	HTTPHandler         = v2.HTTPHandler
+	WrapHTTPHandler     = v2.WrapHTTPHandler
+	WrapHF              = v2.WrapHF
+	HTTPHandlerFunc     = v2.HTTPHandlerFunc
+	WrapHTTPHandlerFunc = v2.WrapHTTPHandlerFunc
+)

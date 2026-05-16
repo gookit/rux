@@ -69,7 +69,7 @@ func New(opts ...func(*Router)) *Router {
 		opt(r)
 	}
 	r.ctxPool.New = func() any {
-		return &Context{index: -1}
+		return &Context{index: -1, router: r}
 	}
 	return r
 }

@@ -1,6 +1,11 @@
 package v2
 
-import "net/http"
+import (
+	"net"
+	"net/http"
+	"net/url"
+	"strings"
+)
 
 // Context carries per-request state through the handler chain.
 // Full version (with renderers, binding, error chain) is built up in Phase 4/5.
@@ -18,6 +23,9 @@ type Context struct {
 	// Hot fields used by every request — typed, not in a map.
 	matchedRoute *Route
 	matchedPath  string
+
+	// router is the back-pointer to the owning Router (set by the pool factory).
+	router *Router
 
 	// Handler chain — already merged at Freeze time, so no per-request append.
 	handlers HandlersChain
@@ -81,9 +89,75 @@ func (c *Context) Abort() { c.index = abortIndex }
 func (c *Context) IsAborted() bool { return c.index >= abortIndex }
 
 // AbortWithStatus aborts and writes the given HTTP status.
-func (c *Context) AbortWithStatus(status int) {
-	c.Resp.WriteHeader(status)
+// If a message is supplied, it is written via http.Error (which sets the
+// Content-Type to text/plain and writes the body).
+func (c *Context) AbortWithStatus(status int, msg ...string) {
+	if len(msg) > 0 {
+		http.Error(c.Resp, msg[0], status)
+	} else {
+		c.Resp.WriteHeader(status)
+	}
 	c.Abort()
+}
+
+// AbortThen marks the context as aborted at the end of the current
+// middleware run while still allowing the caller to chain further
+// response-shaping calls (e.g. c.AbortThen().NoContent()).
+func (c *Context) AbortThen() *Context {
+	c.index = abortIndex
+	return c
+}
+
+// Router returns the Router that dispatched this request.
+func (c *Context) Router() *Router { return c.router }
+
+// URL is a shortcut for c.Req.URL.
+func (c *Context) URL() *url.URL { return c.Req.URL }
+
+// Header returns the first request header value for key, or "" if absent.
+func (c *Context) Header(key string) string {
+	if values := c.Req.Header[key]; len(values) > 0 {
+		return values[0]
+	}
+	return ""
+}
+
+// Query returns the URL query value for key. If the key is absent and a
+// default is supplied, the default is returned; otherwise "" is returned.
+func (c *Context) Query(key string, defVal ...string) string {
+	if vs, ok := c.Req.URL.Query()[key]; ok && len(vs) > 0 {
+		return vs[0]
+	}
+	if len(defVal) > 0 {
+		return defVal[0]
+	}
+	return ""
+}
+
+// ReqCtxValue returns the value associated with key on the request's
+// context.Context, or nil if absent.
+func (c *Context) ReqCtxValue(key any) any {
+	return c.Req.Context().Value(key)
+}
+
+// ClientIP returns a best-effort client IP, consulting X-Forwarded-For,
+// X-Real-Ip, and finally the connection RemoteAddr.
+func (c *Context) ClientIP() string {
+	clientIP := c.Header("X-Forwarded-For")
+	if i := strings.IndexByte(clientIP, ','); i >= 0 {
+		clientIP = clientIP[:i]
+	}
+	clientIP = strings.TrimSpace(clientIP)
+	if clientIP != "" {
+		return clientIP
+	}
+	if ip := strings.TrimSpace(c.Header("X-Real-Ip")); ip != "" {
+		return ip
+	}
+	if ip, _, err := net.SplitHostPort(strings.TrimSpace(c.Req.RemoteAddr)); err == nil {
+		return ip
+	}
+	return ""
 }
 
 // AddError records an error to be processed by Router.OnError.
@@ -100,6 +174,14 @@ func (c *Context) Err() error {
 		return nil
 	}
 	return c.Errors[len(c.Errors)-1]
+}
+
+// FirstError returns the first error recorded via AddError, or nil if none.
+func (c *Context) FirstError() error {
+	if len(c.Errors) == 0 {
+		return nil
+	}
+	return c.Errors[0]
 }
 
 // SafeGet returns the value or panics — for required keys.

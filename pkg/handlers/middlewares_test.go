@@ -21,7 +21,8 @@ func TestSomeMiddleware(t *testing.T) {
 	r := rux.New()
 	art := assert.New(t)
 
-	// add reqID to context
+	// Register all routes BEFORE any ServeHTTP — v2 freezes the router on
+	// the first dispatch, so late additions panic by design.
 	r.GET("/rid", func(c *rux.Context) {
 		rid, ok := c.Get("req_id")
 		art.True(ok)
@@ -29,18 +30,21 @@ func TestSomeMiddleware(t *testing.T) {
 		dump.P(rid)
 	}).Use(GenRequestID("req_id"))
 
+	r.GET("/favicon.ico", func(c *rux.Context) {}, IgnoreFavIcon())
+
+	r.GET("/panic", func(c *rux.Context) {
+		panic("error msg")
+	}, PanicsHandler())
+
+	// add reqID to context
 	w := mockRequest(r, "GET", "/rid", nil)
 	art.Eq(200, w.Code)
 
 	// ignore /favicon.ico request
-	r.GET("/favicon.ico", func(c *rux.Context) {}, IgnoreFavIcon())
 	w = mockRequest(r, "GET", "/favicon.ico", nil)
 	art.Eq(204, w.Code)
 
 	// catch panic
-	r.GET("/panic", func(c *rux.Context) {
-		panic("error msg")
-	}, PanicsHandler())
 	w = mockRequest(r, "GET", "/panic", nil)
 	art.Eq(500, w.Code)
 }
@@ -92,6 +96,12 @@ func TestRequestLogger(t *testing.T) {
 		ris.NoErr(err)
 	}, RequestLogger())
 
+	// Register /status before any ServeHTTP — v2 router freezes on first
+	// dispatch and refuses subsequent Add calls.
+	r.GET("/status", func(c *rux.Context) {
+		c.WriteString("hello")
+	}, RequestLogger())
+
 	for _, m := range rux.AnyMethods() {
 		code := m2code[m]
 		if code == 0 {
@@ -109,9 +119,6 @@ func TestRequestLogger(t *testing.T) {
 
 	// skip log
 	rewriteStdout()
-	r.GET("/status", func(c *rux.Context) {
-		c.WriteString("hello")
-	}, RequestLogger())
 
 	w := testutil.MockRequest(r, "GET", "/status", nil)
 	ris.Eq(200, w.Code)
