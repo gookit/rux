@@ -1,5 +1,10 @@
 package main
 
+// TODO(v2): fasthttp adapter not yet ported to v2 — see https://github.com/gookit/rux/issues
+// Original v1 code is preserved below for reference; will be re-enabled once
+// a v2 fasthttp adapter (ServeFastHTTP / request wrapping) is implemented.
+
+/*
 import (
 	"fmt"
 	"log"
@@ -11,7 +16,7 @@ import (
 
 // examples for run rux on fasthttp
 // run demo:
-// 	go run ./_examples/pprof.go
+// 	go run ./_examples/fasthttp
 // access page:
 // 	http://localhost:3000/debug/pprof
 // fasthttp github: https://github.com/valyala/fasthttp
@@ -57,4 +62,9 @@ func wrapFastHTTPContext1(fc *fasthttp.RequestCtx) (c *rux.Context) {
 
 func wrapFastHTTPRequest() {
 
+}
+*/
+
+func main() {
+	// placeholder until v2 fasthttp adapter is ported
 }
