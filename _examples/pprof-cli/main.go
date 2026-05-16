@@ -44,11 +44,8 @@ func main() {
 	defer pprof.StopCPUProfile()
 
 	for i := 0; i < times; i++ {
-		// r.QuickMatch("GET", "/")
-		r.QuickMatch("GET", "/user/23")
-		// r.Match("get", "/")
-		// r.Match("get", "/users/23")
-		// fmt.Println(ret)
+		// v2 API: Match returns (*Route, []Param, bool)
+		_, _, _ = r.Match("GET", "/user/23")
 	}
 
 	fmt.Println("see prof on cli:\n  go tool pprof", ruxProfile)
