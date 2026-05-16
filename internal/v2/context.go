@@ -28,6 +28,9 @@ type Context struct {
 
 	// Lazy-init bag for arbitrary user data.
 	data map[string]any
+
+	// Renderer (optional) used by Context.Render for templated views.
+	Renderer Renderer
 }
 
 // Init prepares c for a new request. Field-only — no slice reallocation.
@@ -136,3 +139,20 @@ func (c *Context) Get(key string) (any, bool) {
 	v, ok := c.data[key]
 	return v, ok
 }
+
+// StatusCode returns the HTTP status code that will be (or was) written.
+func (c *Context) StatusCode() int { return c.writer.Status() }
+
+// Length returns the number of body bytes written so far.
+func (c *Context) Length() int { return c.writer.Length() }
+
+// WriteBytes writes raw bytes to the response, panicking on I/O error.
+func (c *Context) WriteBytes(bt []byte) {
+	_, err := c.Resp.Write(bt)
+	if err != nil {
+		panic(err)
+	}
+}
+
+// WriteString writes a string to the response.
+func (c *Context) WriteString(str string) { c.WriteBytes([]byte(str)) }
