@@ -9,9 +9,26 @@
 
 `rux` 简单且快速的 Go web 框架，支持中间件，兼容 http.Handler 接口。
 
+## v2 新特性
+
+`rux` v2 是面向极致性能的全新实现：
+
+- 高性能 Radix Tree 路由 —— 按 HTTP 方法分树，请求路径无锁
+- 静态路由零内存分配（每个请求只做一次 map 查找）
+- `Context` 内联 `Params [16]Param`，动态路由也几乎零分配
+- 首次 `ServeHTTP` 自动 Freeze，路由表运行期只读
+- Freeze 时自动把 GET 镜像为 HEAD，省去手写 `r.HEAD`
+- 中间件链在 Freeze 时预合并，请求路径不再 `append`
+- 对外 API 与 v1 基本一致：`Router`、`Group`、`Resource`、`Controller`、
+  `GET/POST/...` 用法不变。
+
+性能数据见 `_benchmarks/v2-results.txt`，破坏性变更见
+[docs/MIGRATION-v1-to-v2.md](docs/MIGRATION-v1-to-v2.md)。
+
+## 主要特性
+
 - 支持路由参数，支持路由组，支持给路由命名
 - 支持方便的静态文件/目录处理
-- 支持缓存最近访问的动态路由以获得更高性能
 - 支持中间件: 路由中间件，组中间件，全局中间件
 - 支持快速添加 `RESETFul` 或 `Controller` 风格的结构体
 - 兼容支持 `http.Handler` 接口，可以直接使用其他的常用中间件
@@ -38,12 +55,14 @@ go get github.com/gookit/rux
 package main
 
 import (
+	"fmt"
+
 	"github.com/gookit/rux"
 )
 
 func main() {
 	r := rux.New()
-	
+
 	// ===== 静态资源
 	// 单个文件
 	r.StaticFile("/site.js", "testdata/site.js")
@@ -53,12 +72,12 @@ func main() {
 	r.StaticFiles("/assets", "testdata", "css|js")
 
 	// ===== 添加路由
-	
+
 	r.GET("/", func(c *rux.Context) {
 		c.Text(200, "hello")
 	})
 	r.GET("/hello/{name}", func(c *rux.Context) {
-		c.Text(200, "hello " + c.Param("name"))
+		c.Text(200, "hello "+c.Param("name"))
 	})
 	r.POST("/post", func(c *rux.Context) {
 		c.Text(200, "hello")
@@ -70,8 +89,8 @@ func main() {
 		r.POST("", func(c *rux.Context) {
 			c.Text(200, "create ok")
 		})
-		r.GET(`/{id:\d+}`, func(c *rux.Context) {
-			c.Text(200, "view detail, id: " + c.Param("id"))
+		r.GET(`/{id}`, func(c *rux.Context) {
+			c.Text(200, "view detail, id: "+c.Param("id"))
 		})
 	})
 
@@ -82,10 +101,10 @@ func main() {
 			c.Text(200, "created")
 			return
 		}
-		
-		id := c.Params.Int("id")
+
+		id := c.Params().Int("id")
 		// do update post
-		c.Text(200, "updated " + fmt.Sprint(id))
+		c.Text(200, "updated "+fmt.Sprint(id))
 	}, rux.POST, rux.PUT)
 
 	// 启动服务并监听
@@ -483,7 +502,7 @@ import (
 func main() {
 	// Initialize a router as usual
 	router := rux.New()
-	router.GET(`/news/{category_id}/{new_id:\d+}/detail`, func(c *rux.Context) {
+	router.GET(`/news/{category_id}/{new_id}/detail`, func(c *rux.Context) {
 		var u = make(url.Values)
 	    u.Add("username", "admin")
 	    u.Add("password", "12345")
@@ -508,6 +527,18 @@ func main() {
 	log.Fatal(http.ListenAndServe(":12345", router))
 }
 ```
+
+## 从 v1 迁移
+
+如果你从 rux v1.x 升级，请阅读
+[docs/MIGRATION-v1-to-v2.md](docs/MIGRATION-v1-to-v2.md)
+查看完整的破坏性变更列表。对外 API 基本保持一致，多数基础应用无需修改源码。
+
+## 性能
+
+rux v2 目标是典型动态路由低于 200 ns/op，静态路由及多数命名参数路由 0 alloc/op。
+详细数据见
+[`_benchmarks/v2-results.txt`](_benchmarks/v2-results.txt)。
 
 ## 帮助
 

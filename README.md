@@ -9,9 +9,26 @@
 
 Simple and fast web framework for build golang HTTP applications.
 
+## v2 Highlights
+
+`rux` v2 is a clean-room rewrite focused on extreme performance:
+
+- High-performance Radix Tree routing — per-method tree, lock-free hot path
+- Zero-allocation static routes (one map lookup per request)
+- Inline `Params [16]Param` in `Context` for low-allocation dynamic routing
+- Auto-freeze on first `ServeHTTP` — the routing tables become read-only at runtime
+- Auto HEAD → GET mirror at freeze time (no manual `r.HEAD` boilerplate)
+- Pre-merged middleware chains (no per-request `append`)
+- Same high-level API as v1 — `Router`, `Group`, `Resource`, `Controller`,
+  `GET/POST/...` all unchanged.
+
+See `_benchmarks/v2-results.txt` for measured numbers, and
+[docs/MIGRATION-v1-to-v2.md](docs/MIGRATION-v1-to-v2.md) for breaking changes.
+
+## Features
+
 - Fast route match, support route group
 - Support route path params and named routing
-- Support cache recently accessed dynamic routes
 - Support route middleware, group middleware, global middleware
 - Support quickly add a `RESETFul` or `Controller` style structs
 - Support generic `http.Handler` interface middleware
@@ -38,23 +55,25 @@ go get github.com/gookit/rux
 package main
 
 import (
+	"fmt"
+
 	"github.com/gookit/rux"
 )
 
 func main() {
 	r := rux.New()
-	
+
 	// Add Routes:
 	r.GET("/", func(c *rux.Context) {
 		c.Text(200, "hello")
 	})
 	r.GET("/hello/{name}", func(c *rux.Context) {
-		c.Text(200, "hello " + c.Param("name"))
+		c.Text(200, "hello "+c.Param("name"))
 	})
 	r.POST("/post", func(c *rux.Context) {
 		c.Text(200, "hello")
 	})
-	// add multi method support for an route path
+	// add multi method support for a route path
 	r.Add("/post[/{id}]", func(c *rux.Context) {
 		if c.Param("id") == "" {
 			// do create post
@@ -62,9 +81,9 @@ func main() {
 			return
 		}
 
-		id := c.Params.Int("id")
+		id := c.Params().Int("id")
 		// do update post
-		c.Text(200, "updated " + fmt.Sprint(id))
+		c.Text(200, "updated "+fmt.Sprint(id))
 	}, rux.POST, rux.PUT)
 
 	// Start server
@@ -84,29 +103,36 @@ r.Group("/articles", func() {
     r.POST("", func(c *rux.Context) {
         c.Text(200, "create ok")
     })
-    r.GET(`/{id:\d+}`, func(c *rux.Context) {
-        c.Text(200, "view detail, id: " + c.Param("id"))
+    r.GET(`/{id}`, func(c *rux.Context) {
+        c.Text(200, "view detail, id: "+c.Param("id"))
     })
 })
 ```
 
 ## Path Params
 
-You can add the path params like: `{id}` Or `{id:\d+}`
+In v2 the path-param syntax is `{name}` (named) or `*name` (wildcard).
+Regex constraints such as `{id:\d+}` are no longer supported — validate
+inside the handler or with a small middleware (see the migration guide).
 
 ```go
 // can access by: "/blog/123"
-r.GET(`/blog/{id:\d+}`, func(c *rux.Context) {
-    c.Text(200, "view detail, id: " + c.Param("id"))
+r.GET(`/blog/{id}`, func(c *rux.Context) {
+    id := c.Params().Int("id")
+    if id <= 0 {
+        c.AbortWithStatus(400)
+        return
+    }
+    c.Text(200, fmt.Sprintf("view detail, id: %d", id))
 })
 ```
 
 optional params, like `/about[.html]` or `/posts[/{id}]`:
 
 ```go
-// can access by: "/blog/my-article" "/blog/my-article.html"
-r.GET(`/blog/{title:\w+}[.html]`, func(c *rux.Context) {
-    c.Text(200, "view detail, id: " + c.Param("id"))
+// can access by: "/blog/my-article" or "/blog/my-article.html"
+r.GET(`/blog/{title}[.html]`, func(c *rux.Context) {
+    c.Text(200, "view detail, title: "+c.Param("title"))
 })
 
 r.Add("/posts[/{id}]", func(c *rux.Context) {
@@ -116,10 +142,20 @@ r.Add("/posts[/{id}]", func(c *rux.Context) {
         return
     }
 
-    id := c.Params.Int("id")
+    id := c.Params().Int("id")
     // do update post
-    c.Text(200, "updated " + fmt.Sprint(id))
+    c.Text(200, "updated "+fmt.Sprint(id))
 }, rux.POST, rux.PUT)
+```
+
+### Wildcards
+
+Catch-all wildcards capture everything past the prefix:
+
+```go
+r.GET("/files/*path", func(c *rux.Context) {
+    c.Text(200, "serve: "+c.Param("path"))
+})
 ```
 
 ## Use Middleware
@@ -511,7 +547,7 @@ import (
 func main() {
 	// Initialize a router as usual
 	router := rux.New()
-	router.GET(`/news/{category_id}/{new_id:\d+}/detail`, func(c *rux.Context) {
+	router.GET(`/news/{category_id}/{new_id}/detail`, func(c *rux.Context) {
 		var u = make(url.Values)
         u.Add("username", "admin")
         u.Add("password", "12345")
@@ -536,6 +572,20 @@ func main() {
 	log.Fatal(http.ListenAndServe(":12345", router))
 }
 ```
+
+## Migrating from v1
+
+If you are upgrading from rux v1.x, please read
+[docs/MIGRATION-v1-to-v2.md](docs/MIGRATION-v1-to-v2.md) for a complete
+list of breaking changes. The high-level API surface is largely unchanged
+and most basic applications need no source edits.
+
+## Performance
+
+rux v2 targets sub-200 ns/op for typical dynamic routes and 0 alloc/op
+for static and most parametrized routes. See
+[`_benchmarks/v2-results.txt`](_benchmarks/v2-results.txt) for the
+benchmark numbers measured on the current branch.
 
 ## Help
 
