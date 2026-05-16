@@ -104,7 +104,7 @@ func addRoutes(r *rux.Router) {
 			return
 		}
 
-		id := c.Params.Int("id")
+		id := c.Params().Int("id")
 		// do update post
 		c.Text(200, "updated "+fmt.Sprint(id))
 	}, rux.POST, rux.PUT)
