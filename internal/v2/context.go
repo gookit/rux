@@ -9,6 +9,9 @@ type Context struct {
 	Req  *http.Request
 	Resp http.ResponseWriter
 
+	// writer is the embedded response wrapper; Resp aliases &writer after Init.
+	writer responseWriter
+
 	// Path params, inlined for zero-allocation parameter passing.
 	params Params
 
@@ -30,7 +33,8 @@ type Context struct {
 // Init prepares c for a new request. Field-only — no slice reallocation.
 func (c *Context) Init(w http.ResponseWriter, req *http.Request) {
 	c.Req = req
-	c.Resp = w
+	c.writer.reset(w)
+	c.Resp = &c.writer
 	c.params.Reset()
 	c.matchedRoute = nil
 	c.matchedPath = ""
@@ -45,6 +49,12 @@ func (c *Context) Init(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 }
+
+// SetStatus writes the HTTP status code to the response.
+func (c *Context) SetStatus(status int) { c.Resp.WriteHeader(status) }
+
+// SetHeader sets a response header value.
+func (c *Context) SetHeader(key, value string) { c.Resp.Header().Set(key, value) }
 
 // Param returns the value of the named path parameter, or "" if absent.
 func (c *Context) Param(name string) string { return c.params.Get(name) }
