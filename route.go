@@ -3,7 +3,6 @@ package rux
 import (
 	"fmt"
 	"net/url"
-	"regexp"
 	"strconv"
 	"strings"
 
@@ -51,6 +50,24 @@ func (p Params) Int(key string) (val int) {
 }
 
 /*************************************************************
+ * MatchResult - return type for Match/QuickMatch
+ *************************************************************/
+
+// MatchResult holds the result of a route match
+type MatchResult struct {
+	// Path matched
+	Path string
+	// Method matched
+	Method string
+	// Route matched
+	Route *Route
+	// Params extracted from the path
+	Params Params
+	// Allowed methods when method not allowed
+	Allowed []string
+}
+
+/*************************************************************
  * Route definition
  *************************************************************/
 
@@ -63,19 +80,6 @@ type Route struct {
 	// allowed methods
 	methods []string
 
-	// start string in the route path. "/users/{id}" -> "/user/"
-	start string
-	// path but no regex
-	// "/users/{uid:\d+}/blog/{id}" -> "/users/{uid}/blog/{id}"
-	spath string
-	// hosts []string
-	// regexp for the route path
-	regex *regexp.Regexp
-	// dynamic route param values, only use for route cache
-	params Params
-	// matched var names in the route path. eg "/api/{var1}/{var2}" -> [var1, var2]
-	matches []string
-
 	// the main handler for the route
 	handler HandlerFunc
 	// middleware handlers list for the route
@@ -83,8 +87,6 @@ type Route struct {
 
 	// Opts some options data for the route
 	Opts map[string]any
-
-	// defaults
 }
 
 // NewRoute create a new route
@@ -262,60 +264,4 @@ func (r *Route) goodInfo() {
 			goutil.Panicf("invalid method name '%s', must in: %s", method, str)
 		}
 	}
-}
-
-// check custom var regex string.
-// ERROR:
-//
-//	"{id:(\d+)}" -> "(\d+)"
-//
-// RIGHT:
-//
-//	"{id:\d+}"
-//	"{id:(?:\d+)}"
-func (r *Route) goodRegexString(n, v string) {
-	pos := strings.IndexByte(v, '(')
-
-	if pos != -1 && pos < len(v) && v[pos+1] != '?' {
-		goutil.Panicf("invalid path var regex string, dont allow char '('. var: %s, regex: %s", n, v)
-	}
-}
-
-// check start string and match a regex route
-func (r *Route) match(path string) (ps Params, ok bool) {
-	// check start string
-	if r.start != "" && strings.Index(path, r.start) != 0 {
-		return
-	}
-	return r.matchRegex(path)
-}
-
-// match a regex route
-func (r *Route) matchRegex(path string) (ps Params, ok bool) {
-	// regex match
-	ss := r.regex.FindAllStringSubmatch(path, -1)
-	if len(ss) == 0 {
-		return
-	}
-
-	ok = true
-	vs := ss[0]
-	ps = make(Params, len(vs))
-
-	// Notice: vs[0] is full path.
-	for i, val := range vs[1:] {
-		// n := r.matches[i]
-		ps[r.matches[i]] = val
-	}
-	return
-}
-
-// copy a new instance
-func (r *Route) copyWithParams(ps Params) *Route {
-	var nr = *r
-	nr.regex = nil
-	nr.matches = nil
-	nr.params = ps
-
-	return &nr
 }

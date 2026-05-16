@@ -26,10 +26,6 @@ const (
 )
 
 const (
-	anyMatch = `[^/]+`
-)
-
-const (
 	// ContentType header key
 	ContentType = "Content-Type"
 	// ContentBinary represents content type application/octet-stream
@@ -56,11 +52,6 @@ const (
 	// CTXCurrentRoutePath key name in the context
 	CTXCurrentRoutePath = "_currentRoutePath"
 )
-
-type routes []*Route
-
-// like "GET": [ Route, ...]
-type methodRoutes map[string]routes
 
 // ControllerFace a simple controller interface
 type ControllerFace interface {

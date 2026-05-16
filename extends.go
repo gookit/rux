@@ -3,10 +3,14 @@ package rux
 import (
 	"io"
 	"net/url"
+	"regexp"
 	"strings"
 
 	"github.com/gookit/goutil"
 )
+
+// varRegex matches path variables like {id} or {uid:\d+}
+var varRegex = regexp.MustCompile(`{[^/]+}`)
 
 /*************************************************************
  * Extends interfaces definition

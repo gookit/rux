@@ -16,11 +16,11 @@ func TestIssue_60(t *testing.T) {
 		c.Text(200, "view detail, id: "+c.Param("id"))
 	})
 
-	route, _, _ := r.Match("GET", "/blog/100")
+	route := r.Match("GET", "/blog/100").Route
 	is.NotEmpty(route)
 	// dump.P(route.Info())
 
-	route, _, _ = r.Match("GET", "/blog/100/")
+	route = r.Match("GET", "/blog/100/").Route
 	is.NotEmpty(route)
 	dump.P(route.Info())
 
@@ -29,7 +29,7 @@ func TestIssue_60(t *testing.T) {
 		c.Text(200, "view detail, id: "+c.Param("id"))
 	})
 
-	route, _, _ = r1.Match("GET", "/blog/100/")
+	route = r1.Match("GET", "/blog/100/").Route
 	is.Empty(route)
 	// dump.P(route.Info())
 }

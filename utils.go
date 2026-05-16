@@ -71,33 +71,6 @@ func longestCommonPrefix(a, b string) int {
 	return i
 }
 
-// validateOptionalSegments 验证可选参数规则
-// 规则：
-// 1. 可选参数只能在路径最后
-// 2. 只能支持一个可选参数
-func validateOptionalSegments(path string) {
-	firstOptionalPos := strings.IndexByte(path, '[')
-	lastOptionalPos := strings.LastIndexByte(path, '[')
-
-	// 没有可选参数，直接返回
-	if firstOptionalPos == -1 {
-		return
-	}
-
-	// 规则 1：不能有多个可选参数
-	if firstOptionalPos != lastOptionalPos {
-		panic(fmt.Sprintf("route %s: only one optional segment is allowed", path))
-	}
-
-	// 规则 2：可选参数后不能有其他路径段
-	closingBracketPos := strings.IndexByte(path, ']')
-	afterOptionalPos := closingBracketPos + 1
-	if afterOptionalPos < len(path) {
-		panic(fmt.Sprintf("route %s: optional segment must be at the end of the path, found '%s' after ']'",
-			path, path[afterOptionalPos:]))
-	}
-}
-
 // parseOptionalSegments 解析可选段并展开为多条路由
 // 输入：/posts[/{id}]
 // 输出：["/posts", "/posts/:id"]
@@ -142,25 +115,52 @@ func parseOptionalSegments(path string) []string {
 	return results
 }
 
-// convertParamSyntax 转换参数语法 {param} -> :param
-// 支持正则表达式模式，如 {file:.+} -> :file
+// convertParamSyntax converts parameter syntax {param} -> :param
+// Also strips regex constraints: {id:\d+} -> :id
+// And converts {file:.+} or {file:.*} to *file (wildcard)
+// Handles nested braces in regex patterns: {level:[1-9]{1,2}} -> :level
 func convertParamSyntax(path string) string {
 	for {
 		start := strings.IndexByte(path, '{')
 		if start == -1 {
 			break
 		}
-		end := strings.IndexByte(path, '}')
-		if end == -1 || end < start {
+		// Find matching closing brace using balanced brace counting
+		depth := 0
+		end := -1
+		for i := start; i < len(path); i++ {
+			if path[i] == '{' {
+				depth++
+			} else if path[i] == '}' {
+				depth--
+				if depth == 0 {
+					end = i
+					break
+				}
+			}
+		}
+		if end == -1 {
 			break
 		}
+
 		paramContent := path[start+1 : end]
-		// 如果包含冒号，只取参数名部分（去除正则表达式）
-		// 如 "file:.+" -> "file"
+
+		// strip regex constraint: {id:\d+} -> id
+		paramName := paramContent
 		if colonIdx := strings.IndexByte(paramContent, ':'); colonIdx > 0 {
-			paramContent = paramContent[:colonIdx]
+			paramName = strings.TrimSpace(paramContent[:colonIdx])
+			regexPart := strings.TrimSpace(paramContent[colonIdx+1:])
+
+			// check if this is a wildcard-like pattern (.+ or .*)
+			if regexPart == ".+" || regexPart == ".*" {
+				// convert to wildcard: {file:.+} -> *file
+				path = path[:start] + "*" + paramName + path[end+1:]
+				continue
+			}
+			// otherwise strip the regex constraint
 		}
-		path = path[:start] + ":" + paramContent + path[end+1:]
+
+		path = path[:start] + ":" + paramName + path[end+1:]
 	}
 	return path
 }
@@ -196,9 +196,12 @@ func getGlobalVar(name, def string) string {
  * help functions
  *************************************************************/
 
-// no route params
+// isFixedPath returns true if path has no dynamic params or optional segments
 func isFixedPath(s string) bool {
-	return strings.IndexByte(s, '{') < 0 && strings.IndexByte(s, '[') < 0
+	return strings.IndexByte(s, '{') < 0 &&
+		strings.IndexByte(s, '[') < 0 &&
+		strings.IndexByte(s, ':') < 0 &&
+		strings.IndexByte(s, '*') < 0
 }
 
 func simpleFmtPath(path string) string {
@@ -240,26 +243,6 @@ func resolveAddress(addr []string) (fullAddr string) {
 	default:
 		panic("too many addr parameters")
 	}
-}
-
-func checkAndParseOptional(path string) string {
-	noClosedOptional := strings.TrimRight(path, "]")
-	optionalNum := len(path) - len(noClosedOptional)
-
-	if optionalNum != strings.Count(noClosedOptional, "[") {
-		panic("Optional segments can only occur at the end of a route")
-	}
-
-	// '/hello[/{name}]' -> '/hello(?:/{name})?'
-	return strings.NewReplacer("[", "(?:", "]", ")?").Replace(path)
-}
-
-func quotePointChar(path string) string {
-	if strings.IndexByte(path, '.') > 0 {
-		// "about.html" -> "about\.html"
-		return strings.ReplaceAll(path, ".", `\.`)
-	}
-	return path
 }
 
 func debugPrintRoute(route *Route) {

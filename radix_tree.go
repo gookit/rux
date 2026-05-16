@@ -94,6 +94,7 @@ func (mt *methodTrees) ensureTree(method string) *radixTree {
 			nType:    nodeTypeRoot,
 			children: make(map[string]*radixNode),
 			handlers: make(map[string]HandlersChain),
+			routes:   make(map[string]*Route),
 		},
 	}
 	mt.trees[method] = tree
@@ -108,6 +109,7 @@ func newRadixTree() *radixTree {
 			nType:    nodeTypeRoot,
 			children: make(map[string]*radixNode),
 			handlers: make(map[string]HandlersChain),
+			routes:   make(map[string]*Route),
 		},
 	}
 }
@@ -129,14 +131,9 @@ func (t *radixTree) AddRouteWithRoute(path string, handlers HandlersChain, metho
 
 // addRouteInternal 内部路由添加方法
 func (t *radixTree) addRouteInternal(path string, handlers HandlersChain, methods []string, route *Route) {
-	path = normalizePath(path)
-
-	// 检查并处理可选参数（[ 不在 {} 内）
+	// Handle optional segments: /posts[/{id}] -> /posts and /posts/:id
 	if hasOptionalSegment(path) {
-		validateOptionalSegments(path)
 		expandedPaths := parseOptionalSegments(path)
-
-		// 为每个展开的路径注册路由
 		for _, expandedPath := range expandedPaths {
 			expandedPath = normalizePath(expandedPath)
 			for _, method := range methods {
@@ -146,33 +143,15 @@ func (t *radixTree) addRouteInternal(path string, handlers HandlersChain, method
 		return
 	}
 
+	// Convert {param} -> :param syntax if needed (for direct tree usage in tests)
+	if strings.ContainsRune(path, '{') {
+		path = convertParamSyntax(path)
+	}
+	path = normalizePath(path)
+
 	for _, method := range methods {
 		t.addHandlerWithRoute(method, path, handlers, route)
 	}
-}
-
-// hasOptionalSegment 检查路径是否包含可选段
-// 可选段格式：[/{param}] 或 [/static]
-// 不包括 regex 模式如 [1-9]
-func hasOptionalSegment(path string) bool {
-	inBraces := false
-	for i := 0; i < len(path); i++ {
-		switch path[i] {
-		case '{':
-			inBraces = true
-		case '}':
-			inBraces = false
-		case '[':
-			if !inBraces {
-				// 检查是否是可选段格式 [/{...}] 或 [/...]
-				// 可选段应该以 "/" 开头
-				if i+1 < len(path) && path[i+1] == '/' {
-					return true
-				}
-			}
-		}
-	}
-	return false
 }
 
 // addHandler 添加单个方法的路由处理器
@@ -467,36 +446,27 @@ func (t *radixTree) FindRoute(method, path string, strictLastSlash ...bool) (han
 }
 
 // FindRouteWithRoute 查找路由并返回 Route 引用
-// strictLastSlash: 如果为 true，则严格匹配末尾斜杠（/path 和 /path/ 被视为不同）
+// Expects the caller (QuickMatch/formatPath) to have already normalized the path.
+// strictLastSlash: if true, strictly matches trailing slash (/path and /path/ are different)
 func (t *radixTree) FindRouteWithRoute(method, path string, strictLastSlash ...bool) (handlers HandlersChain, params Params, route *Route, found bool) {
 	strict := false
 	if len(strictLastSlash) > 0 {
 		strict = strictLastSlash[0]
 	}
 
-	params = make(Params)
-
-	// 在非严格模式下，尝试两种形式（有斜杠和没有斜杠）
-	if !strict {
-		// 先尝试 normalize 后的路径（无斜杠）
-		normalizedPath := normalizePath(path)
-		handlers, params, route, found = t.findRouteInternal(method, normalizedPath, params, strict)
-		if found {
-			return
-		}
-
-		// 尝试带斜杠的版本
-		if normalizedPath != "/" && !strings.HasSuffix(normalizedPath, "/") {
-			withSlash := normalizedPath + "/"
-			params = make(Params)
-			return t.findRouteInternal(method, withSlash, params, strict)
-		}
-		return nil, params, nil, false
+	// Ensure path starts with '/'; no heavy normalization since caller handles it.
+	if len(path) == 0 {
+		path = "/"
+	} else if path[0] != '/' {
+		path = "/" + path
 	}
 
-	// 严格模式：保留末尾斜杠
-	path = normalizePathStrict(path)
-	return t.findRouteInternal(method, path, params, strict)
+	if strict {
+		return t.findRouteInternal(method, path, nil, strict)
+	}
+
+	// Non-strict: path already normalized by formatPath (trailing slash stripped).
+	return t.findRouteInternal(method, path, nil, strict)
 }
 
 // findRouteInternal 内部路由查找实现
@@ -538,6 +508,10 @@ func (t *radixTree) findRouteInternal(method, path string, params Params, strict
 		// 检查是否有通配符子节点（优先级最高）
 		if node.wildcardChild != nil {
 			if h, exists := node.wildcardChild.handlers[method]; exists {
+				// Lazy allocate params only when we have a wildcard
+				if params == nil {
+					params = make(Params)
+				}
 				params[node.wildcardChild.paramName] = remaining
 				r := node.wildcardChild.routes[method]
 				return h, params, r, true
@@ -578,6 +552,11 @@ func (t *radixTree) findRouteInternal(method, path string, params Params, strict
 				paramEnd = len(remaining)
 			}
 			paramValue := remaining[:paramEnd]
+
+			// Lazy allocate params only when we have a param
+			if params == nil {
+				params = make(Params)
+			}
 			params[node.paramChild.paramName] = paramValue
 
 			// 检查是否是路径的最后部分

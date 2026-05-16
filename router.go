@@ -4,12 +4,11 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
-	"path/filepath"
 	"reflect"
 	"strings"
 	"sync"
 
-	"github.com/gookit/goutil"
+	"github.com/gookit/rux/internal/util"
 )
 
 /*************************************************************
@@ -26,6 +25,8 @@ type Router struct {
 	counter int
 	// context pool
 	ctxPool sync.Pool
+	// match result pool
+	matchResultPool sync.Pool
 
 	// Static/stable/fixed routes, no path params.
 	// {
@@ -37,11 +38,11 @@ type Router struct {
 	// Dynamic routes using Radix Tree for high-performance matching
 	dynamicTrees *methodTrees
 
-	// paramsPool for zero-allocation param extraction
-	paramsPool sync.Pool
-
 	// storage named routes. {"name": Route}
 	namedRoutes map[string]*Route
+
+	// all routes in insertion order (one per user-defined route, before optional expansion)
+	routeList []*Route
 
 	// some data for group
 	currentGroupPrefix   string
@@ -106,10 +107,8 @@ func New(options ...func(*Router)) *Router {
 	router.ctxPool.New = func() any {
 		return &Context{index: -1, router: router}
 	}
-
-	// params pool for zero-allocation
-	router.paramsPool.New = func() any {
-		return make(Params)
+	router.matchResultPool.New = func() any {
+		return &MatchResult{}
 	}
 
 	return router
@@ -337,7 +336,7 @@ func (r *Router) StaticFunc(path string, handler func(c *Context)) {
 func (r *Router) StaticFS(prefixURL string, fs http.FileSystem) {
 	fsHandler := http.StripPrefix(prefixURL, http.FileServer(fs))
 
-	r.GET(prefixURL+`/{file:.+}`, func(c *Context) {
+	r.GET(prefixURL+`/*file`, func(c *Context) {
 		fsHandler.ServeHTTP(c.Resp, c.Req)
 	})
 }
@@ -351,8 +350,7 @@ func (r *Router) StaticFS(prefixURL string, fs http.FileSystem) {
 func (r *Router) StaticDir(prefixURL string, fileDir string) {
 	fsHandler := http.StripPrefix(prefixURL, http.FileServer(http.Dir(fileDir)))
 
-	r.GET(prefixURL+`/{file:.+}`, func(c *Context) {
-		// c.Req.URL.Path = c.Param("file") // can also.
+	r.GET(prefixURL+`/*file`, func(c *Context) {
 		fsHandler.ServeHTTP(c.Resp, c.Req)
 	})
 }
@@ -361,36 +359,14 @@ func (r *Router) StaticDir(prefixURL string, fileDir string) {
 //
 // Usage:
 //
-//	router.ServeFiles("/src", "/var/www", "css|js|html")
+//	router.StaticFiles("/src", "/var/www", "css|js|html")
 //
 // Notice: if the rootDir is relation path, it is relative the server runtime dir.
 func (r *Router) StaticFiles(prefixURL string, rootDir string, exts string) {
 	fsHandler := http.FileServer(http.Dir(rootDir))
 
-	// 解析扩展名列表
-	extList := strings.Split(exts, "|")
-	for i := range extList {
-		extList[i] = strings.TrimSpace(extList[i])
-	}
-
-	// 由于 Radix Tree 不支持 regex，我们在 handler 内部校验扩展名
-	// 路径中的 regex 模式会被转换为参数 :file
-	r.GET(fmt.Sprintf(`%s/{file:.+\.(?:%s)}`, prefixURL, exts), func(c *Context) {
-		fileName := c.Param("file")
-		// 校验文件扩展名
-		fileExt := strings.TrimPrefix(filepath.Ext(fileName), ".")
-		allowed := false
-		for _, ext := range extList {
-			if strings.EqualFold(fileExt, ext) {
-				allowed = true
-				break
-			}
-		}
-		if !allowed {
-			c.SetStatus(404)
-			return
-		}
-		c.Req.URL.Path = fileName
+	r.GET(fmt.Sprintf(`%s/*file`, prefixURL), func(c *Context) {
+		c.Req.URL.Path = c.Param("file")
 		fsHandler.ServeHTTP(c.Resp, c.Req)
 	})
 }
@@ -417,12 +393,11 @@ func (r *Router) Routes() (rs []RouteInfo) {
 	return
 }
 
-// IterateRoutes iterate all routes
+// IterateRoutes iterate all routes in insertion order
 func (r *Router) IterateRoutes(fn func(route *Route)) {
-	for _, route := range r.stableRoutes {
+	for _, route := range r.routeList {
 		fn(route)
 	}
-	// TODO: Add iteration for dynamic routes in Radix Tree
 }
 
 // String convert all routes to string
@@ -472,11 +447,6 @@ func (r *Router) appendRoute(route *Route) {
 	// route check: methods, handler
 	route.goodInfo()
 
-	// Initialize handlers chain from handler if needed
-	if route.handler != nil && len(route.handlers) == 0 {
-		route.handlers = []HandlerFunc{route.handler}
-	}
-
 	// format path and append group info
 	r.appendGroupInfo(route)
 	// print debug info
@@ -487,13 +457,44 @@ func (r *Router) appendRoute(route *Route) {
 		r.namedRoutes[route.name] = route
 	}
 
-	// path is fixed(no param vars). eg. "/users"
+	// track all routes in insertion order (before optional expansion)
+	r.routeList = append(r.routeList, route)
+
+	// Check for optional segments - expand into multiple routes
+	if hasOptionalSegment(route.path) {
+		util.ValidateOptionalSegments(route.path)
+		expandedPaths := parseOptionalSegments(route.path)
+
+		r.counter++ // count as one user-defined route regardless of expansion
+		for _, expandedPath := range expandedPaths {
+			expandedPath = normalizePath(expandedPath)
+			expandedRoute := *route
+			expandedRoute.path = expandedPath
+			r.registerSingleRoute(&expandedRoute)
+		}
+		return
+	}
+
+	r.counter++
+	r.registerSingleRoute(route)
+}
+
+// registerSingleRoute registers a single route (without optional segment expansion)
+func (r *Router) registerSingleRoute(route *Route) {
+	// Special case: "/*" fallback route is stored in stableRoutes only.
+	// Adding it to the radix tree would create a root wildcard that matches everything.
+	if route.path == "/*" {
+		for _, method := range route.methods {
+			r.stableRoutes[method+"/*"] = route
+		}
+		return
+	}
+
+	// path is fixed (no param vars). eg. "/users"
 	if isFixedPath(route.path) {
 		path := route.path
 		for _, method := range route.methods {
 			key := method + path
-
-			r.counter++
 			r.stableRoutes[key] = route
 		}
 		return
@@ -506,29 +507,42 @@ func (r *Router) appendRoute(route *Route) {
 		tree := r.dynamicTrees.ensureTree(method)
 		tree.AddRouteWithRoute(radixPath, route.handlers, route.methods, route)
 	}
-	r.counter++
+}
 
-	// Parse param route for backward compatibility (sets up regex for route.match())
-	// This is needed for tests and direct route.match() calls
-	r.parseParamRoute(route)
+// hasOptionalSegment checks if path contains optional segments like [/{id}] or [.html]
+func hasOptionalSegment(path string) bool {
+	inBraces := false
+	for i := 0; i < len(path); i++ {
+		switch path[i] {
+		case '{':
+			inBraces = true
+		case '}':
+			inBraces = false
+		case '[':
+			if !inBraces {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func (r *Router) appendGroupInfo(route *Route) {
-	path := r.formatPath(route.path)
+	routePath := r.formatPath(route.path)
 	if r.currentGroupPrefix != "" {
-		path = r.formatPath(r.currentGroupPrefix + path)
+		routePath = r.formatPath(r.currentGroupPrefix + routePath)
 	}
 
 	if len(r.currentGroupHandlers) > 0 {
 		route.handlers = combineHandlers(r.currentGroupHandlers, route.handlers)
 
 		if finalSize := len(route.handlers); finalSize >= int(abortIndex) {
-			goutil.Panicf("too many handlers(number: %d)", finalSize)
+			panic(fmt.Sprintf("too many handlers(number: %d)", finalSize))
 		}
 	}
 
 	// re-set formatted path
-	route.path = path
+	route.path = routePath
 }
 
 // Err get

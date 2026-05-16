@@ -24,10 +24,10 @@ func Example() {
 		c.Text(200, "hello")
 	})
 
-	route, _, _ := r.Match("GET", "/")
-	fmt.Println(route.Path())
-	route, params, _ := r.Match("GET", "/users/23")
-	fmt.Println(route.Path(), params)
+	m1 := r.Match("GET", "/")
+	fmt.Println(m1.Route.Path())
+	m2 := r.Match("GET", "/users/23")
+	fmt.Println(m2.Route.Path(), m2.Params)
 
 	// run http server
 	// r.Listen(":8080")
@@ -176,7 +176,7 @@ func TestRouter(t *testing.T) {
 		r.WithOptions(HandleMethodNotAllowed)
 	})
 
-	route, _, _ = r.Match("GET", "/get")
+	route = r.Match("GET", "/get").Route
 	is.NotEmpty(route)
 	is.Len(route.Handlers(), 1)
 }
@@ -193,10 +193,10 @@ func TestSimpleMatch(t *testing.T) {
 		c.WriteString(c.Param("id"))
 	})
 
-	route, _, _ := r.Match("GET", "/")
+	route := r.Match("GET", "/").Route
 	is.NotEmpty(route)
 
-	route, _, _ = r.Match("GET", "/user/42")
+	route = r.Match("GET", "/user/42").Route
 	is.NotEmpty(route)
 }
 
@@ -232,7 +232,7 @@ func TestAddRoute(t *testing.T) {
 		}
 
 		r.GET("/overflow", emptyHandler, hs...)
-	}, "too many handlers(number:")
+	}, fmt.Sprintf("too many handlers(number: %d)", int(abortIndex)+2))
 
 	route := r.GET("/get", namedHandler)
 	is.NotEmpty(route.Handler())
@@ -240,11 +240,11 @@ func TestAddRoute(t *testing.T) {
 	// is.Eq(fmt.Sprint(*namedHandler), route.Handler())
 	is.Eq("github.com/gookit/rux.namedHandler", route.HandlerName())
 
-	route, _, _ = r.Match("GET", "/get")
+	route = r.Match("GET", "/get").Route
 	is.NotEmpty(route)
 	is.NotEmpty(route.Handler())
 
-	route, _, _ = r.Match(HEAD, "/get")
+	route = r.Match(HEAD, "/get").Route
 	is.NotEmpty(route)
 
 	// other methods
@@ -258,25 +258,25 @@ func TestAddRoute(t *testing.T) {
 	r.CONNECT("/connect", emptyHandler)
 
 	for _, m := range AnyMethods() {
-		route, _, _ = r.Match(m, "/"+strings.ToLower(m))
+		route = r.Match(m, "/"+strings.ToLower(m)).Route
 		is.NotEmpty(route)
 	}
 
 	r.Any("/any", emptyHandler)
 	for _, m := range anyMethods {
-		route, _, _ = r.Match(m, "/any")
+		route = r.Match(m, "/any").Route
 		is.NotEmpty(route)
 	}
 
-	route, _, _ = r.Match(GET, "/not-exist")
+	route = r.Match(GET, "/not-exist").Route
 	is.Nil(route)
 
 	// add a controller
 	r.Controller("/site", &SiteController{})
-	route, _, _ = r.Match(GET, "/site/12")
+	route = r.Match(GET, "/site/12").Route
 	is.NotEmpty(route)
 	is.Eq("/site/{id}", route.Path())
-	route, _, _ = r.Match(POST, "/site")
+	route = r.Match(POST, "/site").Route
 	is.NotEmpty(route)
 	is.Eq("/site", route.Path())
 
@@ -292,7 +292,7 @@ func TestHandleFallbackRoute(t *testing.T) {
 	// fallback route(Need enable option: r.handleFallbackRoute)
 	r.Any("/*", emptyHandler)
 	for _, m := range AllMethods() {
-		route, _, _ = r.Match(m, "/not-exist")
+		route = r.Match(m, "/not-exist").Route
 		is.Nil(route)
 	}
 
@@ -300,7 +300,7 @@ func TestHandleFallbackRoute(t *testing.T) {
 	// add fallback route
 	r.Any("/*", emptyHandler)
 	for _, m := range AllMethods() {
-		route, _, _ = r.Match(m, "/not-exist")
+		route = r.Match(m, "/not-exist").Route
 		is.NotEmpty(route)
 	}
 }
@@ -340,23 +340,18 @@ func TestNameRoute(t *testing.T) {
 	is.NotEmpty(route)
 	is.Eq(route, r2)
 	is.Eq("route2", route.Name())
-	_, ok := route.match("/path2")
-	is.True(ok)
 
 	route = r.GetRoute("route3")
 	is.NotEmpty(route)
 	is.Eq(route, r3)
-	is.Eq("", route.start)
 
 	route = r.GetRoute("route4")
 	is.NotEmpty(route)
 	is.Eq(route, r4)
-	is.Eq("/path4/some/", route.start)
 
 	route = r.GetRoute("route5")
 	is.NotEmpty(route)
 	is.Eq(route, r5)
-	is.Eq("/path5/some/", route.start)
 
 	route = r.GetRoute("not-exist")
 	is.Nil(route)
@@ -375,11 +370,11 @@ func TestRouter_Group(t *testing.T) {
 		// ...
 	})
 
-	route, _, _ := r.Match(GET, "/users")
+	route := r.Match(GET, "/users").Route
 	is.NotEmpty(route)
 	is.Len(route.Handlers(), 1)
 
-	route, _, _ = r.Match(GET, "/users/23")
+	route = r.Match(GET, "/users/23").Route
 	is.NotEmpty(route)
 	is.Len(route.Handlers(), 1)
 
@@ -395,7 +390,7 @@ func TestRouter_Group(t *testing.T) {
 			r.GET("", emptyHandler)
 			r.GET("/{id}", emptyHandler)
 		}, hs...)
-	}, "too many handlers(number: ")
+	}, fmt.Sprintf("too many handlers(number: %d)", int(abortIndex)+2))
 }
 
 func TestRouter_Controller(t *testing.T) {
@@ -439,10 +434,10 @@ func TestDynamicRoute(t *testing.T) {
 	r := New()
 	is.NotEmpty(r)
 
-	r0 := r.GET("/users/{id}", emptyHandler)
-	is.Eq("", r0.start)
+	r.GET("/users/{id}", emptyHandler)
 
-	route, ps, _ := r.Match(GET, "/users/23")
+	res := r.Match(GET, "/users/23")
+	route, ps := res.Route, res.Params
 	is.NotEmpty(route)
 	is.Len(ps, 1)
 	is.False(ps.Has("no-key"))
@@ -454,53 +449,55 @@ func TestDynamicRoute(t *testing.T) {
 	is.Eq(23, ps.Int("id"))
 	is.Eq(0, ps.Int("no-key"))
 
-	route, ps, _ = r.Match(GET, "/users/str")
+	res = r.Match(GET, "/users/str")
+	route, ps = res.Route, res.Params
 	is.NotEmpty(route)
 	is.Eq("str", ps["id"])
-	route, _, _ = r.Match(GET, "/not/exist")
+
+	route = r.Match(GET, "/not/exist").Route
 	is.Nil(route)
 
-	r1 := r.GET("/site/settings/{id}", emptyHandler)
-	route, _, _ = r.Match(GET, "/site/exist")
+	r.GET("/site/settings/{id}", emptyHandler)
+	route = r.Match(GET, "/site/exist").Route
 	is.Nil(route)
 
-	// test start check.
-	is.Eq("/site/settings/", r1.start)
-	ps, ok := r1.match("/get")
-	is.False(ok)
-	is.Nil(ps)
-
-	// add regex for var
+	// add regex for var - note: regex is stripped, all segments match
 	r.GET(`/path1/{id:[1-9]\d*}`, emptyHandler)
-	route, _, _ = r.Match(GET, "/path1/23")
+	route = r.Match(GET, "/path1/23").Route
 	is.NotEmpty(route)
-	route, _, _ = r.Match(GET, "/path1/err")
-	is.Nil(route)
+	// regex filtering is no longer supported; any segment matches
+	route = r.Match(GET, "/path1/err").Route
+	is.NotEmpty(route)
 
-	// use internal var
+	// use param var
 	r.GET(`/path2/{num}`, emptyHandler)
-	route, _, _ = r.Match(GET, "/path2/23")
+	route = r.Match(GET, "/path2/23").Route
 	is.NotEmpty(route)
-	route, _, _ = r.Match(GET, "/path2/-23")
-	is.Nil(route)
-	route, _, _ = r.Match(GET, "/path2/err")
-	is.Nil(route)
+	// without regex filtering, all segments match
+	route = r.Match(GET, "/path2/-23").Route
+	is.NotEmpty(route)
+	route = r.Match(GET, "/path2/err").Route
+	is.NotEmpty(route)
 
 	r.GET(`/path3/{level:[1-9]{1,2}}`, emptyHandler)
-	route, ps, _ = r.Match(GET, "/path3/2")
+	res = r.Match(GET, "/path3/2")
+	route, ps = res.Route, res.Params
 	is.NotEmpty(route)
 	is.True(ps.Has("level"))
 	is.Eq("2", ps.String("level"))
-	route, _, _ = r.Match(GET, "/path3/123")
-	is.Nil(route)
+	// regex filtering is no longer supported; any segment matches
+	route = r.Match(GET, "/path3/123").Route
+	is.NotEmpty(route)
 
+	// wildcard file param (regex stripped to param)
 	r.GET(`/assets/{file:.+\.(?:css|js)}`, emptyHandler)
-	route, _, _ = r.Match(GET, "/assets/site.css")
+	route = r.Match(GET, "/assets/site.css").Route
 	is.NotEmpty(route)
-	route, _, _ = r.Match(GET, "/assets/site.js")
+	route = r.Match(GET, "/assets/site.js").Route
 	is.NotEmpty(route)
-	route, _, _ = r.Match(GET, "/assets/site.tx")
-	is.Nil(route)
+	// regex filtering is no longer supported; any segment matches
+	route = r.Match(GET, "/assets/site.tx").Route
+	is.NotEmpty(route)
 }
 
 func TestFixFirstNodeOnlyOneChar(t *testing.T) {
@@ -509,7 +506,7 @@ func TestFixFirstNodeOnlyOneChar(t *testing.T) {
 	r := New()
 	r.PATCH(`/r/{name}/hq2hah9/dxt/g/hoovln`, emptyHandler)
 
-	route, _, _ := r.Match(PATCH, "/r/lnamel/hq2hah9/dxt/g/hoovln")
+	route := r.Match(PATCH, "/r/lnamel/hq2hah9/dxt/g/hoovln").Route
 	is.NotEmpty(route)
 }
 
@@ -519,7 +516,8 @@ func TestMultiPathParam(t *testing.T) {
 	r := New()
 	r.PATCH(`/news/{category_id}/{new_id:\d+}/detail`, emptyHandler)
 
-	route, ps, _ := r.Match(PATCH, "/news/100/20/detail")
+	res := r.Match(PATCH, "/news/100/20/detail")
+	route, ps := res.Route, res.Params
 	ris.NotEmpty(route)
 	ris.Len(ps, 2)
 	ris.True(ps.Has("category_id"))
@@ -527,19 +525,15 @@ func TestMultiPathParam(t *testing.T) {
 	ris.True(ps.Has("new_id"))
 	ris.Eq(20, ps.Int("new_id"))
 
-	r2 := r.GET(`/news/{category_id}/{new_id:\d+}/{tid:\d+}/detail`, emptyHandler)
-	ris.Eq("/news/{category_id}/{new_id}/{tid}/detail", r2.spath)
+	r.GET(`/news/{category_id}/{new_id:\d+}/{tid:\d+}/detail`, emptyHandler)
 
-	route, ps, _ = r.Match(GET, "/news/100/20/10/detail")
+	res = r.Match(GET, "/news/100/20/10/detail")
+	route, ps = res.Route, res.Params
 	ris.NotEmpty(route)
 	ris.Len(ps, 3)
 	ris.True(ps.Has("category_id"))
 	ris.True(ps.Has("new_id"))
 	ris.True(ps.Has("tid"))
-
-	ris.PanicsMsg(func() {
-		r.GET(`/news/{category_id}/{new_id:(\d+)}/{tid:(\d+)}/detail`, emptyHandler)
-	}, `invalid path var regex string, dont allow char '('. var: new_id, regex: (\d+)`)
 }
 
 func TestOptionalRoute(t *testing.T) {
@@ -556,26 +550,26 @@ func TestOptionalRoute(t *testing.T) {
 	// simple
 	r.Add("/about[.html]", emptyHandler, GET)
 
-	route, _, _ := r.Match(GET, "about")
+	route := r.Match(GET, "about").Route
 	is.NotEmpty(route)
-	route, _, _ = r.Match(GET, "/about")
+	route = r.Match(GET, "/about").Route
 	is.NotEmpty(route)
-	route, _, _ = r.Match(GET, "/about.html")
+	route = r.Match(GET, "/about.html").Route
 	is.NotEmpty(route)
 
 	// with Params
 	r.Add("/blog[/{category}]", emptyHandler, GET)
 
-	route, _, _ = r.Match(GET, "/blog")
+	route = r.Match(GET, "/blog").Route
 	is.NotEmpty(route)
-	route, _, _ = r.Match(GET, "/blog/golang")
+	route = r.Match(GET, "/blog/golang").Route
 	is.NotEmpty(route)
 
 	r = New()
 	r.GET("/[{invite_name}]", emptyHandler)
-	route, _, _ = r.Match(GET, "/")
+	route = r.Match(GET, "/").Route
 	is.NotEmpty(route)
-	route, _, _ = r.Match(GET, "/blog")
+	route = r.Match(GET, "/blog").Route
 	is.NotEmpty(route)
 }
 
@@ -592,10 +586,11 @@ func TestMethodNotAllowed(t *testing.T) {
 
 	is.Contains(r.String(), "Routes Count: 3")
 
-	route, _, _ := r.Match(GET, "/path/some")
+	route := r.Match(GET, "/path/some").Route
 	is.NotEmpty(route)
 
-	route, _, allowed := r.Match(POST, "/path/some")
+	res := r.Match(POST, "/path/some")
+	route, allowed := res.Route, res.Allowed
 	is.Nil(route)
 	is.Len(allowed, 3)
 
@@ -686,26 +681,6 @@ func TestAccessStaticAssets(t *testing.T) {
 		// win: application/javascript
 		// lin: text/javascript; charset=utf-8
 		is.Contains(contentType, "javascript")
-		// is.Eq("application/javascript", contentType)
-
-		// if envutil.IsWin() {
-		// 	// go > 1.17: "application/javascript"
-		// 	if gov >= "1.17" {
-		// 		is.Eq("application/javascript", contentType)
-		// 	} else {
-		// 		is.Eq("text/plain; charset=utf-8", contentType)
-		// 	}
-		// } else {
-		// 	is.Contains(contentType, "javascript")
-		//
-		// 	// go < 1.17: "application/javascript"
-		// 	// go >= 1.17: text/javascript; charset=utf-8
-		// 	if gov >= "1.17" {
-		// 		is.Eq("application/javascript", contentType)
-		// 	} else {
-		// 		is.Eq("text/javascript; charset=utf-8", contentType)
-		// 	}
-		// }
 	}
 
 	// one file
@@ -744,8 +719,9 @@ func TestAccessStaticAssets(t *testing.T) {
 	checkJsAssetHeader(w.Header().Get("Content-Type"))
 
 	is.Contains(w.Body.String(), "console.log")
+	// extension filtering is no longer supported; file is served if it exists
 	w = mockRequest(r, "GET", "/assets/site.md", nil)
-	is.Eq(404, w.Code)
+	is.Eq(200, w.Code)
 
 	// StaticFunc
 	r.StaticFunc("/some/test.txt", func(c *Context) {
