@@ -1,22 +1,5 @@
 package v2
 
-// HandlerFunc is the v2 handler signature.
-//
-// Stub: full Context type lives in the parent rux package. During the v2
-// transition this is defined as an empty interface so internal/v2 tree
-// code can compile without circular imports.
-type HandlerFunc func(c any)
-
-// HandlersChain is a list of handlers (middlewares + final handler).
-// The final handler is the last element — there is no separate field for it.
-type HandlersChain []HandlerFunc
-
-// Route is the v2 route descriptor placeholder.
-// Full struct is defined in Task 1.4 (deferred to Phase 3 rewrite).
-type Route struct {
-	// fields populated by future newRoute()
-}
-
 // nodeType classifies a Radix Tree node.
 type nodeType uint8
 
