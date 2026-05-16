@@ -1,0 +1,22 @@
+goos: windows
+goarch: amd64
+pkg: github.com/gookit/rux/internal/core
+cpu: AMD Ryzen 7 5800H with Radeon Graphics         
+BenchmarkV2_StaticRoute-16        	 6691088	       172.2 ns/op	       0 B/op	       0 allocs/op
+BenchmarkV2_StaticRoute-16        	10317541	       118.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkV2_StaticRoute_404-16    	 1324184	       962.0 ns/op	      98 B/op	       3 allocs/op
+BenchmarkV2_StaticRoute_404-16    	 1249784	      1029 ns/op	     101 B/op	       3 allocs/op
+BenchmarkV2_Param1-16             	 5788058	       208.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkV2_Param1-16             	 5636101	       226.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkV2_Param5-16             	 2505364	       506.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkV2_Param5-16             	 2697456	       395.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkV2_Wildcard-16           	 6981858	       164.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkV2_Wildcard-16           	 6800696	       185.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkV2_GithubAPI-16          	 3140834	       458.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkV2_GithubAPI-16          	 2345118	       428.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkV2_Parallel_Static-16    	48216739	        26.84 ns/op	       0 B/op	       0 allocs/op
+BenchmarkV2_Parallel_Static-16    	51761970	        22.83 ns/op	       0 B/op	       0 allocs/op
+BenchmarkV2_Parallel_Param-16     	40582081	        28.07 ns/op	       0 B/op	       0 allocs/op
+BenchmarkV2_Parallel_Param-16     	43615418	        25.46 ns/op	       0 B/op	       0 allocs/op
+PASS
+ok  	github.com/gookit/rux/internal/core	29.646s
