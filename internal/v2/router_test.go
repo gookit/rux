@@ -98,3 +98,57 @@ func TestRouter_OptionalSegment_InvalidPosition_Panics(t *testing.T) {
 		r.GET("/posts[/{cat}]/{id}", func(c *Context) {})
 	})
 }
+
+/*************************************************************
+ * Task 3.3: Group / Use / NotFound / NotAllowed
+ *************************************************************/
+
+func TestRouter_Group(t *testing.T) {
+	r := New()
+	r.Group("/api", func() {
+		r.GET("/users", func(c *Context) {})
+		r.GET("/posts", func(c *Context) {})
+	})
+	idx := methodIndex(GET)
+	_, ok1 := r.staticRoutes[idx]["/api/users"]
+	_, ok2 := r.staticRoutes[idx]["/api/posts"]
+	assert.True(t, ok1)
+	assert.True(t, ok2)
+}
+
+func TestRouter_GroupMiddleware_PrefixedToRouteChain(t *testing.T) {
+	r := New()
+	apiMW := func(c *Context) {}
+	routeMW := func(c *Context) {}
+	main := func(c *Context) {}
+
+	r.Group("/api", func() {
+		r.GET("/x", main, routeMW)
+	}, apiMW)
+
+	idx := methodIndex(GET)
+	route := r.staticRoutes[idx]["/api/x"]
+	assert.NotNil(t, route)
+	// chain order should be [apiMW, routeMW, main]
+	assert.Eq(t, 3, len(route.chain))
+}
+
+func TestRouter_Use_AddsToGlobalChain(t *testing.T) {
+	r := New()
+	r.Use(func(c *Context) {})
+	assert.Eq(t, 1, len(r.globalChain))
+}
+
+func TestRouter_UseAfterRouteRegistration_Panics(t *testing.T) {
+	r := New()
+	r.GET("/x", func(c *Context) {})
+	assert.Panics(t, func() {
+		r.Use(func(c *Context) {})
+	})
+}
+
+func TestRouter_NotFound(t *testing.T) {
+	r := New()
+	r.NotFound(func(c *Context) {})
+	assert.Eq(t, 1, len(r.noRoute))
+}

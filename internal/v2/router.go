@@ -248,6 +248,59 @@ func (r *Router) applyGroup(route *Route) {
 	}
 }
 
+/*************************************************************
+ * Task 3.3: Group / Use / NotFound / NotAllowed
+ *************************************************************/
+
+// Group registers all routes added inside fn under the given path prefix.
+// Middlewares supplied as middles run before route-level middlewares.
+// Nested Group calls compose: prefixes concatenate, handlers stack.
+func (r *Router) Group(prefix string, fn func(), middles ...HandlerFunc) {
+	prevPrefix := r.currentGroupPrefix
+	r.currentGroupPrefix = prevPrefix + r.formatPath(prefix)
+
+	prevHandlers := r.currentGroupHandlers
+	if len(middles) > 0 {
+		if len(prevHandlers) > 0 {
+			// Create a fresh slice to avoid aliasing prevHandlers's backing array.
+			r.currentGroupHandlers = append(append(HandlersChain{}, prevHandlers...), middles...)
+		} else {
+			r.currentGroupHandlers = middles
+		}
+	}
+
+	fn()
+
+	r.currentGroupPrefix = prevPrefix
+	r.currentGroupHandlers = prevHandlers
+}
+
+// Use appends global middleware. Per Q6 of the design, Use must be called
+// before any route registration — calling it later panics.
+func (r *Router) Use(handlers ...HandlerFunc) {
+	if r.frozen.Load() {
+		panic("rux: cannot Use after router is frozen")
+	}
+	if len(r.routeList) > 0 {
+		panic("rux: Use must be called before any route registration (Q6)")
+	}
+	r.globalChain = append(r.globalChain, handlers...)
+}
+
+// NotFound sets the handlers chain for unmatched routes (404).
+func (r *Router) NotFound(handlers ...HandlerFunc) {
+	r.noRoute = handlers
+}
+
+// NotAllowed sets the handlers chain for HTTP 405 responses.
+// Only consulted when HandleMethodNotAllowed is enabled.
+func (r *Router) NotAllowed(handlers ...HandlerFunc) {
+	r.noAllowed = handlers
+}
+
+// Handlers returns the global middleware chain.
+func (r *Router) Handlers() HandlersChain { return r.globalChain }
+
 // formatPath applies the router's path policy.
 func (r *Router) formatPath(path string) string {
 	if path == "" || path == "/" {
