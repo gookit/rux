@@ -56,6 +56,58 @@ func (c *Context) SetStatus(status int) { c.Resp.WriteHeader(status) }
 // SetHeader sets a response header value.
 func (c *Context) SetHeader(key, value string) { c.Resp.Header().Set(key, value) }
 
+// SetHandlers installs the (already merged) handler chain.
+func (c *Context) SetHandlers(chain HandlersChain) {
+	c.handlers = chain
+	c.index = -1
+}
+
+// Next advances to the next handler in the chain.
+func (c *Context) Next() {
+	c.index++
+	for c.index < int8(len(c.handlers)) {
+		c.handlers[c.index](c)
+		c.index++
+	}
+}
+
+// Abort prevents subsequent handlers from running.
+func (c *Context) Abort() { c.index = abortIndex }
+
+// IsAborted reports whether Abort was called.
+func (c *Context) IsAborted() bool { return c.index >= abortIndex }
+
+// AbortWithStatus aborts and writes the given HTTP status.
+func (c *Context) AbortWithStatus(status int) {
+	c.Resp.WriteHeader(status)
+	c.Abort()
+}
+
+// AddError records an error to be processed by Router.OnError.
+func (c *Context) AddError(err error) {
+	if err == nil {
+		return
+	}
+	c.Errors = append(c.Errors, err)
+}
+
+// Err returns the most recent error or nil.
+func (c *Context) Err() error {
+	if len(c.Errors) == 0 {
+		return nil
+	}
+	return c.Errors[len(c.Errors)-1]
+}
+
+// SafeGet returns the value or panics — for required keys.
+func (c *Context) SafeGet(key string) any {
+	v, ok := c.Get(key)
+	if !ok {
+		panic("rux: missing context key " + key)
+	}
+	return v
+}
+
 // Param returns the value of the named path parameter, or "" if absent.
 func (c *Context) Param(name string) string { return c.params.Get(name) }
 
