@@ -1,7 +1,9 @@
 package core
 
 import (
+	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/gookit/goutil/testutil/assert"
@@ -33,4 +35,49 @@ func TestContext_Init_AssignsRequestAndResponse(t *testing.T) {
 	c.Init(w, req)
 	assert.Same(t, req, c.Req)
 	assert.NotNil(t, c.Resp)
+}
+
+func TestContext_SetCookie(t *testing.T) {
+	c := &Context{}
+	w := httptest.NewRecorder()
+	c.Init(w, httptest.NewRequest("GET", "/x", nil))
+	c.SetCookie("session", "abc123", 3600, "/", "", false, true)
+
+	setCookie := w.Header().Get("Set-Cookie")
+	assert.True(t, strings.Contains(setCookie, "session=abc123"))
+	assert.True(t, strings.Contains(setCookie, "HttpOnly"))
+}
+
+func TestContext_FastSetCookie(t *testing.T) {
+	c := &Context{}
+	w := httptest.NewRecorder()
+	c.Init(w, httptest.NewRequest("GET", "/x", nil))
+	c.FastSetCookie("token", "xyz", 60)
+
+	setCookie := w.Header().Get("Set-Cookie")
+	assert.True(t, strings.Contains(setCookie, "token=xyz"))
+	assert.True(t, strings.Contains(setCookie, "Path=/"))
+	assert.True(t, strings.Contains(setCookie, "HttpOnly"))
+}
+
+func TestContext_DelCookie(t *testing.T) {
+	c := &Context{}
+	w := httptest.NewRecorder()
+	c.Init(w, httptest.NewRequest("GET", "/x", nil))
+	c.DelCookie("a", "b")
+
+	cookies := w.Header().Values("Set-Cookie")
+	assert.Len(t, cookies, 2)
+	for _, ck := range cookies {
+		assert.True(t, strings.Contains(ck, "Max-Age=0"))
+	}
+}
+
+func TestContext_Cookie(t *testing.T) {
+	c := &Context{}
+	req := httptest.NewRequest("GET", "/x", nil)
+	req.AddCookie(&http.Cookie{Name: "token", Value: "xyz"})
+	c.Init(httptest.NewRecorder(), req)
+	assert.Eq(t, "xyz", c.Cookie("token"))
+	assert.Eq(t, "", c.Cookie("missing"))
 }

@@ -238,3 +238,39 @@ func (c *Context) WriteBytes(bt []byte) {
 
 // WriteString writes a string to the response.
 func (c *Context) WriteString(str string) { c.WriteBytes([]byte(str)) }
+
+// Cookie reads a request cookie value, or "" if not set.
+func (c *Context) Cookie(name string) string {
+	if cookie, err := c.Req.Cookie(name); err == nil {
+		return cookie.Value
+	}
+	return ""
+}
+
+// SetCookie sets a response cookie. Path defaults to "/" if empty.
+func (c *Context) SetCookie(name, value string, maxAge int, path, domain string, secure, httpOnly bool) {
+	if path == "" {
+		path = "/"
+	}
+	http.SetCookie(c.Resp, &http.Cookie{
+		Name:     name,
+		Value:    value,
+		MaxAge:   maxAge,
+		Path:     path,
+		Domain:   domain,
+		Secure:   secure,
+		HttpOnly: httpOnly,
+	})
+}
+
+// FastSetCookie sets a response cookie with sensible defaults (path=/, httpOnly=true).
+func (c *Context) FastSetCookie(name, value string, maxAge int) {
+	c.SetCookie(name, value, maxAge, "/", "", false, true)
+}
+
+// DelCookie deletes one or more cookies by setting MaxAge=-1.
+func (c *Context) DelCookie(names ...string) {
+	for _, name := range names {
+		c.SetCookie(name, "", -1, "/", "", false, false)
+	}
+}
