@@ -1,6 +1,6 @@
 package main
 
-import "github.com/gookit/rux"
+import "github.com/gookit/rux/v2"
 
 // SiteController define a controller
 type SiteController struct {

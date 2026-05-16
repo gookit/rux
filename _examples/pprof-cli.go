@@ -6,7 +6,7 @@ import (
 	"os"
 	"runtime/pprof"
 
-	"github.com/gookit/rux"
+	"github.com/gookit/rux/v2"
 )
 
 // run serve:

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gookit/rux"
+	"github.com/gookit/rux/v2"
 )
 
 var (

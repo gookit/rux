@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/gookit/rux"
+	"github.com/gookit/rux/v2"
 )
 
 // run serve:

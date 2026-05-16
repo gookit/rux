@@ -5,8 +5,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/gookit/rux"
-	"github.com/gookit/rux/pkg/pprof"
+	"github.com/gookit/rux/v2"
+	"github.com/gookit/rux/v2/pkg/pprof"
 )
 
 // run serve:

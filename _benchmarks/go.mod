@@ -7,7 +7,7 @@ toolchain go1.24.6
 require (
 	github.com/gin-gonic/gin v1.11.0
 	github.com/go-chi/chi/v5 v5.2.5
-	github.com/gookit/rux v1.4.0
+	github.com/gookit/rux/v2 v2.0.0-00010101000000-000000000000
 	github.com/gorilla/mux v1.8.1
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/kataras/muxie v1.1.2
@@ -61,4 +61,4 @@ require (
 	google.golang.org/protobuf v1.36.9 // indirect
 )
 
-replace github.com/gookit/rux => ../
+replace github.com/gookit/rux/v2 => ../

@@ -3,7 +3,7 @@ module demo_rux
 go 1.23.0
 
 require (
-	github.com/gookit/rux v1.3.2
+	github.com/gookit/rux/v2 v2.0.0-00010101000000-000000000000
 	github.com/valyala/fasthttp v1.65.0
 )
 
@@ -22,4 +22,4 @@ require (
 	golang.org/x/text v0.28.0 // indirect
 )
 
-replace github.com/gookit/rux => ../
+replace github.com/gookit/rux/v2 => ../
