@@ -1,6 +1,7 @@
 package v2
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 	"sync"
@@ -432,6 +433,25 @@ func (r *Router) IterateRoutes(fn func(*Route)) {
 		fn(route)
 	}
 }
+
+// Err returns the most recent error (e.g., from a future Listen* helper).
+func (r *Router) Err() error { return r.err }
+
+// String returns a human-readable snapshot of registered routes.
+func (r *Router) String() string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "Routes Count: %d\n", r.counter)
+	for _, route := range r.routeList {
+		fmt.Fprintf(&b, "  %s\n", route)
+	}
+	return b.String()
+}
+
+// BuildURL is deferred to Phase 5 — it requires Route.ToURL and the
+// BuildRequestURL helper from extends.go, neither of which has been
+// ported to internal/v2 yet.
+//
+// TODO(Phase 5): func (r *Router) BuildURL(name string, args ...any) *url.URL
 
 // formatPath applies the router's path policy.
 func (r *Router) formatPath(path string) string {

@@ -1,6 +1,7 @@
 package v2
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/gookit/goutil/testutil/assert"
@@ -194,4 +195,43 @@ func TestRouter_Resource(t *testing.T) {
 		paths[ri.Path] = true
 	}
 	assert.True(t, paths["/fakeresource"])
+}
+
+/*************************************************************
+ * Task 3.7: Inspection
+ *************************************************************/
+
+func TestRouter_GetRoute_NamedRoute(t *testing.T) {
+	r := New()
+	r.AddNamed("user_show", "/users/{id}", func(c *Context) {}, GET)
+	rt := r.GetRoute("user_show")
+	assert.NotNil(t, rt)
+	// Path is converted to colon form at registration.
+	assert.Eq(t, "/users/:id", rt.Path())
+}
+
+func TestRouter_IterateRoutes(t *testing.T) {
+	r := New()
+	r.GET("/a", func(c *Context) {})
+	r.POST("/b", func(c *Context) {})
+
+	var paths []string
+	r.IterateRoutes(func(route *Route) {
+		paths = append(paths, route.Path())
+	})
+	assert.Eq(t, 2, len(paths))
+	assert.Eq(t, "/a", paths[0])
+	assert.Eq(t, "/b", paths[1])
+}
+
+func TestRouter_String_ContainsCount(t *testing.T) {
+	r := New()
+	r.GET("/a", func(c *Context) {})
+	s := r.String()
+	assert.True(t, strings.Contains(s, "Routes Count: 1"))
+}
+
+func TestRouter_Err(t *testing.T) {
+	r := New()
+	assert.NoErr(t, r.Err())
 }
