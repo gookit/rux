@@ -2,6 +2,16 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **STATUS (2026-05-16): IMPLEMENTATION COMPLETE — `v2.0.0-rc1` tagged**
+>
+> All 8 Phases delivered on branch `v2-rewrite`. 23 commits since `ae00057`.
+> Final state:
+> - Root `rux` package: 98-line public-API shim over `internal/core/` (renamed from `internal/v2/` post-cutover)
+> - Benchmarks: static/dynamic/wildcard/parallel routes all **0 allocs/op**; static ~118 ns/op, param1 ~209 ns/op, param5 ~396 ns/op, parallel ~23 ns/op
+> - All P-1 ~ P-16 design problems addressed
+> - `pkg/binding`, `pkg/handlers`, `pkg/pprof`, `pkg/render`, `pkg/websocket`, `server/` all still compile and test-pass via type aliases
+> - Outstanding before v2.0.0 final: (1) `-race` on Linux/macOS CI (Windows local box has no CGO), (2) re-measure v1 baseline for honest CHANGELOG comparison, (3) 404 path's 3 allocs/op from `http.Error` (minor)
+
 **Goal:** Rewrite the `gookit/rux` main package as a high-performance Radix Tree router (v2.0), replacing the v1 map+regex implementation and consolidating the `fastrux/` prototype back into the main package.
 
 **Architecture:** Clean-room rewrite on a new `v2-rewrite` branch. Per-method radix tree (`[9]*radixTree` array indexed by HTTP method int code) + per-method static map (`[9]map[string]*Route`). Path params inlined into Context (`[16]Param + count`) for zero allocation. Default freeze mode after first `ServeHTTP` enables lock-free hot path. Middleware chain pre-merged at freeze time.
