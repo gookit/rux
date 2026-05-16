@@ -1,0 +1,53 @@
+Benchstat comparison: rux v1.x-final (master, commit f63a565) vs rux v2 (v2-rewrite branch)
+Both runs under golang:1.25 Docker container, AMD Ryzen 7 5800H, Linux amd64.
+5 iterations per benchmark (count=5).
+
+# Time (ns/op)
+
+                  │ _benchmarks/v1-bench.txt │   _benchmarks/v2-vs-v1-bench.txt    │
+                  │          sec/op          │    sec/op     vs base               │
+OneRoute-16                    863.00n ± ∞ ¹   82.19n ± ∞ ¹  -90.48% (p=0.008 n=5)
+ManyHandlers-16                 786.0n ± ∞ ¹   100.6n ± ∞ ¹  -87.20% (p=0.008 n=5)
+5Params-16                     1531.0n ± ∞ ¹   254.3n ± ∞ ¹  -83.39% (p=0.008 n=5)
+ManyRoutesFist-16              714.80n ± ∞ ¹   85.54n ± ∞ ¹  -88.03% (p=0.008 n=5)
+404-16                        1194.00n ± ∞ ¹   91.12n ± ∞ ¹  -92.37% (p=0.008 n=5)
+404Many-16                     1581.0n ± ∞ ¹   121.8n ± ∞ ¹  -92.30% (p=0.008 n=5)
+geomean                         1.058µ         112.2n        -89.39%
+
+# Memory (B/op)
+
+                  │ _benchmarks/v1-bench.txt │     _benchmarks/v2-vs-v1-bench.txt      │
+                  │           B/op           │    B/op      vs base                    │
+OneRoute-16                      360.0 ± ∞ ¹     0.0 ± ∞ ¹  -100.00% (p=0.008 n=5)
+ManyHandlers-16                  392.0 ± ∞ ¹     0.0 ± ∞ ¹  -100.00% (p=0.008 n=5)
+5Params-16                       472.0 ± ∞ ¹     0.0 ± ∞ ¹  -100.00% (p=0.008 n=5)
+ManyRoutesFist-16                360.0 ± ∞ ¹     0.0 ± ∞ ¹  -100.00% (p=0.008 n=5)
+404-16                           0.000 ± ∞ ¹   0.000 ± ∞ ¹         ~ (p=1.000 n=5)
+404Many-16                       112.0 ± ∞ ¹     0.0 ± ∞ ¹  -100.00% (p=0.008 n=5)
+
+# Allocations (allocs/op)
+
+                  │ _benchmarks/v1-bench.txt │     _benchmarks/v2-vs-v1-bench.txt      │
+                  │        allocs/op         │  allocs/op   vs base                    │
+OneRoute-16                      4.000 ± ∞ ¹   0.000 ± ∞ ¹  -100.00% (p=0.008 n=5)
+ManyHandlers-16                  5.000 ± ∞ ¹   0.000 ± ∞ ¹  -100.00% (p=0.008 n=5)
+5Params-16                       7.000 ± ∞ ¹   0.000 ± ∞ ¹  -100.00% (p=0.008 n=5)
+ManyRoutesFist-16                4.000 ± ∞ ¹   0.000 ± ∞ ¹  -100.00% (p=0.008 n=5)
+404-16                           0.000 ± ∞ ¹   0.000 ± ∞ ¹         ~ (p=1.000 n=5)
+404Many-16                       3.000 ± ∞ ¹   0.000 ± ∞ ¹  -100.00% (p=0.008 n=5)
+
+# Summary
+
+- Latency:        ~89% reduction (geomean speedup ~9.4x)
+- Memory:         100% reduction across all routes that had allocations
+- Allocations:    100% reduction across all routes that had allocations
+
+# Reproduction
+
+In v2-rewrite branch:
+  docker run --rm -v "${PWD}:/src" -w /src golang:1.25 sh -c \
+    'go test -bench="^(BenchmarkOneRoute|BenchmarkManyHandlers|Benchmark5Params|BenchmarkManyRoutesFist|Benchmark404|Benchmark404Many)$" \
+     -benchmem -count=5 -run=^$ .'
+
+In v1.x-final tag:
+  Same command but on `git checkout v1.x-final`.

@@ -1,0 +1,35 @@
+goos: linux
+goarch: amd64
+cpu: AMD Ryzen 7 5800H with Radeon Graphics
+BenchmarkOneRoute-16          	15867716	        82.63 ns/op	       0 B/op	       0 allocs/op
+BenchmarkOneRoute-16          	16524721	        76.57 ns/op	       0 B/op	       0 allocs/op
+BenchmarkOneRoute-16          	15792930	        75.38 ns/op	       0 B/op	       0 allocs/op
+BenchmarkOneRoute-16          	15284500	        82.19 ns/op	       0 B/op	       0 allocs/op
+BenchmarkOneRoute-16          	 8249935	       123.5 ns/op	       0 B/op	       0 allocs/op
+BenchmarkManyHandlers-16      	12247810	       143.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkManyHandlers-16      	12442603	        85.61 ns/op	       0 B/op	       0 allocs/op
+BenchmarkManyHandlers-16      	11056878	       106.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkManyHandlers-16      	13020130	       100.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkManyHandlers-16      	15056925	        84.97 ns/op	       0 B/op	       0 allocs/op
+Benchmark5Params-16           	 5728542	       254.3 ns/op	       0 B/op	       0 allocs/op
+Benchmark5Params-16           	 5587203	       222.2 ns/op	       0 B/op	       0 allocs/op
+Benchmark5Params-16           	 5652157	       215.4 ns/op	       0 B/op	       0 allocs/op
+Benchmark5Params-16           	 4634648	       268.0 ns/op	       0 B/op	       0 allocs/op
+Benchmark5Params-16           	 4861041	       417.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkManyRoutesFist-16    	11823192	       112.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkManyRoutesFist-16    	13566128	        95.89 ns/op	       0 B/op	       0 allocs/op
+BenchmarkManyRoutesFist-16    	12833991	        85.54 ns/op	       0 B/op	       0 allocs/op
+BenchmarkManyRoutesFist-16    	15889230	        79.39 ns/op	       0 B/op	       0 allocs/op
+BenchmarkManyRoutesFist-16    	17105896	        74.49 ns/op	       0 B/op	       0 allocs/op
+Benchmark404-16               	16094751	        81.17 ns/op	       0 B/op	       0 allocs/op
+Benchmark404-16               	17287358	        83.64 ns/op	       0 B/op	       0 allocs/op
+Benchmark404-16               	14482023	       137.9 ns/op	       0 B/op	       0 allocs/op
+Benchmark404-16               	10615476	       125.5 ns/op	       0 B/op	       0 allocs/op
+Benchmark404-16               	14220458	        91.12 ns/op	       0 B/op	       0 allocs/op
+Benchmark404Many-16           	 7835743	       128.4 ns/op	       0 B/op	       0 allocs/op
+Benchmark404Many-16           	10186624	       109.3 ns/op	       0 B/op	       0 allocs/op
+Benchmark404Many-16           	10576581	       111.5 ns/op	       0 B/op	       0 allocs/op
+Benchmark404Many-16           	12219596	       121.8 ns/op	       0 B/op	       0 allocs/op
+Benchmark404Many-16           	10387436	       124.6 ns/op	       0 B/op	       0 allocs/op
+PASS
+ok  	github.com/gookit/rux/v2	46.981s
