@@ -189,3 +189,16 @@ func TestTreeLookup_MultipleParams(t *testing.T) {
 	assert.Eq(t, "42", ps.Get("uid"))
 	assert.Eq(t, "100", ps.Get("pid"))
 }
+
+func TestTree_PrioritySortsChildren(t *testing.T) {
+	tree := newRadixTree()
+	h := func(c *Context) {}
+	tree.insert("/a", newRoute("/a", h, []string{GET}))
+	tree.insert("/b", newRoute("/b", h, []string{GET}))
+	tree.insert("/b/x", newRoute("/b/x", h, []string{GET}))
+	tree.insert("/b/y", newRoute("/b/y", h, []string{GET}))
+
+	// After bump+sort, root.indices should have 'b' first (priority=3) then 'a' (priority=1)
+	assert.Eq(t, byte('b'), tree.root.indices[0])
+	assert.Eq(t, byte('a'), tree.root.indices[1])
+}

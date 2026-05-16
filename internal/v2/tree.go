@@ -117,6 +117,7 @@ func (t *radixTree) insert(path string, route *Route) {
 			}
 			n.route = route
 			n.chain = route.chain
+			t.bumpAlongPath(path)
 			return
 		}
 
@@ -169,6 +170,7 @@ func (t *radixTree) insert(path string, route *Route) {
 				chain:     route.chain,
 			}
 			t.bumpMaxParams(t.countParams(path))
+			t.bumpAlongPath(path)
 			return
 
 		default:
@@ -344,4 +346,63 @@ func walkNode(n *node, path string, ps *Params) (*Route, bool) {
 	}
 
 	return nil, false
+}
+
+// bumpAlongPath walks from root following path and increments priority on
+// each visited node, then re-sorts each parent's static children by
+// priority desc to keep hot paths at the front of indices/children.
+func (t *radixTree) bumpAlongPath(path string) {
+	n := t.root
+	remaining := path
+	for {
+		cp := longestCommonPrefix(n.prefix, remaining)
+		n.priority++
+		remaining = remaining[cp:]
+		if len(remaining) == 0 {
+			return
+		}
+		c := remaining[0]
+		switch c {
+		case ':':
+			if n.paramChild == nil {
+				return
+			}
+			n = n.paramChild
+			end := strings.IndexByte(remaining, '/')
+			if end == -1 {
+				end = len(remaining)
+			}
+			remaining = remaining[end:]
+		case '*':
+			if n.wildcardChild == nil {
+				return
+			}
+			n.wildcardChild.priority++
+			return
+		default:
+			i := n.staticChildIndex(c)
+			if i < 0 {
+				return
+			}
+			// Bump child priority then re-sort siblings.
+			n.children[i].priority++
+			sortChildrenByPriority(n)
+			// After sort, find new index by first byte to keep walking.
+			i = n.staticChildIndex(c)
+			n = n.children[i]
+		}
+	}
+}
+
+// sortChildrenByPriority sorts a node's static children by priority desc
+// using insertion sort (O(n²) but n is tiny — typically < 5).
+func sortChildrenByPriority(n *node) {
+	for i := 1; i < len(n.children); i++ {
+		j := i
+		for j > 0 && n.children[j].priority > n.children[j-1].priority {
+			n.children[j], n.children[j-1] = n.children[j-1], n.children[j]
+			n.indices[j], n.indices[j-1] = n.indices[j-1], n.indices[j]
+			j--
+		}
+	}
 }
