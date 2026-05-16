@@ -394,6 +394,40 @@ func (t *radixTree) bumpAlongPath(path string) {
 	}
 }
 
+// walk traverses depth-first, yielding each leaf's reconstructed path.
+// Used by HEAD-mirror logic to enumerate all dynamic routes.
+func (t *radixTree) walk(fn func(path string, leaf *node)) {
+	walkFrom(t.root, "", fn)
+}
+
+func walkFrom(n *node, accumulated string, fn func(string, *node)) {
+	here := accumulated + n.prefix
+	if n.route != nil {
+		fn(here, n)
+	}
+	for _, child := range n.children {
+		walkFrom(child, here, fn)
+	}
+	if n.paramChild != nil {
+		// Reconstruct ":name" segment for the path so insert() can parse it.
+		walkFrom(n.paramChild, here+":"+n.paramChild.paramName, fn)
+	}
+	if n.wildcardChild != nil {
+		walkFrom(n.wildcardChild, here+"*"+n.wildcardChild.paramName, fn)
+	}
+}
+
+// hasExact reports whether the tree has a route at exactly path.
+func (t *radixTree) hasExact(path string) bool {
+	found := false
+	t.walk(func(p string, _ *node) {
+		if p == path {
+			found = true
+		}
+	})
+	return found
+}
+
 // sortChildrenByPriority sorts a node's static children by priority desc
 // using insertion sort (O(n²) but n is tiny — typically < 5).
 func sortChildrenByPriority(n *node) {

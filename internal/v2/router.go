@@ -118,8 +118,38 @@ func (r *Router) Freeze() {
 	r.mirrorGetToHead()
 }
 
-// mirrorGetToHead is filled in by Task 4.2 (next commit).
-func (r *Router) mirrorGetToHead() {}
+// mirrorGetToHead copies every GET route to HEAD unless an explicit HEAD
+// route already exists at that path. Required by P-9.
+func (r *Router) mirrorGetToHead() {
+	getIdx := methodIndex(GET)
+	headIdx := methodIndex(HEAD)
+
+	// Static.
+	if getStatic := r.staticRoutes[getIdx]; getStatic != nil {
+		if r.staticRoutes[headIdx] == nil {
+			r.staticRoutes[headIdx] = make(map[string]*Route, len(getStatic))
+		}
+		head := r.staticRoutes[headIdx]
+		for path, route := range getStatic {
+			if _, exists := head[path]; !exists {
+				head[path] = route
+			}
+		}
+	}
+
+	// Dynamic.
+	if get := r.dynamicTrees[getIdx]; get != nil {
+		if r.dynamicTrees[headIdx] == nil {
+			r.dynamicTrees[headIdx] = newRadixTree()
+		}
+		head := r.dynamicTrees[headIdx]
+		get.walk(func(path string, leaf *node) {
+			if !head.hasExact(path) {
+				head.insert(path, leaf.route)
+			}
+		})
+	}
+}
 
 /*************************************************************
  * Route registration (Task 3.2)

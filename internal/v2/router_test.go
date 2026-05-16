@@ -268,3 +268,42 @@ func TestFreeze_Idempotent(t *testing.T) {
 	r.Freeze() // must not panic
 	assert.True(t, r.Frozen())
 }
+
+/*************************************************************
+ * Task 4.2: HEAD mirror
+ *************************************************************/
+
+func TestFreeze_MirrorsGetToHead_Static(t *testing.T) {
+	r := New()
+	r.GET("/x", func(c *Context) {})
+	r.Freeze()
+	idx := methodIndex(HEAD)
+	_, ok := r.staticRoutes[idx]["/x"]
+	assert.True(t, ok)
+}
+
+func TestFreeze_MirrorsGetToHead_Dynamic(t *testing.T) {
+	r := New()
+	r.GET("/users/{id}", func(c *Context) {})
+	r.Freeze()
+	idx := methodIndex(HEAD)
+	assert.NotNil(t, r.dynamicTrees[idx])
+	var ps Params
+	_, ok := r.dynamicTrees[idx].lookup("/users/42", &ps)
+	assert.True(t, ok)
+}
+
+func TestFreeze_DoesNotOverrideExplicitHead(t *testing.T) {
+	r := New()
+	var headExplicit, getExplicit bool
+	r.GET("/x", func(c *Context) { getExplicit = true })
+	r.HEAD("/x", func(c *Context) { headExplicit = true })
+	r.Freeze()
+
+	idx := methodIndex(HEAD)
+	route := r.staticRoutes[idx]["/x"]
+	assert.NotNil(t, route)
+	route.chain[0](nil)
+	assert.True(t, headExplicit)
+	assert.False(t, getExplicit)
+}
