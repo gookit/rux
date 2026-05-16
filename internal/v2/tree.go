@@ -265,3 +265,83 @@ func (t *radixTree) bumpMaxParams(n uint8) {
 		panic(fmt.Sprintf("rux: route exceeds MaxParams=%d", MaxParams))
 	}
 }
+
+// lookup searches for the route matching path. On success it appends matched
+// path params to ps and returns the route.
+//
+// Priority: static > param > wildcard. (P-2)
+//
+// path must already be normalized.
+func (t *radixTree) lookup(path string, ps *Params) (*Route, bool) {
+	return walkNode(t.root, path, ps)
+}
+
+// walkNode is the recursive lookup. It returns (route, true) on hit;
+// (nil, false) on miss. Backtracking is implicit via the call stack:
+// when a static branch fails, the caller tries param/wildcard fallbacks
+// at the same level.
+//
+// Note: param/wildcard child nodes have prefix == "" (see insert invariants).
+// This means strings.HasPrefix(path, "") is trivially true, and we descend
+// into their children using the same uniform walkNode call — no special
+// "after-param" helper needed.
+func walkNode(n *node, path string, ps *Params) (*Route, bool) {
+	// Match the node's prefix against the start of path.
+	if !strings.HasPrefix(path, n.prefix) {
+		return nil, false
+	}
+	rest := path[len(n.prefix):]
+
+	// Path consumed exactly at this node.
+	if len(rest) == 0 {
+		if n.route != nil {
+			return n.route, true
+		}
+		return nil, false
+	}
+
+	// Snapshot params count for backtracking.
+	snap := ps.n
+
+	// 1. Try static children first (priority order: P-2).
+	if i := n.staticChildIndex(rest[0]); i >= 0 {
+		if r, ok := walkNode(n.children[i], rest, ps); ok {
+			return r, true
+		}
+		ps.n = snap
+	}
+
+	// 2. Try param child. Param matches up to the next '/' (or end).
+	if n.paramChild != nil {
+		end := strings.IndexByte(rest, '/')
+		if end == -1 {
+			end = len(rest)
+		}
+		ps.append(n.paramChild.paramName, rest[:end])
+		if end == len(rest) {
+			// Param consumed the rest of the path.
+			if n.paramChild.route != nil {
+				return n.paramChild.route, true
+			}
+		} else {
+			// More path remains — descend into paramChild. Empty prefix
+			// means walkNode's prefix-match passes trivially, then it
+			// dispatches on rest[end]'s first byte (typically '/').
+			if r, ok := walkNode(n.paramChild, rest[end:], ps); ok {
+				return r, true
+			}
+		}
+		ps.n = snap
+	}
+
+	// 3. Try wildcard child — last resort, matches everything remaining.
+	if n.wildcardChild != nil {
+		ps.append(n.wildcardChild.paramName, rest)
+		if n.wildcardChild.route != nil {
+			return n.wildcardChild.route, true
+		}
+		ps.n = snap
+	}
+
+	return nil, false
+}
