@@ -8,7 +8,7 @@
 package rux
 
 import (
-	"github.com/gookit/rux/internal/core"
+	"github.com/gookit/rux/v2/internal/core"
 )
 
 // HTTP method constants.

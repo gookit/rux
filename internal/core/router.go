@@ -9,7 +9,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/gookit/rux/internal/util"
+	"github.com/gookit/rux/v2/internal/util"
 )
 
 // Router is the central registration and dispatch object.

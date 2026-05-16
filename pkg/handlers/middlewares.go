@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/gookit/goutil/mathutil"
-	"github.com/gookit/rux"
+	"github.com/gookit/rux/v2"
 )
 
 // FavIcon uri for favicon.ico

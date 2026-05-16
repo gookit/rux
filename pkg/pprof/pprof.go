@@ -3,7 +3,7 @@ package pprof
 import (
 	"net/http/pprof"
 
-	"github.com/gookit/rux"
+	"github.com/gookit/rux/v2"
 )
 
 // UsePProf enable PProf for the rux serve

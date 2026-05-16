@@ -8,7 +8,7 @@ import (
 	"github.com/gookit/goutil"
 	"github.com/gookit/goutil/testutil"
 	"github.com/gookit/goutil/testutil/assert"
-	"github.com/gookit/rux"
+	"github.com/gookit/rux/v2"
 )
 
 func ExampleHTTPMethodOverrideHandler() {

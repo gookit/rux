@@ -2,7 +2,7 @@ package core
 
 import (
 	"github.com/gookit/goutil"
-	"github.com/gookit/rux/pkg/binding"
+	"github.com/gookit/rux/v2/pkg/binding"
 )
 
 // ShouldBind binds request data to obj using the given binder.

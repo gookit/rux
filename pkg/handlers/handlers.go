@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/gookit/rux"
+	"github.com/gookit/rux/v2"
 )
 
 // DumpRoutesHandler dump all registered routes info

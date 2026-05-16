@@ -12,7 +12,7 @@ import (
 
 	"github.com/gookit/goutil/netutil/httpctype"
 	"github.com/gookit/goutil/x/basefn"
-	"github.com/gookit/rux/pkg/render"
+	"github.com/gookit/rux/v2/pkg/render"
 )
 
 // Response header constants used by render helpers.

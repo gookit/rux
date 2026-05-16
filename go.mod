@@ -1,4 +1,4 @@
-module github.com/gookit/rux
+module github.com/gookit/rux/v2
 
 go 1.23
 
