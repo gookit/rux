@@ -1,98 +1,98 @@
 // Package rux is a high-performance HTTP router for Go.
 //
 // This package is the public API surface; all implementation lives in
-// internal/v2. Public symbols are type aliases / function vars over the
-// internal types so users get a single coherent import path.
+// internal/core. Public symbols are type aliases / function vars over
+// the internal types so users get a single coherent import path.
 //
 // Source: https://github.com/gookit/rux
 package rux
 
 import (
-	v2 "github.com/gookit/rux/internal/v2"
+	"github.com/gookit/rux/internal/core"
 )
 
 // HTTP method constants.
 const (
-	GET     = v2.GET
-	HEAD    = v2.HEAD
-	POST    = v2.POST
-	PUT     = v2.PUT
-	PATCH   = v2.PATCH
-	DELETE  = v2.DELETE
-	OPTIONS = v2.OPTIONS
-	CONNECT = v2.CONNECT
-	TRACE   = v2.TRACE
+	GET     = core.GET
+	HEAD    = core.HEAD
+	POST    = core.POST
+	PUT     = core.PUT
+	PATCH   = core.PATCH
+	DELETE  = core.DELETE
+	OPTIONS = core.OPTIONS
+	CONNECT = core.CONNECT
+	TRACE   = core.TRACE
 )
 
 // Content-Type and disposition header constants.
 const (
-	ContentType        = v2.ContentType
-	ContentBinary      = v2.ContentBinary
-	ContentDisposition = v2.ContentDisposition
+	ContentType        = core.ContentType
+	ContentBinary      = core.ContentBinary
+	ContentDisposition = core.ContentDisposition
 )
 
 // Context keys exposed by the dispatcher.
 const (
-	CTXAllowedMethods = v2.CTXAllowedMethods
-	CTXRecoverResult  = v2.CTXRecoverResult
+	CTXAllowedMethods = core.CTXAllowedMethods
+	CTXRecoverResult  = core.CTXRecoverResult
 )
 
-// Public types — all aliased to the internal/v2 implementation.
+// Public types — all aliased to the internal/core implementation.
 type (
-	Router          = v2.Router
-	Context         = v2.Context
-	Route           = v2.Route
-	HandlerFunc     = v2.HandlerFunc
-	HandlersChain   = v2.HandlersChain
-	Param           = v2.Param
-	Params          = v2.Params
-	RouteInfo       = v2.RouteInfo
-	M               = v2.M
-	BuildRequestURL = v2.BuildRequestURL
-	Renderer        = v2.Renderer
-	Validator       = v2.Validator
-	ControllerFace  = v2.ControllerFace
+	Router          = core.Router
+	Context         = core.Context
+	Route           = core.Route
+	HandlerFunc     = core.HandlerFunc
+	HandlersChain   = core.HandlersChain
+	Param           = core.Param
+	Params          = core.Params
+	RouteInfo       = core.RouteInfo
+	M               = core.M
+	BuildRequestURL = core.BuildRequestURL
+	Renderer        = core.Renderer
+	Validator       = core.Validator
+	ControllerFace  = core.ControllerFace
 )
 
 // REST action names.
 var (
-	IndexAction  = v2.IndexAction
-	CreateAction = v2.CreateAction
-	StoreAction  = v2.StoreAction
-	ShowAction   = v2.ShowAction
-	EditAction   = v2.EditAction
-	UpdateAction = v2.UpdateAction
-	DeleteAction = v2.DeleteAction
+	IndexAction  = core.IndexAction
+	CreateAction = core.CreateAction
+	StoreAction  = core.StoreAction
+	ShowAction   = core.ShowAction
+	EditAction   = core.EditAction
+	UpdateAction = core.UpdateAction
+	DeleteAction = core.DeleteAction
 
-	RESTFulActions = v2.RESTFulActions
+	RESTFulActions = core.RESTFulActions
 )
 
 // Constructor and lifecycle helpers.
 var (
-	New                = v2.New
-	NewBuildRequestURL = v2.NewBuildRequestURL
-	Debug              = v2.Debug
-	IsDebug            = v2.IsDebug
-	AnyMethods         = v2.AnyMethods
-	AllMethods         = v2.AllMethods
-	MethodsString      = v2.MethodsString
+	New                = core.New
+	NewBuildRequestURL = core.NewBuildRequestURL
+	Debug              = core.Debug
+	IsDebug            = core.IsDebug
+	AnyMethods         = core.AnyMethods
+	AllMethods         = core.AllMethods
+	MethodsString      = core.MethodsString
 )
 
 // Router options.
 var (
-	StrictLastSlash        = v2.StrictLastSlash
-	UseEncodedPath         = v2.UseEncodedPath
-	HandleMethodNotAllowed = v2.HandleMethodNotAllowed
-	HandleFallbackRoute    = v2.HandleFallbackRoute
-	InterceptAll           = v2.InterceptAll
+	StrictLastSlash        = core.StrictLastSlash
+	UseEncodedPath         = core.UseEncodedPath
+	HandleMethodNotAllowed = core.HandleMethodNotAllowed
+	HandleFallbackRoute    = core.HandleFallbackRoute
+	InterceptAll           = core.InterceptAll
 )
 
 // Middleware adapters (wrap http.Handler / http.HandlerFunc as HandlerFunc).
 var (
-	WrapH               = v2.WrapH
-	HTTPHandler         = v2.HTTPHandler
-	WrapHTTPHandler     = v2.WrapHTTPHandler
-	WrapHF              = v2.WrapHF
-	HTTPHandlerFunc     = v2.HTTPHandlerFunc
-	WrapHTTPHandlerFunc = v2.WrapHTTPHandlerFunc
+	WrapH               = core.WrapH
+	HTTPHandler         = core.HTTPHandler
+	WrapHTTPHandler     = core.WrapHTTPHandler
+	WrapHF              = core.WrapHF
+	HTTPHandlerFunc     = core.HTTPHandlerFunc
+	WrapHTTPHandlerFunc = core.WrapHTTPHandlerFunc
 )

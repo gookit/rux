@@ -1,7 +1,7 @@
-package v2
+package core
 
-// HTTP method names — duplicated from root rux package for internal use
-// without an import cycle. The root package re-exports these via constants.
+// HTTP method names. The root rux package re-exports these as constants
+// so external callers reference them as rux.GET, rux.POST, etc.
 const (
 	GET     = "GET"
 	HEAD    = "HEAD"
