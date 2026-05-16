@@ -14,33 +14,48 @@
 
 ## File Structure
 
+> **Architectural revision (2026-05-16, mid-Phase 1)**: Per user direction, v2 follows
+> the Go convention **"public API at root, implementation in `internal/`"**. The
+> root package exposes only public types (mostly type aliases over internal types),
+> interfaces, and package-level entry functions. All algorithms and struct
+> definitions live in `internal/v2/`. This avoids v1/v2 namespace collisions during
+> the rewrite and gives a clean public surface. Phase 6 includes a `chore: rename
+> internal/v2 to internal/core` step (the "v2" name loses meaning post-rewrite).
+
+### Root package (`rux/`) — public surface only
+
+| File | Responsibility |
+|---|---|
+| `rux.go` | Package doc, HTTP method constants, `Debug()`, `methodIndex` (unexported), public type aliases (`Router = corev2.Router`, etc.), `New()` and Option functions |
+| `static_helpers.go` *(new)* | `StaticFile`/`StaticDir`/`StaticFS`/`StaticFiles` convenience methods (thin wrappers over Router) |
+
+### Implementation package (`internal/v2/`) — most code lives here
+
 | File | Status | Responsibility | Approx LOC |
 |---|---|---|---|
-| `rux.go` | rewrite | Package constants, `methodIndex`, `Option` types, `Debug()` | ~120 |
-| `tree.go` | new (replaces `radix_tree.go`) | Radix Tree node + insert/lookup/split/walk algorithms | ~500 |
-| `router.go` | rewrite | Router struct, route registration, Group, Resource, Controller, Use, Freeze | ~400 |
-| `route.go` | rewrite | Route definition, URL building, chain management | ~180 |
-| `context.go` | rewrite | Context with inline `Params [16]Param` + typed fields | ~280 |
-| `params.go` | new | `Param` struct, `Params` inline container, helpers | ~120 |
-| `dispatch.go` | rewrite | `ServeHTTP`, `Listen*`, lock-free hot path | ~180 |
-| `context_render.go` | adapt (light) | JSON/XML/Text/HTML/File responses | ~250 |
-| `context_binding.go` | adapt (light) | Form/JSON/Header/Query parameter binding | ~120 |
-| `middleware.go` | adapt (light) | Built-in middleware (Recovery etc.) | ~100 |
-| `extends.go` | adapt (light) | `BuildRequestURL` URL builder | ~150 |
-| `response_writer.go` | rename + light edit | Wraps `http.ResponseWriter`, tracks status/size (was `response_wirter.go` typo) | ~80 |
-| `utils.go` | rewrite | `normalizePath`, `isStaticPath`, `parseOptionalSegments`, debug print | ~150 |
-| `internal/util/util.go` | keep | `Panicf`, `ValidateOptionalSegments` | unchanged |
-| `radix_tree.go` | **delete** | Replaced by `tree.go` | -- |
-| `radix_tree_test.go` | **delete** | Replaced by `tree_test.go` | -- |
-| `route_parse_match.go` | already deleted | -- | -- |
-| `fastrux/` | **delete entire dir** | Functionality merged into main package (P-13) | -- |
-| `_tmp/` | **archive + delete** | Move dev-progress to `docs/design/archive/` | -- |
-| `tree_test.go` | new | Radix Tree algorithm tests | ~600 |
-| `params_test.go` | new | Params container tests | ~80 |
-| `router_test.go` | rewrite | End-to-end Router tests | ~400 |
-| `context_test.go` | adapt | Context tests | ~250 |
-| `dispatch_test.go` | adapt | Dispatch tests | ~200 |
-| `benchmark_test.go` | rewrite | Comparative benchmarks | ~250 |
+| `params.go` | done (commit `8572906`) | `Param` struct, `Params` inline container | ~120 |
+| `tree.go` | partial (commit `2815d60`) | Radix Tree node + algorithms (insert/lookup/split/walk) | ~500 |
+| `utils.go` | done (commit `2f0281d`) | path helpers (`normalizePath`, `isStaticPath`, `longestCommonPrefix`, `convertParamSyntax`, `parseOptionalSegments`, `hasOptionalSegment`) | ~150 |
+| `route.go` | pending (Task 1.4) | `Route`, `HandlerFunc`, `HandlersChain`, `RouteInfo`, `abortIndex` | ~180 |
+| `router.go` | pending (Phase 3) | `Router` struct, registration, Group/Resource/Controller, Use, Freeze | ~400 |
+| `context.go` | pending (Phase 4 / 5) | `Context` with inline `Params` + typed fields | ~280 |
+| `context_render.go` | pending (Phase 5) | JSON/XML/Text/HTML/File responses | ~250 |
+| `context_binding.go` | pending (Phase 5) | Form/JSON/Header/Query parameter binding | ~120 |
+| `dispatch.go` | pending (Phase 4) | `ServeHTTP`, `Listen*`, lock-free hot path | ~180 |
+| `middleware.go` | pending (Phase 5) | Built-in middleware (Recovery etc.) | ~100 |
+| `extends.go` | pending (Phase 5) | `BuildRequestURL` URL builder | ~150 |
+| `response_writer.go` | pending (Phase 4 / 5) | Wraps `http.ResponseWriter`, tracks status/size | ~80 |
+
+### Legacy `internal/util/util.go` — unchanged
+
+`Panicf`, `ValidateOptionalSegments`. Already reusable across v1/v2.
+
+### Files to delete (Phase 6)
+
+- `radix_tree.go` / `radix_tree_test.go` — replaced by `internal/v2/tree.go`
+- `fastrux/` — entire dir (P-13)
+- `_tmp/` — archive `dev-progress.md`, `HYBRID_ARCHITECTURE_PLAN.md` to `docs/design/archive/`
+- All v1 files (`router.go`, `dispatch.go`, `route.go`, `context.go`, etc. at root) — they get **deleted** in Phase 6 and replaced by thin re-export shims in `rux.go`
 
 ---
 
@@ -50,7 +65,7 @@
 
 **Files:** none (git operations only)
 
-- [ ] **Step 1: Verify clean working tree on fea_v2**
+- [x] **Step 1: Verify clean working tree on fea_v2**
 
 ```bash
 git status
@@ -58,60 +73,29 @@ git status
 
 Expected output should show the current modified files; if user has unstaged work they want to keep, prompt them to commit first.
 
-- [ ] **Step 2: Tag v1 final state on master**
+- [x] **Step 2: Tag v1 final state on master** — Done (tag `v1.x-final` exists)
 
-```bash
-git tag -a v1.x-final master -m "v1.x final state before v2 rewrite"
-```
+- [x] **Step 3: Create v2-rewrite branch from current fea_v2** — Done (also pre-committed wip state on fea_v2 as `9aa93a8`)
 
-Expected: tag created silently (no output).
+- [x] **Step 4: Snapshot fastrux to archive** — Done (`_archive/fastrux-snapshot-20260516.tar.gz`)
 
-- [ ] **Step 3: Create v2-rewrite branch from current fea_v2**
+- [x] **Step 5: Add _archive to .gitignore** — Done
 
-```bash
-git checkout -b v2-rewrite
-git status
-```
-
-Expected output: `On branch v2-rewrite`.
-
-- [ ] **Step 4: Snapshot fastrux to archive (out of git)**
-
-```bash
-mkdir -p _archive
-tar -czf _archive/fastrux-snapshot-$(date +%Y%m%d).tar.gz fastrux/
-ls -lh _archive/
-```
-
-Expected: a `.tar.gz` file ~50-200KB.
-
-- [ ] **Step 5: Add _archive to .gitignore**
-
-```bash
-grep -qxF '_archive/' .gitignore || echo '_archive/' >> .gitignore
-git diff .gitignore
-```
-
-Expected diff shows `+_archive/`.
-
-- [ ] **Step 6: Commit branch setup**
-
-```bash
-git add .gitignore
-git commit -m "chore(v2): create v2-rewrite branch, archive fastrux snapshot"
-```
+- [x] **Step 6: Commit branch setup** — Done (`ae00057`)
 
 ---
 
 ## Phase 1: Core Data Structures (1.5 days)
 
-### Task 1.1: methodIndex (P-1)
+### Task 1.1: methodIndex (P-1) ✅ DONE (commit `ec47219`)
+
+**Note**: original plan rewrote rux.go wholesale, which broke compilation (other v1 files reference `anyMethods`, `InterceptAll`, `UseEncodedPath`, `StrictLastSlash`, `HandleFallbackRoute`, `HandleMethodNotAllowed`). Adjusted to **add only** `methodCount` + `methodIndex`; v1 symbols stay until subsequent tasks rewrite their owning files.
 
 **Files:**
 - Create: `rux.go` (replacing existing — keep package doc comment)
 - Test: `rux_test.go` (extend existing or create)
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Add to `rux_test.go`:
 
