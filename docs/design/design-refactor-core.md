@@ -1,5 +1,9 @@
 # Rux 核心路由重构设计方案
 
+> **⚠️ ARCHIVED (2026-05-16):** This document captures the design exploration that
+> preceded `rux-v2-design.md`. Implementation diverged from this plan.
+> Refer to **[rux-v2-design.md](./rux-v2-design.md)** for the authoritative v2 spec.
+
 ## 一、背景与目标
 
 ### 1.1 当前问题概述

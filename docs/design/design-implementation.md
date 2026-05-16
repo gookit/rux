@@ -1,5 +1,9 @@
 # Rux 路由重构 - 实施方案（方案 A：破坏性简化）
 
+> **⚠️ ARCHIVED (2026-05-16):** This document captures the design exploration that
+> preceded `rux-v2-design.md`. Implementation diverged from this plan.
+> Refer to **[rux-v2-design.md](./rux-v2-design.md)** for the authoritative v2 spec.
+
 ## 一、设计决策确认
 
 ### 1.1 核心架构决策
