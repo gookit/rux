@@ -91,6 +91,13 @@ func MountEchoRoutes(r *rux.Router) {
 	// Raw data.
 	r.GET("/bytes/{n}", echoBytesHandler)
 	r.GET("/uuid", echoUUIDHandler)
+
+	// Catch-all: any path not matched above is echoed back. rux v2's
+	// routing priority is static > param > wildcard (P-2), so the
+	// specific routes registered above always win — this only fires for
+	// genuinely unhandled paths (e.g. GET /foo, POST /random).
+	// Registered last for code-reading clarity; order doesn't affect lookup.
+	r.Any("/*path", echoHandler)
 }
 
 // indentedJSON is the shared JSON renderer used by every echo handler so

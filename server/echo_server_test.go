@@ -80,10 +80,49 @@ func TestEcho_DeleteEndpoint(t *testing.T) {
 	assert.Eq(t, 200, w.Code)
 }
 
-func TestEcho_MethodRestricted(t *testing.T) {
-	// GET /post should be 404: we only registered POST /post.
+func TestEcho_MethodRouting_ExplicitVerbWins(t *testing.T) {
+	// POST /post matches the explicit POST handler.
+	w := mockEcho(t, "POST", "/post", strings.NewReader("hello"))
+	assert.Eq(t, 200, w.Code)
+	assert.True(t, strings.Contains(w.Body.String(), `"method": "POST"`))
+}
+
+func TestEcho_CatchAll_UnknownPath(t *testing.T) {
+	w := mockEcho(t, "GET", "/totally-random-path", nil)
+	assert.Eq(t, 200, w.Code)
+	body := w.Body.String()
+	assert.True(t, strings.Contains(body, `"method": "GET"`))
+	assert.True(t, strings.Contains(body, "/totally-random-path"))
+}
+
+func TestEcho_CatchAll_MethodMismatch(t *testing.T) {
+	// GET /post falls through to /*path catch-all because only POST /post
+	// was registered explicitly.
 	w := mockEcho(t, "GET", "/post", nil)
-	assert.Eq(t, 404, w.Code)
+	assert.Eq(t, 200, w.Code)
+	assert.True(t, strings.Contains(w.Body.String(), `"method": "GET"`))
+}
+
+func TestEcho_CatchAll_AnyVerb(t *testing.T) {
+	for _, method := range []string{"GET", "POST", "PUT", "PATCH", "DELETE"} {
+		w := mockEcho(t, method, "/no-such-endpoint", nil)
+		assert.Eq(t, 200, w.Code, "method=%s", method)
+	}
+}
+
+func TestEcho_SpecificRoutes_BeatCatchAll(t *testing.T) {
+	// Static routes beat root wildcard (rux P-2 priority).
+	w := mockEcho(t, "GET", "/status/418", nil)
+	assert.Eq(t, 418, w.Code)
+
+	w = mockEcho(t, "GET", "/uuid", nil)
+	assert.Eq(t, 200, w.Code)
+	assert.True(t, strings.Contains(w.Body.String(), `"uuid"`))
+
+	// /anything/foo should hit /anything/*path (its own wildcard), not
+	// the root /*path catch-all.
+	w = mockEcho(t, "GET", "/anything/foo", nil)
+	assert.Eq(t, 200, w.Code)
 }
 
 func TestEcho_Headers(t *testing.T) {
