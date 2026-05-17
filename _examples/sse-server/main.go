@@ -86,7 +86,16 @@ func eventsHandler(c *rux.Context) {
 		},
 	}
 
-	_ = sse.Stream(c, hooks, func(send sse.SendFunc, done <-chan struct{}) error {
+	opts := &sse.Options{
+		Hooks:         hooks,
+		SendConnected: true,
+		// Fire a ": keepalive\n\n" comment frame every 30s. Defends against
+		// proxy/NAT idle timeouts (nginx default proxy_read_timeout=60s).
+		// NOTE: does NOT defeat http.Server.WriteTimeout — that still has
+		// to be 0 (or very large), which is why s.WriteTimeout is 0 above.
+		KeepaliveInterval: 30 * time.Second,
+	}
+	_ = sse.StreamWith(c, opts, func(send sse.SendFunc, done <-chan struct{}) error {
 		ticker := time.NewTicker(time.Second)
 		defer ticker.Stop()
 

@@ -673,9 +673,26 @@ s.GET("/events", func(c *rux.Context) {
 rejecting hook can issue any 4xx via `c.Resp` (e.g.
 `http.Error(c.Resp, "no token", 401)`).
 
-**Caveat:** `server.Server` defaults `WriteTimeout` to 30 s, which
-will kill a long-running SSE connection. Set `s.WriteTimeout = 0` on
-servers that host SSE streams. See `_examples/sse-server`.
+`Stream` emits a leading `: connected\n\n` comment frame by default
+(suppress with `StreamWith` and `SendConnected: false`). For
+keepalives use `StreamWith` and set `KeepaliveInterval`:
+
+```go
+sse.StreamWith(c, &sse.Options{
+    Hooks: myHooks,
+    SendConnected: true,
+    KeepaliveInterval: 30 * time.Second, // ": keepalive\n\n" every 30s
+}, producer)
+```
+
+**Two different timeouts — both matter:**
+
+| Timer                                    | Defeated by             |
+| ---------------------------------------- | ----------------------- |
+| `server.Server.WriteTimeout` (default 30s)        | Must set `= 0`. Heartbeats do NOT save you — this bounds the whole response lifetime. |
+| Proxy / NAT idle timeout (nginx 60s, ALB 60s, …)  | `KeepaliveInterval` ≤ that value. |
+
+See `_examples/sse-server` for the full setup.
 
 ## Migrating from v1
 

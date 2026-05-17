@@ -623,8 +623,25 @@ s.GET("/events", func(c *rux.Context) {
 `OnConnect` 在 SSE 响应头写入**之前**运行，所以拒绝时 hook 可以
 通过 `c.Resp` 写自定义 4xx 响应（如 `http.Error(c.Resp, "no token", 401)`）。
 
-**注意**：`server.Server` 默认 `WriteTimeout=30s`，会切断长连接 SSE。
-承载 SSE 的实例需设 `s.WriteTimeout = 0`。完整示例见 `_examples/sse-server`。
+`Stream` 默认会先发一个 `: connected\n\n` 注释帧（用 `StreamWith` +
+`SendConnected: false` 关闭）。需要心跳时用 `StreamWith` 设 `KeepaliveInterval`：
+
+```go
+sse.StreamWith(c, &sse.Options{
+    Hooks: myHooks,
+    SendConnected: true,
+    KeepaliveInterval: 30 * time.Second, // 每 30s 发 ": keepalive\n\n"
+}, producer)
+```
+
+**两种不同的 timeout — 各管各的：**
+
+| 计时器                                              | 解法                       |
+| --------------------------------------------------- | -------------------------- |
+| `server.Server.WriteTimeout`（默认 30s）            | 必须设 `= 0`。心跳救不了 —— 它管的是整个响应的总时长。 |
+| 代理 / NAT 空闲超时（nginx 60s、ALB 60s 等）         | `KeepaliveInterval` ≤ 上面这个值。 |
+
+完整示例见 `_examples/sse-server`。
 
 ## 从 v1 迁移
 
