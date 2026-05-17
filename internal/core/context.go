@@ -263,7 +263,13 @@ func (c *Context) SetCookie(name, value string, maxAge int, path, domain string,
 	})
 }
 
-// FastSetCookie sets a response cookie with sensible defaults (path=/, httpOnly=true).
+// FastSetCookie sets a response cookie with developer-friendly defaults:
+// path=/, httpOnly=true, secure=false. The Secure attribute is deliberately
+// off so cookies work over plain HTTP during local development.
+//
+// SECURITY: for production HTTPS deployments use SetCookie directly with
+// secure=true (and consider SameSite via http.SetCookie if you need it).
+// This default is preserved for backward compatibility.
 func (c *Context) FastSetCookie(name, value string, maxAge int) {
 	c.SetCookie(name, value, maxAge, "/", "", false, true)
 }
