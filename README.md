@@ -24,8 +24,7 @@ Simple and fast web framework for build golang HTTP applications.
 - Same high-level API as v1 — `Router`, `Group`, `Resource`, `Controller`,
   `GET/POST/...` all unchanged.
 
-See `_benchmarks/v2-results.txt` for measured numbers, and
-[docs/MIGRATION-v1-to-v2.md](docs/MIGRATION-v1-to-v2.md) for breaking changes.
+See [_benchmarks/v2-results.txt](_benchmarks/v2-results.txt) for measured numbers, and [docs/MIGRATION-v1-to-v2.md](docs/MIGRATION-v1-to-v2.md) for breaking changes.
 
 ## Features
 
@@ -41,17 +40,12 @@ See `_benchmarks/v2-results.txt` for measured numbers, and
 
 **Built-in batteries (`server/`, `pkg/*`)**
 
-- Production-ready Server with sane timeouts, graceful shutdown,
-  lifecycle hooks, and `/healthz` + `/readyz` endpoints
-  ([docs](docs/echo-server.md))
-- Echo Server: httpbin-style debug endpoints
-  (`/anything`, `/status/{code}`, `/delay`, `/redirect`, `/cookies`,
+- Production-ready Server with sane timeouts, graceful shutdown, lifecycle hooks, and `/healthz` + `/readyz` endpoints ([docs](docs/echo-server.md))
+- Echo Server: httpbin-style debug endpoints (`/anything`, `/status/{code}`, `/delay`, `/redirect`, `/cookies`,
   `/basic-auth`, `/bytes`, `/uuid`, `/download`, `/upload`, …)
-- Render package (`pkg/render`): stateless helpers + status-aware
-  `Responder` for JSON / XML / Text / HTML / Binary / Auto, with a
+- Render package (`pkg/render`): stateless helpers + status-aware `Responder` for JSON / XML / Text / HTML / Binary / Auto, with a
   pluggable `TemplateRenderer` interface (no template engine bundled)
-- Server-Sent Events (`pkg/sse`): `Stream` / `StreamWith` with
-  lifecycle hooks, default `:connected` frame, optional keepalive,
+- Server-Sent Events (`pkg/sse`): `Stream` / `StreamWith` with lifecycle hooks, default `:connected` frame, optional keepalive,
   plus a `Hub` for keyed push and broadcast to active clients
 
 ## GoDoc
@@ -127,8 +121,8 @@ r.Group("/articles", func() {
 ## Path Params
 
 In v2 the path-param syntax is `{name}` (named) or `*name` (wildcard).
-Regex constraints such as `{id:\d+}` are no longer supported — validate
-inside the handler or with a small middleware (see the migration guide).
+
+> Regex constraints such as `{id:\d+}` are no longer supported — validate inside the handler or with a small middleware (see the migration guide).
 
 ```go
 // can access by: "/blog/123"
@@ -579,9 +573,8 @@ func main() {
 
 ## Production-Ready Server
 
-Package `server` wraps a `rux.Router` with sensible HTTP timeouts,
-graceful shutdown, lifecycle hooks, and built-in `/healthz` / `/readyz`
-endpoints. It is the recommended way to run rux in containers / k8s.
+Package `server` wraps a `rux.Router` with sensible HTTP timeouts, graceful shutdown, lifecycle hooks,
+and built-in `/healthz` / `/readyz` endpoints. It is the recommended way to run rux in containers / k8s.
 
 ```go
 package main
@@ -637,13 +630,10 @@ Defaults tuned for container deployments:
 
 ### Echo Server (httpbin-style)
 
-`server.NewEchoServer()` builds a Server with httpbin-style debug
-endpoints pre-mounted: `/anything`, `/get|post|put|patch|delete`,
-`/status/{code}`, `/delay/{n}`, `/redirect/{n}`, `/cookies`,
-`/basic-auth/{u}/{p}`, `/bytes/{n}`, `/uuid`, `/download/{filename}`,
-`POST /upload`, and a `/*path` catch-all. Useful for local debugging,
-integration tests, and as a `/debug` subtree inside larger apps via
-`server.MountEchoRoutes(r)`.
+`server.NewEchoServer()` builds a Server with httpbin-style debug endpoints pre-mounted:
+ `/anything`, `/get|post|put|patch|delete`, `/status/{code}`, `/delay/{n}`, `/redirect/{n}`, `/cookies`,
+`/basic-auth/{u}/{p}`, `/bytes/{n}`, `/uuid`, `/download/{filename}`, `POST /upload`, and a `/*path` catch-all.
+ Useful for local debugging, integration tests, and as a `/debug` subtree inside larger apps via `server.MountEchoRoutes(r)`.
 
 ```bash
 go run ./_examples/echo-server
@@ -652,15 +642,12 @@ curl http://127.0.0.1:18080/anything
 curl -F "file=@./README.md" http://127.0.0.1:18080/upload
 ```
 
-See [docs/echo-server.md](docs/echo-server.md) for the full endpoint
-table and usage recipes.
+See [docs/echo-server.md](docs/echo-server.md) for the full endpoint table and usage recipes.
 
 ### Server-Sent Events
 
-`pkg/sse` wraps the SSE wire format and lifecycle so handlers only
-have to drive the producer. The Hooks struct exposes
-`OnConnect` / `OnDisconnect` / `OnSend` / `OnError` callbacks for
-auth, logging, filtering, and metrics — any field may be nil.
+`pkg/sse` wraps the SSE wire format and lifecycle so handlers only have to drive the producer.
+The Hooks struct exposes `OnConnect` / `OnDisconnect` / `OnSend` / `OnError` callbacks for auth, logging, filtering, and metrics — any field may be nil.
 
 ```go
 import "github.com/gookit/rux/v2/pkg/sse"
@@ -686,13 +673,11 @@ s.GET("/events", func(c *rux.Context) {
 })
 ```
 
-`OnConnect` runs **before** the SSE headers are written, so a
-rejecting hook can issue any 4xx via `c.Resp` (e.g.
-`http.Error(c.Resp, "no token", 401)`).
+`OnConnect` runs **before** the SSE headers are written, so a rejecting hook can issue any 4xx via `c.Resp` (e.g. `http.Error(c.Resp, "no token", 401)`).
 
-`Stream` emits a leading `: connected\n\n` comment frame by default
-(suppress with `StreamWith` and `SendConnected: false`). For
-keepalives use `StreamWith` and set `KeepaliveInterval`:
+`Stream` emits a leading `: connected\n\n` comment frame by default (suppress with `StreamWith` and `SendConnected: false`).
+
+For keepalives use `StreamWith` and set `KeepaliveInterval`:
 
 ```go
 sse.StreamWith(c, &sse.Options{
@@ -709,11 +694,8 @@ sse.StreamWith(c, &sse.Options{
 | `server.Server.WriteTimeout` (default 30s)        | Must set `= 0`. Heartbeats do NOT save you — this bounds the whole response lifetime. |
 | Proxy / NAT idle timeout (nginx 60s, ALB 60s, …)  | `KeepaliveInterval` ≤ that value. |
 
-**Keyed push with Hub.** For business-driven pushes (notify user X,
-broadcast to all) use `sse.NewHub` — an in-memory registry keyed by
-ID (e.g. user ID), multi-connection-per-id (multi-tab fan-out), with
-non-blocking per-client buffer + dropped-event counter + `OnDrop`
-hook:
+**Keyed push with Hub.** For business-driven pushes (notify user X, broadcast to all) use `sse.NewHub` — an in-memory registry keyed by ID (e.g. user ID),
+multi-connection-per-id (multi-tab fan-out), with non-blocking per-client buffer + dropped-event counter + `OnDrop` hook:
 
 ```go
 hub := sse.NewHub(64) // per-client buffer size
@@ -731,21 +713,17 @@ hub.SetOnDrop(func(c *sse.Client, _ sse.Event) {
 })
 ```
 
-See `_examples/sse-server` for the full setup (subscribe + push +
-broadcast + stats endpoints with a tiny HTML demo client).
+See `_examples/sse-server` for the full setup (subscribe + push + broadcast + stats endpoints with a tiny HTML demo client).
 
 ## Migrating from v1
 
-If you are upgrading from rux v1.x, please read
-[docs/MIGRATION-v1-to-v2.md](docs/MIGRATION-v1-to-v2.md) for a complete
-list of breaking changes. The high-level API surface is largely unchanged
-and most basic applications need no source edits.
+If you are upgrading from rux v1.x, please read [docs/MIGRATION-v1-to-v2.md](docs/MIGRATION-v1-to-v2.md) for a complete
+list of breaking changes. The high-level API surface is largely unchanged and most basic applications need no source edits.
 
 ## Performance
 
 rux v2 targets sub-200 ns/op for typical dynamic routes and 0 alloc/op
-for static and most parametrized routes. See
-[`_benchmarks/v2-results.txt`](_benchmarks/v2-results.txt) for the
+for static and most parametrized routes. See [`_benchmarks/v2-results.txt`](_benchmarks/v2-results.txt) for the
 benchmark numbers measured on the current branch.
 
 ## Help

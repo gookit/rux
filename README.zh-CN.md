@@ -21,11 +21,9 @@
 - 首次 `ServeHTTP` 自动 Freeze，路由表运行期只读
 - Freeze 时自动把 GET 镜像为 HEAD，省去手写 `r.HEAD`
 - 中间件链在 Freeze 时预合并，请求路径不再 `append`
-- 对外 API 与 v1 基本一致：`Router`、`Group`、`Resource`、`Controller`、
-  `GET/POST/...` 用法不变。
+- 对外 API 与 v1 基本一致：`Router`、`Group`、`Resource`、`Controller`、`GET/POST/...` 用法不变。
 
-性能数据见 `_benchmarks/v2-results.txt`，破坏性变更见
-[docs/MIGRATION-v1-to-v2.md](docs/MIGRATION-v1-to-v2.md)。
+> 性能数据见 [_benchmarks/v2-results.txt](_benchmarks/v2-results.txt)，破坏性变更见 [docs/MIGRATION-v1-to-v2.md](docs/MIGRATION-v1-to-v2.md)。
 
 ## 主要特性
 
@@ -41,17 +39,14 @@
 
 **内置开箱即用模块（`server/`、`pkg/*`）**
 
-- 生产级 Server：合理的超时默认、优雅关闭、生命周期钩子、内置
-  `/healthz` + `/readyz` 探针（[docs](docs/echo-server.md)）
-- Echo Server：httpbin 风格的调试端点
-  （`/anything`、`/status/{code}`、`/delay`、`/redirect`、`/cookies`、
-  `/basic-auth`、`/bytes`、`/uuid`、`/download`、`/upload` 等）
-- Render 包（`pkg/render`）：无状态 helper + 带 status 参数的
-  `Responder`，覆盖 JSON / XML / Text / HTML / Binary / Auto，
-  并通过 `TemplateRenderer` 接口接入任意模板引擎（不绑定具体引擎）
+- 生产级 Server：合理的超时默认、优雅关闭、生命周期钩子、内置 `/healthz` + `/readyz` 探针（[docs](docs/echo-server.md)）
+- Echo Server：httpbin 风格的调试端点（`/anything`、`/status/{code}`、`/delay`、`/redirect`、`/cookies`、`/basic-auth`、`/bytes`、`/uuid`、`/download`、`/upload` 等）
+- Render 包（`pkg/render`）：无状态 helper + 带 status 参数的 `Responder`
+  - 覆盖 JSON / XML / Text / HTML / Binary / Auto
+  - 并通过 `TemplateRenderer` 接口接入任意模板引擎（不绑定具体引擎）
 - Server-Sent Events（`pkg/sse`）：`Stream` / `StreamWith` 封装协议
-  和生命周期钩子，默认 `:connected` 帧、可选 keepalive，附带 `Hub`
-  支持按 key 单播 + 全员广播
+  - 和生命周期钩子，默认 `:connected` 帧、可选 keepalive，附带 `Hub`
+  - 支持按 key 单播 + 全员广播
 
 ## GoDoc
 
@@ -532,9 +527,8 @@ func main() {
 
 ## 生产级 Server
 
-`server` 包基于 `rux.Router` 之上封装了一层生产级 HTTP 服务：合理的超时、
-优雅关闭、生命周期钩子，以及内置的 `/healthz` / `/readyz` 探针。是在容器 /
-k8s 环境运行 rux 的推荐方式。
+`server` 包基于 `rux.Router` 之上封装了一层生产级 HTTP 服务：合理的超时、优雅关闭、生命周期钩子，
+以及内置的 `/healthz` / `/readyz` 探针。是在容器 / k8s 环境运行 rux 的推荐方式。
 
 ```go
 package main
@@ -591,11 +585,9 @@ func main() {
 ### Echo Server（httpbin 风格）
 
 `server.NewEchoServer()` 会构建一个预挂载 httpbin 风格调试端点的 Server：
-`/anything`、`/get|post|put|patch|delete`、`/status/{code}`、`/delay/{n}`、
-`/redirect/{n}`、`/cookies`、`/basic-auth/{u}/{p}`、`/bytes/{n}`、`/uuid`、
-`/download/{filename}`、`POST /upload`，以及兜底的 `/*path`。适合本地联调、
-集成测试，也可以通过 `server.MountEchoRoutes(r)` 嵌入到现有应用，
-作为 `/debug` 子树。
+`/anything`、`/get|post|put|patch|delete`、`/status/{code}`、`/delay/{n}`、`/redirect/{n}`、`/cookies`、
+`/basic-auth/{u}/{p}`、`/bytes/{n}`、`/uuid`、`/download/{filename}`、`POST /upload`，
+以及兜底的 `/*path`。适合本地联调、集成测试，也可以通过 `server.MountEchoRoutes(r)` 嵌入到现有应用，作为 `/debug` 子树。
 
 ```bash
 go run ./_examples/echo-server
@@ -609,8 +601,7 @@ curl -F "file=@./README.md" http://127.0.0.1:18080/upload
 ### Server-Sent Events
 
 `pkg/sse` 封装了 SSE 的协议帧和生命周期，handler 只需要专心做事件生产者。
-`Hooks` 结构提供 `OnConnect` / `OnDisconnect` / `OnSend` / `OnError` 四个
-回调，用于鉴权、日志、过滤、埋点 —— 任意字段可为 nil。
+`Hooks` 结构提供 `OnConnect` / `OnDisconnect` / `OnSend` / `OnError` 四个回调，用于鉴权、日志、过滤、埋点 —— 任意字段可为 nil。
 
 ```go
 import "github.com/gookit/rux/v2/pkg/sse"
@@ -636,11 +627,10 @@ s.GET("/events", func(c *rux.Context) {
 })
 ```
 
-`OnConnect` 在 SSE 响应头写入**之前**运行，所以拒绝时 hook 可以
-通过 `c.Resp` 写自定义 4xx 响应（如 `http.Error(c.Resp, "no token", 401)`）。
+`OnConnect` 在 SSE 响应头写入**之前**运行，所以拒绝时 hook 可以通过 `c.Resp` 写自定义 4xx 响应（如 `http.Error(c.Resp, "no token", 401)`）。
+`Stream` 默认会先发一个 `: connected\n\n` 注释帧（用 `StreamWith` + `SendConnected: false` 关闭）。
 
-`Stream` 默认会先发一个 `: connected\n\n` 注释帧（用 `StreamWith` +
-`SendConnected: false` 关闭）。需要心跳时用 `StreamWith` 设 `KeepaliveInterval`：
+需要心跳时用 `StreamWith` 设 `KeepaliveInterval`：
 
 ```go
 sse.StreamWith(c, &sse.Options{
@@ -657,10 +647,8 @@ sse.StreamWith(c, &sse.Options{
 | `server.Server.WriteTimeout`（默认 30s）            | 必须设 `= 0`。心跳救不了 —— 它管的是整个响应的总时长。 |
 | 代理 / NAT 空闲超时（nginx 60s、ALB 60s 等）         | `KeepaliveInterval` ≤ 上面这个值。 |
 
-**按 key 主动推送 — Hub。** 业务驱动的推送（通知某用户、全员广播）
-用 `sse.NewHub`：内存注册表，按 ID（如 user ID）查询；同一 ID 可对应
-多个连接（多 tab 自动 fan-out）；每客户端独立缓冲队列 + 满了非阻塞
-丢弃 + dropped 计数 + `OnDrop` 钩子：
+**按 key 主动推送 — Hub。** 业务驱动的推送（通知某用户、全员广播）用 `sse.NewHub`：内存注册表，按 ID（如 user ID）查询；
+同一 ID 可对应多个连接（多 tab 自动 fan-out）；每客户端独立缓冲队列 + 满了非阻塞丢弃 + dropped 计数 + `OnDrop` 钩子：
 
 ```go
 hub := sse.NewHub(64) // 每客户端缓冲
@@ -682,15 +670,13 @@ hub.SetOnDrop(func(c *sse.Client, _ sse.Event) {
 
 ## 从 v1 迁移
 
-如果你从 rux v1.x 升级，请阅读
-[docs/MIGRATION-v1-to-v2.md](docs/MIGRATION-v1-to-v2.md)
+如果你从 rux v1.x 升级，请阅读 [docs/MIGRATION-v1-to-v2.md](docs/MIGRATION-v1-to-v2.md)
 查看完整的破坏性变更列表。对外 API 基本保持一致，多数基础应用无需修改源码。
 
 ## 性能
 
 rux v2 目标是典型动态路由低于 200 ns/op，静态路由及多数命名参数路由 0 alloc/op。
-详细数据见
-[`_benchmarks/v2-results.txt`](_benchmarks/v2-results.txt)。
+详细数据见 [`_benchmarks/v2-results.txt`](_benchmarks/v2-results.txt)。
 
 ## 帮助
 
