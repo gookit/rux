@@ -45,6 +45,7 @@ const echoHomePage = `<!DOCTYPE html>
   <li><code>GET  /uuid</code>               — RFC 4122 v4 UUID</li>
   <li><code>GET  /download/{filename}</code> — auto-generate file (?size=N&amp;type=bin|text|json&amp;inline=1)</li>
   <li><code>POST /upload</code>             — multipart upload, echoes per-file sha256/size/mime</li>
+  <li><code>ANY  /*path</code>              — echoes back any path</li>
 </ul>
 </body>
 </html>`
@@ -68,14 +69,15 @@ func MountEchoRoutes(r *rux.Router) {
 	r.Any("/anything", echoHandler)
 	r.Any("/anything/*path", echoHandler)
 
-	// Method-specific endpoints. We deliberately register only the matching
-	// verb — clients using the wrong method get 404, which is the simplest
-	// behavior without enabling the router-wide 405 option.
-	r.GET("/get", echoHandler)
-	r.POST("/post", echoHandler)
-	r.PUT("/put", echoHandler)
-	r.PATCH("/patch", echoHandler)
-	r.DELETE("/delete", echoHandler)
+	// Method-locked endpoints. Registered as Any so a wrong method is
+	// caught here (returning 405 with Allow header, httpbin-style) instead
+	// of falling through to the root /*path catch-all and being echoed
+	// as 200.
+	registerMethodLocked(r, "/get", http.MethodGet)
+	registerMethodLocked(r, "/post", http.MethodPost)
+	registerMethodLocked(r, "/put", http.MethodPut)
+	registerMethodLocked(r, "/patch", http.MethodPatch)
+	registerMethodLocked(r, "/delete", http.MethodDelete)
 
 	// Inspection endpoints.
 	r.GET("/headers", echoHeadersHandler)
@@ -125,6 +127,21 @@ func echoHomeHandler(c *rux.Context) {
 func echoHandler(c *rux.Context) {
 	reply := testutil.BuildEchoReply(c.Req)
 	c.Respond(http.StatusOK, reply, indentedJSON)
+}
+
+// registerMethodLocked binds path to a handler that only responds to the
+// given HTTP method; any other verb returns 405 with an Allow header.
+// We register via Any so the wrong-method case is owned by this route
+// rather than leaking down to the /*path catch-all.
+func registerMethodLocked(r *rux.Router, path, method string) {
+	r.Any(path, func(c *rux.Context) {
+		if c.Req.Method != method {
+			c.SetHeader("Allow", method)
+			c.Resp.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		echoHandler(c)
+	})
 }
 
 // echoHeadersHandler returns only the request headers section.

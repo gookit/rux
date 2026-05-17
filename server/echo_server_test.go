@@ -99,12 +99,25 @@ func TestEcho_CatchAll_UnknownPath(t *testing.T) {
 	assert.True(t, strings.Contains(body, "/totally-random-path"))
 }
 
-func TestEcho_CatchAll_MethodMismatch(t *testing.T) {
-	// GET /post falls through to /*path catch-all because only POST /post
-	// was registered explicitly.
-	w := mockEcho(t, "GET", "/post", nil)
-	assert.Eq(t, 200, w.Code)
-	assert.True(t, strings.Contains(w.Body.String(), `"method": "GET"`))
+func TestEcho_MethodLocked_WrongVerbReturns405(t *testing.T) {
+	// Method-locked endpoints return 405 with an Allow header instead of
+	// falling through to /*path. Mirrors httpbin.
+	cases := []struct {
+		method, path, allow string
+	}{
+		{"GET", "/post", "POST"},
+		{"GET", "/put", "PUT"},
+		{"POST", "/get", "GET"},
+		{"PUT", "/delete", "DELETE"},
+		{"DELETE", "/patch", "PATCH"},
+	}
+	for _, c := range cases {
+		t.Run(c.method+" "+c.path, func(t *testing.T) {
+			w := mockEcho(t, c.method, c.path, nil)
+			assert.Eq(t, 405, w.Code)
+			assert.Eq(t, c.allow, w.Header().Get("Allow"))
+		})
+	}
 }
 
 func TestEcho_CatchAll_AnyVerb(t *testing.T) {

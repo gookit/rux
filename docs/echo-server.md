@@ -65,11 +65,11 @@ go run ./_examples/echo-server -mode=embed
 | GET    | `/`                               | HTML 首页，列出所有端点                                |
 | ANY    | `/anything`                       | 回显完整请求（method/url/headers/body/query/form/json）|
 | ANY    | `/anything/*path`                 | 同上，忽略尾部路径                                     |
-| GET    | `/get`                            | 仅匹配 GET，回显请求                                   |
-| POST   | `/post`                           | 仅匹配 POST，回显请求                                  |
-| PUT    | `/put`                            | 仅匹配 PUT                                             |
-| PATCH  | `/patch`                          | 仅匹配 PATCH                                           |
-| DELETE | `/delete`                         | 仅匹配 DELETE                                          |
+| GET    | `/get`                            | 方法限定，其它方法 → 405 (Allow: GET)                  |
+| POST   | `/post`                           | 方法限定，其它方法 → 405 (Allow: POST)                 |
+| PUT    | `/put`                            | 方法限定，其它方法 → 405 (Allow: PUT)                  |
+| PATCH  | `/patch`                          | 方法限定，其它方法 → 405 (Allow: PATCH)                |
+| DELETE | `/delete`                         | 方法限定，其它方法 → 405 (Allow: DELETE)               |
 | GET    | `/headers`                        | 仅回显请求头                                           |
 | GET    | `/ip`                             | 回显客户端 IP                                          |
 | GET    | `/user-agent`                     | 回显 User-Agent                                        |
@@ -200,17 +200,31 @@ curl -F "file=@./README.md" \
 }
 ```
 
+### 方法限定与 405
+
+`/get` `/post` `/put` `/patch` `/delete` 这 5 个端点是**方法限定**的 —
+错误方法会得到 405，**不会**被兜底吞成 200：
+
+```bash
+curl -i http://localhost:18080/post                 # POST → 200 回显
+curl -i -X GET http://localhost:18080/post          # GET  → 405, Allow: POST
+```
+
+这跟 httpbin 的语义一致，便于测试客户端正确处理 405。
+
 ### 兜底路由
 
-未注册的路径 / 方法都会落到根 `/*path` 回显，方便测试客户端的容错：
+未注册的**路径**（任何方法）会落到根 `/*path` 回显，方便测试客户端的容错：
 
 ```bash
 curl http://localhost:18080/foo/bar/baz       # 200 回显
 curl -X DELETE http://localhost:18080/random  # 200 回显
 ```
 
-具体路由仍按 rux 的优先级 `static > param > wildcard` 生效 —
-比如 `/status/418` 仍走对应 handler，不会被兜底吞掉。
+注意：兜底仅在路径未注册时生效。如上节所述，已注册的方法限定端点
+（如 `/post`）即使方法不匹配，也由该端点自己返回 405，而不会回退到兜底。
+具体路由按 rux 的优先级 `static > param > wildcard` 生效 —
+比如 `/status/418` 仍走对应 handler，不会被吞。
 
 ---
 
