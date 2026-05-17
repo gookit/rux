@@ -638,6 +638,45 @@ curl -F "file=@./README.md" http://127.0.0.1:18080/upload
 See [docs/echo-server.md](docs/echo-server.md) for the full endpoint
 table and usage recipes.
 
+### Server-Sent Events
+
+`pkg/sse` wraps the SSE wire format and lifecycle so handlers only
+have to drive the producer. The Hooks struct exposes
+`OnConnect` / `OnDisconnect` / `OnSend` / `OnError` callbacks for
+auth, logging, filtering, and metrics — any field may be nil.
+
+```go
+import "github.com/gookit/rux/v2/pkg/sse"
+
+s.GET("/events", func(c *rux.Context) {
+    _ = sse.Stream(c, &sse.Hooks{
+        OnConnect:    func(c *rux.Context) error { /* auth check */ return nil },
+        OnDisconnect: func(c *rux.Context, reason error) { /* audit */ },
+    }, func(send sse.SendFunc, done <-chan struct{}) error {
+        ticker := time.NewTicker(time.Second)
+        defer ticker.Stop()
+        for {
+            select {
+            case <-done:
+                return nil
+            case t := <-ticker.C:
+                if err := send(sse.Event{Data: t.Format(time.RFC3339)}); err != nil {
+                    return err
+                }
+            }
+        }
+    })
+})
+```
+
+`OnConnect` runs **before** the SSE headers are written, so a
+rejecting hook can issue any 4xx via `c.Resp` (e.g.
+`http.Error(c.Resp, "no token", 401)`).
+
+**Caveat:** `server.Server` defaults `WriteTimeout` to 30 s, which
+will kill a long-running SSE connection. Set `s.WriteTimeout = 0` on
+servers that host SSE streams. See `_examples/sse-server`.
+
 ## Migrating from v1
 
 If you are upgrading from rux v1.x, please read

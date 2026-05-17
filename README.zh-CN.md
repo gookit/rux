@@ -590,6 +590,42 @@ curl -F "file=@./README.md" http://127.0.0.1:18080/upload
 
 完整端点表与示例参见 [docs/echo-server.md](docs/echo-server.md)。
 
+### Server-Sent Events
+
+`pkg/sse` 封装了 SSE 的协议帧和生命周期，handler 只需要专心做事件生产者。
+`Hooks` 结构提供 `OnConnect` / `OnDisconnect` / `OnSend` / `OnError` 四个
+回调，用于鉴权、日志、过滤、埋点 —— 任意字段可为 nil。
+
+```go
+import "github.com/gookit/rux/v2/pkg/sse"
+
+s.GET("/events", func(c *rux.Context) {
+    _ = sse.Stream(c, &sse.Hooks{
+        OnConnect:    func(c *rux.Context) error { /* 鉴权校验 */ return nil },
+        OnDisconnect: func(c *rux.Context, reason error) { /* 审计日志 */ },
+    }, func(send sse.SendFunc, done <-chan struct{}) error {
+        ticker := time.NewTicker(time.Second)
+        defer ticker.Stop()
+        for {
+            select {
+            case <-done:
+                return nil
+            case t := <-ticker.C:
+                if err := send(sse.Event{Data: t.Format(time.RFC3339)}); err != nil {
+                    return err
+                }
+            }
+        }
+    })
+})
+```
+
+`OnConnect` 在 SSE 响应头写入**之前**运行，所以拒绝时 hook 可以
+通过 `c.Resp` 写自定义 4xx 响应（如 `http.Error(c.Resp, "no token", 401)`）。
+
+**注意**：`server.Server` 默认 `WriteTimeout=30s`，会切断长连接 SSE。
+承载 SSE 的实例需设 `s.WriteTimeout = 0`。完整示例见 `_examples/sse-server`。
+
 ## 从 v1 迁移
 
 如果你从 rux v1.x 升级，请阅读
