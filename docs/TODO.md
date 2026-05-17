@@ -1,9 +1,9 @@
 # TODO
 
-## new server
+## new server [done]
 
 ```go
-srv := rux.NewServer()
+srv := server.NewServer()
 ```
 
 ## context

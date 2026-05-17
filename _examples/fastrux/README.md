@@ -1,4 +1,0 @@
-# FastRux
-
-base on fasthttp
-
