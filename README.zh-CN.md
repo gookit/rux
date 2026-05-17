@@ -29,13 +29,29 @@
 
 ## 主要特性
 
-- 支持路由参数，支持路由组，支持给路由命名
-- 支持方便的静态文件/目录处理
-- 支持中间件: 路由中间件，组中间件，全局中间件
-- 支持快速添加 `RESETFul` 或 `Controller` 风格的结构体
-- 兼容支持 `http.Handler` 接口，可以直接使用其他的常用中间件
-- 支持添加 `NotFound` 和 `NotAllowed` 处理
-- 支持添加 `Error` 和 `Panic` 处理错误或异常
+**路由与请求处理**
+
+- 高性能 Radix Tree 路由（按方法分树、请求路径无锁），支持路由组
+- 路由参数、命名路由
+- 路由 / 组 / 全局三级中间件
+- `RESTful` 和 `Controller` 风格结构体路由
+- 兼容 `http.Handler` 接口，可直接使用通用中间件
+- 静态文件 / 目录 / `embed.FS` 服务
+- 支持 `NotFound`、`NotAllowed`、`Error`、Panic 处理
+
+**内置开箱即用模块（`server/`、`pkg/*`）**
+
+- 生产级 Server：合理的超时默认、优雅关闭、生命周期钩子、内置
+  `/healthz` + `/readyz` 探针（[docs](docs/echo-server.md)）
+- Echo Server：httpbin 风格的调试端点
+  （`/anything`、`/status/{code}`、`/delay`、`/redirect`、`/cookies`、
+  `/basic-auth`、`/bytes`、`/uuid`、`/download`、`/upload` 等）
+- Render 包（`pkg/render`）：无状态 helper + 带 status 参数的
+  `Responder`，覆盖 JSON / XML / Text / HTML / Binary / Auto，
+  并通过 `TemplateRenderer` 接口接入任意模板引擎（不绑定具体引擎）
+- Server-Sent Events（`pkg/sse`）：`Stream` / `StreamWith` 封装协议
+  和生命周期钩子，默认 `:connected` 帧、可选 keepalive，附带 `Hub`
+  支持按 key 单播 + 全员广播
 
 ## GoDoc
 
@@ -662,8 +678,7 @@ hub.SetOnDrop(func(c *sse.Client, _ sse.Event) {
 })
 ```
 
-完整示例见 `_examples/sse-server`（含 subscribe + push + broadcast
-+ stats 端点和一个小型 HTML 客户端）。
+完整示例见 `_examples/sse-server`（含 subscribe + push + broadcast + stats 端点和一个小型 HTML 客户端）。
 
 ## 从 v1 迁移
 

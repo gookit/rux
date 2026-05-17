@@ -29,13 +29,30 @@ See `_benchmarks/v2-results.txt` for measured numbers, and
 
 ## Features
 
-- Fast route match, support route group
-- Support route path params and named routing
-- Support route middleware, group middleware, global middleware
-- Support quickly add a `RESETFul` or `Controller` style structs
-- Support generic `http.Handler` interface middleware
-- Support static file access handle
-- Support add handlers for handle `NotFound` and `NotAllowed`
+**Routing & request handling**
+
+- Fast route match (Radix Tree, per-method, lock-free hot path), route groups
+- Path params and named routing
+- Route / group / global middleware
+- `RESTful` and `Controller` style structs
+- Generic `http.Handler` middleware
+- Static file / directory / `embed.FS` serving
+- `NotFound`, `NotAllowed`, `Error`, and panic handlers
+
+**Built-in batteries (`server/`, `pkg/*`)**
+
+- Production-ready Server with sane timeouts, graceful shutdown,
+  lifecycle hooks, and `/healthz` + `/readyz` endpoints
+  ([docs](docs/echo-server.md))
+- Echo Server: httpbin-style debug endpoints
+  (`/anything`, `/status/{code}`, `/delay`, `/redirect`, `/cookies`,
+  `/basic-auth`, `/bytes`, `/uuid`, `/download`, `/upload`, …)
+- Render package (`pkg/render`): stateless helpers + status-aware
+  `Responder` for JSON / XML / Text / HTML / Binary / Auto, with a
+  pluggable `TemplateRenderer` interface (no template engine bundled)
+- Server-Sent Events (`pkg/sse`): `Stream` / `StreamWith` with
+  lifecycle hooks, default `:connected` frame, optional keepalive,
+  plus a `Hub` for keyed push and broadcast to active clients
 
 ## GoDoc
 
