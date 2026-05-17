@@ -47,7 +47,8 @@ func TestEncode_Basic(t *testing.T) {
 	assert.Eq(t, "no", resp.Header.Get("X-Accel-Buffering"))
 
 	body, _ := io.ReadAll(resp.Body)
-	assert.Eq(t, "data: hello\n\n", string(body))
+	// Default options emit a leading ": connected" comment frame.
+	assert.Eq(t, ": connected\n\ndata: hello\n\n", string(body))
 }
 
 func TestEncode_AllFields(t *testing.T) {
@@ -66,8 +67,9 @@ func TestEncode_AllFields(t *testing.T) {
 	body, _ := io.ReadAll(resp.Body)
 
 	got := string(body)
-	// SSE fields ordered as: id, event, retry, data, blank line.
-	want := "id: 42\nevent: tick\nretry: 5000\ndata: payload\n\n"
+	// SSE fields ordered as: id, event, retry, data, blank line — after
+	// the default ": connected" frame.
+	want := ": connected\n\nid: 42\nevent: tick\nretry: 5000\ndata: payload\n\n"
 	assert.Eq(t, want, got)
 }
 
@@ -81,7 +83,7 @@ func TestEncode_MultiLineData(t *testing.T) {
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(resp.Body)
 
-	want := "data: line1\ndata: line2\ndata: line3\n\n"
+	want := ": connected\n\ndata: line1\ndata: line2\ndata: line3\n\n"
 	assert.Eq(t, want, string(body))
 }
 
@@ -94,7 +96,7 @@ func TestEncode_EmptyDataIsHeartbeat(t *testing.T) {
 	resp, _ := http.Get(srv.URL + "/events")
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(resp.Body)
-	assert.Eq(t, "data: \n\n", string(body))
+	assert.Eq(t, ": connected\n\ndata: \n\n", string(body))
 }
 
 func TestHook_OnConnect_Reject(t *testing.T) {
@@ -268,6 +270,89 @@ func TestProducer_ClientDisconnect_StopsProducer(t *testing.T) {
 	case <-time.After(3 * time.Second):
 		t.Fatal("producer did not exit after client disconnect")
 	}
+}
+
+// streamWith builds a test server using StreamWith so we can pass full
+// Options. Kept separate from startSSE so the existing tests stay
+// focused on the common-case Stream entry.
+func streamWith(t *testing.T, opts *sse.Options, producer sse.Producer) *httptest.Server {
+	t.Helper()
+	r := rux.New()
+	r.GET("/events", func(c *rux.Context) {
+		_ = sse.StreamWith(c, opts, producer)
+	})
+	srv := httptest.NewServer(r)
+	t.Cleanup(srv.Close)
+	return srv
+}
+
+func TestStreamWith_SendConnected_Disabled(t *testing.T) {
+	srv := streamWith(t, &sse.Options{SendConnected: false}, func(send sse.SendFunc, done <-chan struct{}) error {
+		return send(sse.Event{Data: "first"})
+	})
+	resp, _ := http.Get(srv.URL + "/events")
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	// No ": connected" prefix when SendConnected=false.
+	assert.Eq(t, "data: first\n\n", string(body))
+}
+
+func TestStreamWith_KeepaliveTicks(t *testing.T) {
+	// Block in producer long enough for at least 3 keepalives to fire,
+	// then exit. The producer never sends an event, so any data on the
+	// wire must come from the heartbeat goroutine.
+	releaseProducer := make(chan struct{})
+	srv := streamWith(t, &sse.Options{
+		SendConnected:     true,
+		KeepaliveInterval: 30 * time.Millisecond,
+	}, func(send sse.SendFunc, done <-chan struct{}) error {
+		select {
+		case <-releaseProducer:
+		case <-done:
+		}
+		return nil
+	})
+
+	resp, _ := http.Get(srv.URL + "/events")
+	defer resp.Body.Close()
+
+	// Read whatever has arrived after ~120ms — expect connected + ≥3 keepalives.
+	go func() {
+		time.Sleep(120 * time.Millisecond)
+		close(releaseProducer)
+	}()
+	body, _ := io.ReadAll(resp.Body)
+
+	got := string(body)
+	assert.True(t, strings.HasPrefix(got, ": connected\n\n"))
+	keepaliveCount := strings.Count(got, ": keepalive\n\n")
+	assert.True(t, keepaliveCount >= 3, "want ≥3 keepalives, got %d in body: %q", keepaliveCount, got)
+}
+
+func TestStreamWith_KeepaliveConcurrentWithProducer(t *testing.T) {
+	// Race-detector check: producer + heartbeat both push frames through
+	// the shared mutex. Bombing the writer from both sides should not
+	// trip -race.
+	const events = 50
+	srv := streamWith(t, &sse.Options{
+		SendConnected:     true,
+		KeepaliveInterval: time.Millisecond, // very tight
+	}, func(send sse.SendFunc, done <-chan struct{}) error {
+		for i := 0; i < events; i++ {
+			if err := send(sse.Event{Data: "x"}); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+
+	resp, _ := http.Get(srv.URL + "/events")
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+
+	// All N data frames must be present and well-formed (no torn writes).
+	dataCount := strings.Count(string(body), "data: x\n\n")
+	assert.Eq(t, events, dataCount)
 }
 
 func TestStream_NilHooks_OK(t *testing.T) {

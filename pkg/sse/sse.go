@@ -36,6 +36,8 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/gookit/rux/v2"
 )
@@ -98,6 +100,32 @@ type Hooks struct {
 	OnError func(c *rux.Context, err error)
 }
 
+// Options bundles configuration knobs and lifecycle Hooks for one
+// Stream. Use StreamWith to consume; Stream is a thin wrapper around
+// it for the common case.
+type Options struct {
+	// Hooks may be nil — equivalent to &Hooks{}.
+	Hooks *Hooks
+
+	// SendConnected, when true, emits a ": connected\n\n" comment frame
+	// immediately after the SSE headers so the client can confirm the
+	// stream opened end-to-end before any real event arrives. Defaults
+	// to true via Stream(); set false on StreamWith if not desired.
+	SendConnected bool
+
+	// KeepaliveInterval, when > 0, makes Stream emit ": keepalive\n\n"
+	// comment frames at this period in a background goroutine. SSE
+	// spec says lines starting with ":" are ignored by clients, so
+	// these frames keep idle proxies (nginx, ALB) from closing the
+	// connection without polluting the event stream.
+	//
+	// IMPORTANT: heartbeats do NOT defeat http.Server.WriteTimeout —
+	// that timer bounds the entire response lifetime, regardless of
+	// how often you flush. SSE servers must still set WriteTimeout = 0
+	// (or a value larger than any expected stream duration).
+	KeepaliveInterval time.Duration
+}
+
 // ErrFlushNotSupported is returned by Stream when the underlying
 // http.ResponseWriter does not implement http.Flusher (e.g. a buggy
 // middleware wrapped it without preserving the interface).
@@ -107,20 +135,38 @@ var ErrFlushNotSupported = errors.New("sse: ResponseWriter does not support http
 // hook chose to skip the event. Callers usually treat this as a non-fatal.
 var ErrEventSkipped = errors.New("sse: event skipped by OnSend hook")
 
-// Stream upgrades c to an SSE connection and drives producer.
+// Stream is the common-case entry: SendConnected=true, no keepalive.
+// For keepalive or other tuning use StreamWith.
+//
+// Passing nil hooks is fine — equivalent to &Hooks{}.
+func Stream(c *rux.Context, hooks *Hooks, producer Producer) error {
+	return StreamWith(c, &Options{Hooks: hooks, SendConnected: true}, producer)
+}
+
+// StreamWith upgrades c to an SSE connection and drives producer with
+// the supplied Options.
 //
 // Sequence:
 //  1. Verify the writer supports Flusher (return ErrFlushNotSupported if not)
-//  2. Call hooks.OnConnect; if it returns an error, abort BEFORE any SSE
+//  2. Call Hooks.OnConnect; if it returns an error, abort BEFORE any SSE
 //     headers are sent — the hook is free to write its own error response
 //     (e.g. http.Error(c.Resp, ..., 401)) using c.Resp directly.
-//  3. Write SSE response headers (Content-Type, Cache-Control, etc.) and
-//     flush them so the client transitions out of "connecting" state.
-//  4. Run producer until it returns or the client disconnects.
-//  5. Call hooks.OnDisconnect with the final error (nil on clean exit).
+//  3. Write SSE response headers and flush them so the client transitions
+//     out of "connecting" state.
+//  4. If opts.SendConnected, emit ": connected\n\n" comment frame.
+//  5. If opts.KeepaliveInterval > 0, start a background ticker that emits
+//     ": keepalive\n\n" comment frames; both heartbeat + producer share
+//     a writer mutex so frames never interleave.
+//  6. Run producer until it returns or the client disconnects; the
+//     heartbeat goroutine stops when producer returns or done fires.
+//  7. Call Hooks.OnDisconnect with the final error (nil on clean exit).
 //
-// Passing nil hooks is fine — equivalent to &Hooks{}.
-func Stream(c *rux.Context, hooks *Hooks, producer Producer) (retErr error) {
+// Passing nil opts is fine — equivalent to &Options{SendConnected: true}.
+func StreamWith(c *rux.Context, opts *Options, producer Producer) (retErr error) {
+	if opts == nil {
+		opts = &Options{SendConnected: true}
+	}
+	hooks := opts.Hooks
 	if hooks == nil {
 		hooks = &Hooks{}
 	}
@@ -172,7 +218,60 @@ func Stream(c *rux.Context, hooks *Hooks, producer Producer) (retErr error) {
 	// "connecting" state even before the first event lands.
 	flusher.Flush()
 
+	// writeMu serializes writes to c.Resp: producer's send and the
+	// keepalive goroutine both go through it so frames never interleave.
+	var writeMu sync.Mutex
+
+	// Helper: write raw bytes + flush, under the mutex.
+	writeRaw := func(s string) error {
+		writeMu.Lock()
+		defer writeMu.Unlock()
+		if _, err := io.WriteString(c.Resp, s); err != nil {
+			return err
+		}
+		flusher.Flush()
+		return nil
+	}
+
+	if opts.SendConnected {
+		if err := writeRaw(": connected\n\n"); err != nil {
+			retErr = err
+			if hooks.OnDisconnect != nil {
+				hooks.OnDisconnect(c, retErr)
+			}
+			return retErr
+		}
+	}
+
 	done := c.Req.Context().Done()
+
+	// Keepalive ticker — stopped via stopKA when producer returns so the
+	// goroutine doesn't outlive the request. We also Wait on it before
+	// the handler returns so the goroutine can't touch the underlying
+	// http.ResponseWriter after net/http has reclaimed it (would NPE
+	// inside bufio.Writer.Flush).
+	stopKA := make(chan struct{})
+	var kaWG sync.WaitGroup
+	if opts.KeepaliveInterval > 0 {
+		kaWG.Add(1)
+		go func() {
+			defer kaWG.Done()
+			t := time.NewTicker(opts.KeepaliveInterval)
+			defer t.Stop()
+			for {
+				select {
+				case <-stopKA:
+					return
+				case <-done:
+					return
+				case <-t.C:
+					// Failures here just mean the client is gone; the
+					// producer will notice via its own send() and return.
+					_ = writeRaw(": keepalive\n\n")
+				}
+			}
+		}()
+	}
 
 	send := func(e Event) error {
 		if hooks.OnSend != nil {
@@ -184,6 +283,8 @@ func Stream(c *rux.Context, hooks *Hooks, producer Producer) (retErr error) {
 				return ErrEventSkipped
 			}
 		}
+		writeMu.Lock()
+		defer writeMu.Unlock()
 		if err := writeEvent(c.Resp, e); err != nil {
 			return err
 		}
@@ -192,6 +293,9 @@ func Stream(c *rux.Context, hooks *Hooks, producer Producer) (retErr error) {
 	}
 
 	retErr = producer(send, done)
+	close(stopKA)
+	kaWG.Wait() // drain the heartbeat goroutine before the writer goes away
+
 	if hooks.OnDisconnect != nil {
 		hooks.OnDisconnect(c, retErr)
 	}
