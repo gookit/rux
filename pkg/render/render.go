@@ -86,8 +86,7 @@ func Auto(w http.ResponseWriter, r *http.Request, obj any) (err error) {
 		case httpctype.MIMEText:
 			err = responseText(w, obj)
 			handled = true
-		case httpctype.MIMEXML:
-		case httpctype.MIMEXML2:
+		case httpctype.MIMEXML, httpctype.MIMEXML2:
 			err = XML(w, obj)
 			handled = true
 			// case httpctype.MIMEYAML:
