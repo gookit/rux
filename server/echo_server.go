@@ -1,9 +1,13 @@
 package server
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
-	"math/rand/v2"
+	"io"
+	mrand "math/rand/v2"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gookit/goutil/testutil"
@@ -39,6 +43,8 @@ const echoHomePage = `<!DOCTYPE html>
   <li><code>GET  /basic-auth/{user}/{passwd}</code> — verify Basic Auth</li>
   <li><code>GET  /bytes/{n}</code>          — N random bytes (max 100KB)</li>
   <li><code>GET  /uuid</code>               — RFC 4122 v4 UUID</li>
+  <li><code>GET  /download/{filename}</code> — auto-generate file (?size=N&amp;type=bin|text|json&amp;inline=1)</li>
+  <li><code>POST /upload</code>             — multipart upload, echoes per-file sha256/size/mime</li>
 </ul>
 </body>
 </html>`
@@ -91,6 +97,12 @@ func MountEchoRoutes(r *rux.Router) {
 	// Raw data.
 	r.GET("/bytes/{n}", echoBytesHandler)
 	r.GET("/uuid", echoUUIDHandler)
+
+	// File transfer helpers — echo server never persists, so download
+	// always synthesizes content on the fly and upload only hashes &
+	// reports metadata back.
+	r.GET("/download/{filename}", echoDownloadHandler)
+	r.POST("/upload", echoUploadHandler)
 
 	// Catch-all: any path not matched above is echoed back. rux v2's
 	// routing priority is static > param > wildcard (P-2), so the
@@ -226,7 +238,7 @@ func echoBytesHandler(c *rux.Context) {
 	}
 	buf := make([]byte, n)
 	for i := range buf {
-		buf[i] = byte(rand.Uint32())
+		buf[i] = byte(mrand.Uint32())
 	}
 	_, _ = c.Resp.Write(buf)
 }
@@ -237,7 +249,7 @@ func echoUUIDHandler(c *rux.Context) {
 	var b [16]byte
 	// Fill with 4 random uint32s — plenty of entropy for a debug UUID.
 	for i := 0; i < 16; i += 4 {
-		v := rand.Uint32()
+		v := mrand.Uint32()
 		b[i] = byte(v)
 		b[i+1] = byte(v >> 8)
 		b[i+2] = byte(v >> 16)
@@ -248,4 +260,150 @@ func echoUUIDHandler(c *rux.Context) {
 	uuid := fmt.Sprintf("%x-%x-%x-%x-%x",
 		b[0:4], b[4:6], b[6:8], b[8:10], b[10:16])
 	c.Respond(http.StatusOK, rux.M{"uuid": uuid}, indentedJSON)
+}
+
+// maxUpload caps total multipart body size accepted by /upload (32 MB).
+// Mirrors net/http's default ParseMultipartForm budget.
+const maxUpload = 32 << 20
+
+// echoDownloadHandler synthesizes a download on demand. The echo server
+// does not persist files, so the "file" never exists — we always generate
+// content from query params: ?size=N (default 1024, capped at maxBytes),
+// ?type=bin|text|json (default bin), ?inline=1 to render in browser.
+func echoDownloadHandler(c *rux.Context) {
+	name := c.Param("filename")
+	if name == "" {
+		name = "download.bin"
+	}
+
+	size := 1024
+	if s := c.Query("size"); s != "" {
+		if n, err := strconv.Atoi(s); err == nil {
+			size = n
+		}
+	}
+	if size < 0 {
+		size = 0
+	}
+	if size > maxBytes {
+		size = maxBytes
+	}
+
+	kind := c.Query("type")
+	if kind == "" {
+		kind = "bin"
+	}
+	inline := c.Query("inline") == "1"
+
+	var body []byte
+	var ctype string
+	switch kind {
+	case "text":
+		ctype = "text/plain; charset=utf-8"
+		body = makeTextBytes(size)
+	case "json":
+		ctype = "application/json; charset=utf-8"
+		body = makeJSONBytes(name, size)
+	default: // "bin" or unknown
+		ctype = "application/octet-stream"
+		body = make([]byte, size)
+		for i := range body {
+			body[i] = byte(mrand.Uint32())
+		}
+	}
+
+	disp := "attachment"
+	if inline {
+		disp = "inline"
+	}
+	h := c.Resp.Header()
+	h.Set("Content-Type", ctype)
+	h.Set("Content-Disposition", fmt.Sprintf(`%s; filename=%q`, disp, name))
+	h.Set("Content-Length", strconv.Itoa(len(body)))
+	c.Resp.WriteHeader(http.StatusOK)
+	_, _ = c.Resp.Write(body)
+}
+
+// makeTextBytes fills a buffer with a repeating ASCII pattern so the
+// downloaded text is readable in any viewer.
+func makeTextBytes(n int) []byte {
+	if n <= 0 {
+		return nil
+	}
+	const pattern = "The quick brown fox jumps over the lazy dog.\n"
+	buf := make([]byte, n)
+	for i := 0; i < n; i++ {
+		buf[i] = pattern[i%len(pattern)]
+	}
+	return buf
+}
+
+// makeJSONBytes builds a JSON document describing the synthetic file.
+// When size > the natural payload, the buffer is padded with spaces so
+// the response still hits the requested size; when size is too small to
+// fit the payload, we just return the payload (size becomes a floor, not
+// a hard cap — matching httpbin's loose semantics for debug endpoints).
+func makeJSONBytes(name string, size int) []byte {
+	payload := fmt.Sprintf(`{"filename":%q,"size":%d,"generated_at":%q}`,
+		name, size, time.Now().UTC().Format(time.RFC3339))
+	if size <= len(payload) {
+		return []byte(payload)
+	}
+	buf := make([]byte, size)
+	copy(buf, payload)
+	for i := len(payload); i < size; i++ {
+		buf[i] = ' '
+	}
+	return buf
+}
+
+// echoUploadHandler accepts multipart/form-data and echoes per-file
+// metadata (size, MIME, sha256) plus any non-file form values.
+// Files are streamed through sha256 and discarded — nothing touches disk.
+func echoUploadHandler(c *rux.Context) {
+	if err := c.Req.ParseMultipartForm(maxUpload); err != nil {
+		c.Resp.WriteHeader(http.StatusBadRequest)
+		_, _ = c.Resp.Write([]byte(err.Error()))
+		return
+	}
+
+	type fileInfo struct {
+		Field    string `json:"field"`
+		Filename string `json:"filename"`
+		Size     int64  `json:"size"`
+		MIME     string `json:"mime"`
+		SHA256   string `json:"sha256"`
+	}
+
+	files := []fileInfo{}
+	form := map[string][]string{}
+
+	if mf := c.Req.MultipartForm; mf != nil {
+		for field, fhs := range mf.File {
+			for _, fh := range fhs {
+				f, err := fh.Open()
+				if err != nil {
+					continue
+				}
+				h := sha256.New()
+				n, _ := io.Copy(h, f)
+				_ = f.Close()
+				files = append(files, fileInfo{
+					Field:    field,
+					Filename: fh.Filename,
+					Size:     n,
+					MIME:     fh.Header.Get("Content-Type"),
+					SHA256:   hex.EncodeToString(h.Sum(nil)),
+				})
+			}
+		}
+		for k, v := range mf.Value {
+			form[k] = v
+		}
+	}
+
+	c.Respond(http.StatusOK, rux.M{
+		"files": files,
+		"form":  form,
+	}, indentedJSON)
 }

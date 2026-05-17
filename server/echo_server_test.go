@@ -1,7 +1,11 @@
 package server
 
 import (
+	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
@@ -266,6 +270,146 @@ func TestEcho_UUID(t *testing.T) {
 	assert.True(t, strings.Contains(body, `"uuid"`))
 	pattern := `[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}`
 	assert.True(t, regexp.MustCompile(pattern).MatchString(body))
+}
+
+func TestEcho_Download_DefaultBin(t *testing.T) {
+	w := mockEcho(t, "GET", "/download/hello.bin", nil)
+	assert.Eq(t, 200, w.Code)
+	assert.Eq(t, "application/octet-stream", w.Header().Get("Content-Type"))
+	assert.True(t, strings.Contains(w.Header().Get("Content-Disposition"), "attachment"))
+	assert.True(t, strings.Contains(w.Header().Get("Content-Disposition"), `"hello.bin"`))
+	assert.Eq(t, 1024, w.Body.Len()) // default size
+}
+
+func TestEcho_Download_SizeOverride(t *testing.T) {
+	w := mockEcho(t, "GET", "/download/x.bin?size=256", nil)
+	assert.Eq(t, 200, w.Code)
+	assert.Eq(t, 256, w.Body.Len())
+}
+
+func TestEcho_Download_SizeCapped(t *testing.T) {
+	w := mockEcho(t, "GET", "/download/x.bin?size=10000000", nil)
+	assert.Eq(t, 200, w.Code)
+	assert.Eq(t, 100*1024, w.Body.Len()) // capped at maxBytes
+}
+
+func TestEcho_Download_TypeText(t *testing.T) {
+	w := mockEcho(t, "GET", "/download/poem.txt?type=text&size=128", nil)
+	assert.Eq(t, 200, w.Code)
+	assert.True(t, strings.Contains(w.Header().Get("Content-Type"), "text/plain"))
+	assert.Eq(t, 128, w.Body.Len())
+	// Pattern text should be human-readable ASCII.
+	assert.True(t, strings.Contains(w.Body.String(), "quick brown fox"))
+}
+
+func TestEcho_Download_TypeJSON(t *testing.T) {
+	w := mockEcho(t, "GET", "/download/meta.json?type=json&size=256", nil)
+	assert.Eq(t, 200, w.Code)
+	assert.True(t, strings.Contains(w.Header().Get("Content-Type"), "application/json"))
+	body := w.Body.String()
+	assert.True(t, strings.Contains(body, `"filename":"meta.json"`))
+	assert.True(t, strings.Contains(body, `"generated_at"`))
+}
+
+func TestEcho_Download_Inline(t *testing.T) {
+	w := mockEcho(t, "GET", "/download/show.bin?inline=1", nil)
+	assert.Eq(t, 200, w.Code)
+	disp := w.Header().Get("Content-Disposition")
+	assert.True(t, strings.HasPrefix(disp, "inline;"))
+}
+
+func TestEcho_Download_NegativeSize(t *testing.T) {
+	w := mockEcho(t, "GET", "/download/x.bin?size=-5", nil)
+	assert.Eq(t, 200, w.Code)
+	assert.Eq(t, 0, w.Body.Len())
+}
+
+// buildMultipart creates a request body with one or more files and
+// optional form fields. Returns the body, the multipart Content-Type,
+// and the sha256 of each file payload (in input order) for verification.
+func buildMultipart(t *testing.T, files []struct {
+	Field, Filename, Content string
+}, formFields map[string]string) (*bytes.Buffer, string, []string) {
+	t.Helper()
+	body := &bytes.Buffer{}
+	mw := multipart.NewWriter(body)
+	sums := make([]string, 0, len(files))
+	for _, f := range files {
+		fw, err := mw.CreateFormFile(f.Field, f.Filename)
+		assert.NoErr(t, err)
+		_, err = fw.Write([]byte(f.Content))
+		assert.NoErr(t, err)
+		h := sha256.Sum256([]byte(f.Content))
+		sums = append(sums, hex.EncodeToString(h[:]))
+	}
+	for k, v := range formFields {
+		assert.NoErr(t, mw.WriteField(k, v))
+	}
+	assert.NoErr(t, mw.Close())
+	return body, mw.FormDataContentType(), sums
+}
+
+func TestEcho_Upload_SingleFile(t *testing.T) {
+	body, ctype, sums := buildMultipart(t,
+		[]struct{ Field, Filename, Content string }{
+			{"file", "a.txt", "hello world"},
+		}, nil)
+	s := NewEchoServer()
+	req := httptest.NewRequest("POST", "/upload", body)
+	req.Header.Set("Content-Type", ctype)
+	w := httptest.NewRecorder()
+	s.ServeHTTP(w, req)
+	assert.Eq(t, 200, w.Code)
+	out := w.Body.String()
+	assert.True(t, strings.Contains(out, `"filename": "a.txt"`))
+	assert.True(t, strings.Contains(out, `"size": 11`))
+	assert.True(t, strings.Contains(out, sums[0]))
+}
+
+func TestEcho_Upload_MultiFile(t *testing.T) {
+	body, ctype, sums := buildMultipart(t,
+		[]struct{ Field, Filename, Content string }{
+			{"f1", "a.txt", "alpha"},
+			{"f2", "b.txt", "beta-content"},
+		}, nil)
+	s := NewEchoServer()
+	req := httptest.NewRequest("POST", "/upload", body)
+	req.Header.Set("Content-Type", ctype)
+	w := httptest.NewRecorder()
+	s.ServeHTTP(w, req)
+	assert.Eq(t, 200, w.Code)
+	out := w.Body.String()
+	assert.True(t, strings.Contains(out, "a.txt"))
+	assert.True(t, strings.Contains(out, "b.txt"))
+	assert.True(t, strings.Contains(out, sums[0]))
+	assert.True(t, strings.Contains(out, sums[1]))
+}
+
+func TestEcho_Upload_FormFieldsAlongsideFiles(t *testing.T) {
+	body, ctype, _ := buildMultipart(t,
+		[]struct{ Field, Filename, Content string }{
+			{"file", "a.txt", "x"},
+		},
+		map[string]string{"note": "hi there", "tag": "v1"})
+	s := NewEchoServer()
+	req := httptest.NewRequest("POST", "/upload", body)
+	req.Header.Set("Content-Type", ctype)
+	w := httptest.NewRecorder()
+	s.ServeHTTP(w, req)
+	assert.Eq(t, 200, w.Code)
+	out := w.Body.String()
+	assert.True(t, strings.Contains(out, `"note"`))
+	assert.True(t, strings.Contains(out, "hi there"))
+	assert.True(t, strings.Contains(out, "v1"))
+}
+
+func TestEcho_Upload_NoMultipart(t *testing.T) {
+	// Plain body without multipart Content-Type → 400.
+	s := NewEchoServer()
+	req := httptest.NewRequest("POST", "/upload", strings.NewReader("not multipart"))
+	w := httptest.NewRecorder()
+	s.ServeHTTP(w, req)
+	assert.Eq(t, 400, w.Code)
 }
 
 func TestMountEchoRoutes(t *testing.T) {
