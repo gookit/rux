@@ -338,6 +338,12 @@ func (s *Server) Run() error {
 	s.ready.Store(true)
 	s.logf("server listening on %s", s.String())
 
+	// In debug mode, dump the registered routes so the operator sees
+	// the route table without having to hit /__routes or similar.
+	if rux.IsDebug() {
+		s.logf("registered routes:\n%s", s.Router.String())
+	}
+
 	// 4) Wait for either a Start error, a stop signal, or a Stop() call.
 	sigCh := newSignalChan(s.StopSignals)
 	defer stopSignalChan(sigCh)

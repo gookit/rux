@@ -3,13 +3,16 @@ package server
 import (
 	"context"
 	"errors"
+	"fmt"
 	"runtime"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/gookit/goutil/testutil/assert"
+	"github.com/gookit/rux/v2"
 )
 
 func TestNew_AppliesDefaults(t *testing.T) {
@@ -110,6 +113,91 @@ func TestRun_SignalTriggersShutdown(t *testing.T) {
 	}
 	assert.True(t, preShutdown.Load())
 	assert.True(t, postShutdown.Load())
+}
+
+func TestRun_DebugDumpsRoutes(t *testing.T) {
+	// New(true) flips rux debug mode on, which makes Run print the
+	// route table once the listener is up.
+	s := New(true)
+	s.Addr = "127.0.0.1:0"
+	s.DrainDelay = 0
+	s.ShutdownTimeout = 2 * time.Second
+
+	s.GET("/api/users/{id}", func(c *rux.Context) {})
+	s.POST("/api/posts", func(c *rux.Context) {})
+
+	// Capture log lines so we can assert on the route dump output.
+	var logged []string
+	var mu sync.Mutex
+	s.Logger = func(format string, args ...any) {
+		mu.Lock()
+		logged = append(logged, fmt.Sprintf(format, args...))
+		mu.Unlock()
+	}
+
+	done := make(chan error, 1)
+	go func() { done <- s.Run() }()
+
+	// Wait for ready, then stop.
+	deadline := time.Now().Add(3 * time.Second)
+	for !s.ready.Load() {
+		if time.Now().After(deadline) {
+			t.Fatal("server never became ready")
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	s.Stop()
+	select {
+	case err := <-done:
+		assert.NoErr(t, err)
+	case <-time.After(5 * time.Second):
+		t.Fatal("Run did not return")
+	}
+
+	// The dump line should mention the two registered routes.
+	mu.Lock()
+	all := strings.Join(logged, "\n")
+	mu.Unlock()
+	assert.True(t, strings.Contains(all, "registered routes"))
+	// rux normalizes "{id}" to ":id" internally; assert on the stored form.
+	assert.True(t, strings.Contains(all, "/api/users/:id"))
+	assert.True(t, strings.Contains(all, "/api/posts"))
+}
+
+func TestRun_NonDebugSkipsRouteDump(t *testing.T) {
+	// Non-debug mode must not print the dump. New(false) resets the
+	// package-level debug flag flipped by the previous test.
+	s := New(false)
+	s.Addr = "127.0.0.1:0"
+	s.DrainDelay = 0
+	s.ShutdownTimeout = 2 * time.Second
+	s.GET("/silent", func(c *rux.Context) {})
+
+	var logged []string
+	var mu sync.Mutex
+	s.Logger = func(format string, args ...any) {
+		mu.Lock()
+		logged = append(logged, fmt.Sprintf(format, args...))
+		mu.Unlock()
+	}
+
+	done := make(chan error, 1)
+	go func() { done <- s.Run() }()
+	deadline := time.Now().Add(3 * time.Second)
+	for !s.ready.Load() {
+		if time.Now().After(deadline) {
+			t.Fatal("server never became ready")
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	s.Stop()
+	<-done
+
+	mu.Lock()
+	all := strings.Join(logged, "\n")
+	mu.Unlock()
+	assert.False(t, strings.Contains(all, "registered routes"),
+		"non-debug mode should not dump routes; got: %s", all)
 }
 
 func TestShutdown_Idempotent(t *testing.T) {
