@@ -31,6 +31,9 @@ func main() {
 			return
 		}
 
+		// Force text/plain so a "<script>" id can't trip browser sniff → XSS.
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
 		_, _ = w.Write([]byte(mux.Vars(r)["id"]))
 	})
 

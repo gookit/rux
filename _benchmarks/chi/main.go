@@ -20,6 +20,9 @@ func main() {
 	})
 
 	r.Get("/user/{id}", func(w http.ResponseWriter, r *http.Request) {
+		// Force text/plain so a "<script>" id can't trip browser sniff → XSS.
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Write([]byte(chi.URLParam(r, "id")))
 	})
 
