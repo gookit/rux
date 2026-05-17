@@ -44,7 +44,7 @@ See `_benchmarks/v2-results.txt` for measured numbers, and
 ## Install
 
 ```bash
-go get github.com/gookit/rux
+go get github.com/gookit/rux/v2
 ```
 
 ## Quick start
@@ -55,7 +55,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/gookit/rux"
+	"github.com/gookit/rux/v2"
 )
 
 func main() {
@@ -174,7 +174,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/gookit/rux"
+	"github.com/gookit/rux/v2"
 )
 
 func main() {
@@ -237,7 +237,7 @@ package main
 import (
 	"net/http"
 
-	"github.com/gookit/rux"
+	"github.com/gookit/rux/v2"
 	// here we use gorilla/handlers, it provides some generic handlers.
 	"github.com/gorilla/handlers"
 )
@@ -273,7 +273,7 @@ import (
 	"embed"
 	"net/http"
 
-	"github.com/gookit/rux"
+	"github.com/gookit/rux/v2"
 )
 
 //go:embed static
@@ -374,7 +374,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/gookit/rux"
+	"github.com/gookit/rux/v2"
 )
 
 type HostSwitch map[string]http.Handler
@@ -416,7 +416,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/gookit/rux"
+	"github.com/gookit/rux/v2"
 )
 
 type Product struct {
@@ -481,7 +481,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/gookit/rux"
+	"github.com/gookit/rux/v2"
 )
 
 // News controller
@@ -519,7 +519,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/gookit/rux"
+	"github.com/gookit/rux/v2"
 )
 
 func main() {
@@ -550,6 +550,84 @@ func main() {
 	log.Fatal(http.ListenAndServe(":12345", router))
 }
 ```
+
+## Production-Ready Server
+
+Package `server` wraps a `rux.Router` with sensible HTTP timeouts,
+graceful shutdown, lifecycle hooks, and built-in `/healthz` / `/readyz`
+endpoints. It is the recommended way to run rux in containers / k8s.
+
+```go
+package main
+
+import (
+	"context"
+	"log"
+
+	"github.com/gookit/rux/v2"
+	"github.com/gookit/rux/v2/server"
+)
+
+func main() {
+	s := server.New(false) // false = no debug logging
+	s.Addr = ":8080"
+
+	s.GET("/", func(c *rux.Context) {
+		c.Text(200, "hello")
+	})
+
+	// Optional liveness/readiness endpoints under /healthz and /readyz.
+	s.MountHealthChecks()
+
+	// Optional lifecycle hooks (warm caches, validate config, etc.).
+	s.PreStart = append(s.PreStart, func(ctx context.Context) error {
+		return nil
+	})
+
+	if err := s.Run(); err != nil {
+		log.Fatal(err)
+	}
+}
+```
+
+What `Run()` does for you:
+
+- `ListenAndServe` (or TLS variant when `TLSCertFile`/`TLSKeyFile` are set)
+- Wait for `SIGINT` / `SIGTERM` (configurable via `StopSignals`)
+- On signal: flip `/readyz` to 503 → wait `DrainDelay` so the upstream LB
+  can drain → call `http.Server.Shutdown` bounded by `ShutdownTimeout`
+- Run `PreShutdown` / `PostShutdown` hooks in order
+
+Defaults tuned for container deployments:
+
+| Field               | Default | Purpose                              |
+| ------------------- | ------- | ------------------------------------ |
+| `ReadHeaderTimeout` | 2s      | slowloris defense                    |
+| `ReadTimeout`       | 10s     | full request read budget             |
+| `WriteTimeout`      | 30s     | response write budget                |
+| `IdleTimeout`       | 120s    | keep-alive idle close                |
+| `DrainDelay`        | 5s      | LB drain window after stop signal    |
+| `ShutdownTimeout`   | 25s     | bound on graceful shutdown           |
+
+### Echo Server (httpbin-style)
+
+`server.NewEchoServer()` builds a Server with httpbin-style debug
+endpoints pre-mounted: `/anything`, `/get|post|put|patch|delete`,
+`/status/{code}`, `/delay/{n}`, `/redirect/{n}`, `/cookies`,
+`/basic-auth/{u}/{p}`, `/bytes/{n}`, `/uuid`, `/download/{filename}`,
+`POST /upload`, and a `/*path` catch-all. Useful for local debugging,
+integration tests, and as a `/debug` subtree inside larger apps via
+`server.MountEchoRoutes(r)`.
+
+```bash
+go run ./_examples/echo-server
+# then:
+curl http://127.0.0.1:18080/anything
+curl -F "file=@./README.md" http://127.0.0.1:18080/upload
+```
+
+See [docs/echo-server.md](docs/echo-server.md) for the full endpoint
+table and usage recipes.
 
 ## Migrating from v1
 

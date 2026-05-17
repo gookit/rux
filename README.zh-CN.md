@@ -44,7 +44,7 @@
 ## 安装
 
 ```bash
-go get github.com/gookit/rux
+go get github.com/gookit/rux/v2
 ```
 
 ## 快速开始
@@ -55,7 +55,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/gookit/rux"
+	"github.com/gookit/rux/v2"
 )
 
 func main() {
@@ -130,7 +130,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/gookit/rux"
+	"github.com/gookit/rux/v2"
 )
 
 func main() {
@@ -192,7 +192,7 @@ package main
 import (
 	"net/http"
 
-	"github.com/gookit/rux"
+	"github.com/gookit/rux/v2"
 	// 这里我们使用 gorilla/handlers，它提供了一些通用的中间件
 	"github.com/gorilla/handlers"
 )
@@ -228,7 +228,7 @@ import (
 	"embed"
 	"net/http"
 
-	"github.com/gookit/rux"
+	"github.com/gookit/rux/v2"
 )
 
 //go:embed static
@@ -327,7 +327,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/gookit/rux"
+	"github.com/gookit/rux/v2"
 )
 
 type HostSwitch map[string]http.Handler
@@ -369,7 +369,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/gookit/rux"
+	"github.com/gookit/rux/v2"
 )
 
 type Product struct {
@@ -434,7 +434,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/gookit/rux"
+	"github.com/gookit/rux/v2"
 )
 
 // News controller
@@ -473,7 +473,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/gookit/rux"
+	"github.com/gookit/rux/v2"
 )
 
 func main() {
@@ -504,6 +504,82 @@ func main() {
 	log.Fatal(http.ListenAndServe(":12345", router))
 }
 ```
+
+## 生产级 Server
+
+`server` 包基于 `rux.Router` 之上封装了一层生产级 HTTP 服务：合理的超时、
+优雅关闭、生命周期钩子，以及内置的 `/healthz` / `/readyz` 探针。是在容器 /
+k8s 环境运行 rux 的推荐方式。
+
+```go
+package main
+
+import (
+	"context"
+	"log"
+
+	"github.com/gookit/rux/v2"
+	"github.com/gookit/rux/v2/server"
+)
+
+func main() {
+	s := server.New(false) // false = 关闭 debug 日志
+	s.Addr = ":8080"
+
+	s.GET("/", func(c *rux.Context) {
+		c.Text(200, "hello")
+	})
+
+	// 可选：挂载健康检查端点 /healthz、/readyz
+	s.MountHealthChecks()
+
+	// 可选：生命周期钩子（预热缓存、校验配置等）
+	s.PreStart = append(s.PreStart, func(ctx context.Context) error {
+		return nil
+	})
+
+	if err := s.Run(); err != nil {
+		log.Fatal(err)
+	}
+}
+```
+
+`Run()` 自动完成的事：
+
+- 启动 `ListenAndServe`（若设置了 `TLSCertFile`/`TLSKeyFile` 则走 TLS）
+- 监听 `SIGINT` / `SIGTERM`（可通过 `StopSignals` 配置）
+- 收到信号后：把 `/readyz` 翻成 503 → 等待 `DrainDelay` 让上游 LB 摘流
+  → 在 `ShutdownTimeout` 预算内调用 `http.Server.Shutdown`
+- 顺序执行 `PreShutdown` / `PostShutdown` 钩子
+
+面向容器部署的默认值：
+
+| 字段                | 默认值 | 用途                               |
+| ------------------- | ------ | ---------------------------------- |
+| `ReadHeaderTimeout` | 2s     | 防 slowloris 攻击                  |
+| `ReadTimeout`       | 10s    | 整体请求读超时                     |
+| `WriteTimeout`      | 30s    | 响应写超时                         |
+| `IdleTimeout`       | 120s   | keep-alive 空闲关闭                |
+| `DrainDelay`        | 5s     | 停机信号后的 LB 摘流窗口           |
+| `ShutdownTimeout`   | 25s    | 优雅关闭的上限                     |
+
+### Echo Server（httpbin 风格）
+
+`server.NewEchoServer()` 会构建一个预挂载 httpbin 风格调试端点的 Server：
+`/anything`、`/get|post|put|patch|delete`、`/status/{code}`、`/delay/{n}`、
+`/redirect/{n}`、`/cookies`、`/basic-auth/{u}/{p}`、`/bytes/{n}`、`/uuid`、
+`/download/{filename}`、`POST /upload`，以及兜底的 `/*path`。适合本地联调、
+集成测试，也可以通过 `server.MountEchoRoutes(r)` 嵌入到现有应用，
+作为 `/debug` 子树。
+
+```bash
+go run ./_examples/echo-server
+# 然后试试：
+curl http://127.0.0.1:18080/anything
+curl -F "file=@./README.md" http://127.0.0.1:18080/upload
+```
+
+完整端点表与示例参见 [docs/echo-server.md](docs/echo-server.md)。
 
 ## 从 v1 迁移
 
