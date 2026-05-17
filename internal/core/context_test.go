@@ -58,6 +58,28 @@ func TestContext_FastSetCookie(t *testing.T) {
 	assert.True(t, strings.Contains(setCookie, "token=xyz"))
 	assert.True(t, strings.Contains(setCookie, "Path=/"))
 	assert.True(t, strings.Contains(setCookie, "HttpOnly"))
+	// Secure off by default — see FastSetCookie godoc.
+	assert.False(t, strings.Contains(setCookie, "Secure"))
+}
+
+func TestContext_FastSetCookie_WithOpts(t *testing.T) {
+	c := &Context{}
+	w := httptest.NewRecorder()
+	c.Init(w, httptest.NewRequest("GET", "/x", nil))
+	c.FastSetCookie("session", "v", 3600,
+		func(ck *http.Cookie) { ck.Secure = true },
+		func(ck *http.Cookie) { ck.SameSite = http.SameSiteStrictMode },
+		func(ck *http.Cookie) { ck.Domain = "example.com" },
+	)
+
+	setCookie := w.Header().Get("Set-Cookie")
+	assert.True(t, strings.Contains(setCookie, "session=v"))
+	assert.True(t, strings.Contains(setCookie, "Secure"))
+	assert.True(t, strings.Contains(setCookie, "SameSite=Strict"))
+	assert.True(t, strings.Contains(setCookie, "Domain=example.com"))
+	// Defaults still preserved unless an opt overrode them.
+	assert.True(t, strings.Contains(setCookie, "Path=/"))
+	assert.True(t, strings.Contains(setCookie, "HttpOnly"))
 }
 
 func TestContext_DelCookie(t *testing.T) {

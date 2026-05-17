@@ -264,14 +264,29 @@ func (c *Context) SetCookie(name, value string, maxAge int, path, domain string,
 }
 
 // FastSetCookie sets a response cookie with developer-friendly defaults:
-// path=/, httpOnly=true, secure=false. The Secure attribute is deliberately
-// off so cookies work over plain HTTP during local development.
+// path=/, httpOnly=true, secure=false. Optional opts run after the cookie
+// is built and let you flip Secure, set SameSite, override Path, etc.
 //
-// SECURITY: for production HTTPS deployments use SetCookie directly with
-// secure=true (and consider SameSite via http.SetCookie if you need it).
-// This default is preserved for backward compatibility.
-func (c *Context) FastSetCookie(name, value string, maxAge int) {
-	c.SetCookie(name, value, maxAge, "/", "", false, true)
+//	c.FastSetCookie("session", "v", 3600)
+//	c.FastSetCookie("session", "v", 3600, func(ck *http.Cookie) {
+//	    ck.Secure = true
+//	    ck.SameSite = http.SameSiteStrictMode
+//	})
+//
+// The defaults are kept for backward compatibility; HTTPS callers should
+// flip Secure via opts (or use SetCookie directly).
+func (c *Context) FastSetCookie(name, value string, maxAge int, opts ...func(*http.Cookie)) {
+	ck := &http.Cookie{
+		Name:     name,
+		Value:    value,
+		MaxAge:   maxAge,
+		Path:     "/",
+		HttpOnly: true,
+	}
+	for _, opt := range opts {
+		opt(ck)
+	}
+	http.SetCookie(c.Resp, ck)
 }
 
 // DelCookie deletes one or more cookies by setting MaxAge=-1.

@@ -357,6 +357,15 @@ r.GET("/setcookie", func(c *rux.Context) {
 	c.WriteString("hello, in " + c.URL().Path)
 })
 
+// FastSetCookie accepts optional func(*http.Cookie) callbacks to override
+// the developer-friendly defaults — handy for HTTPS / SameSite.
+r.GET("/setsecure", func(c *rux.Context) {
+    c.FastSetCookie("session", "v", 3600, func(ck *http.Cookie) {
+        ck.Secure = true
+        ck.SameSite = http.SameSiteStrictMode
+    })
+})
+
 r.GET("/delcookie", func(c *rux.Context) {
 	val := ctx.Cookie("rux_cookie") // "test-value1"
 	c.DelCookie("rux_cookie", "rux_cookie2")

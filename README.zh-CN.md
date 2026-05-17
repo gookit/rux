@@ -310,6 +310,15 @@ r.GET("/setcookie", func(c *rux.Context) {
 	c.WriteString("hello, in " + c.URL().Path)
 })
 
+// FastSetCookie 接收可选的 func(*http.Cookie) 回调，用来覆盖默认设置
+// （比如 HTTPS 场景需要的 Secure / SameSite）
+r.GET("/setsecure", func(c *rux.Context) {
+    c.FastSetCookie("session", "v", 3600, func(ck *http.Cookie) {
+        ck.Secure = true
+        ck.SameSite = http.SameSiteStrictMode
+    })
+})
+
 r.GET("/delcookie", func(c *rux.Context) {
 	val := ctx.Cookie("rux_cookie") // "test-value1"
 	c.DelCookie("rux_cookie", "rux_cookie2")
