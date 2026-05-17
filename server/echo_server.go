@@ -241,23 +241,27 @@ const maxBytes = 100 * 1024
 // echoBytesHandler returns N pseudo-random bytes as application/octet-stream.
 // Uses math/rand/v2 — output is deterministic-enough fake data, not crypto.
 func echoBytesHandler(c *rux.Context) {
-	n := c.Params().Int("n")
-	if n < 0 {
-		n = 0
-	}
-	if n > maxBytes {
-		n = maxBytes
-	}
+	buf := makeRandomBytes(c.Params().Int("n"))
 	c.Resp.Header().Set("Content-Type", "application/octet-stream")
 	c.Resp.WriteHeader(http.StatusOK)
+	if len(buf) > 0 {
+		_, _ = c.Resp.Write(buf)
+	}
+}
+
+// makeRandomBytes returns n pseudo-random bytes, with n clamped to
+// [0, maxBytes]. Uses math/rand/v2 — output is deterministic-enough
+// fake data, not crypto.
+func makeRandomBytes(n int) []byte {
+	n = clampSize(n)
 	if n == 0 {
-		return
+		return nil
 	}
 	buf := make([]byte, n)
 	for i := range buf {
 		buf[i] = byte(mrand.Uint32())
 	}
-	_, _ = c.Resp.Write(buf)
+	return buf
 }
 
 // echoUUIDHandler returns a freshly generated RFC 4122 v4 UUID.
@@ -323,10 +327,7 @@ func echoDownloadHandler(c *rux.Context) {
 		body = makeJSONBytes(name, size)
 	default: // "bin" or unknown
 		ctype = "application/octet-stream"
-		body = make([]byte, size)
-		for i := range body {
-			body[i] = byte(mrand.Uint32())
-		}
+		body = makeRandomBytes(size)
 	}
 
 	disp := "attachment"
@@ -341,10 +342,24 @@ func echoDownloadHandler(c *rux.Context) {
 	_, _ = c.Resp.Write(body)
 }
 
+// clampSize bounds a user-supplied size into [0, maxBytes]. Centralized so
+// every make([]byte, n) site has a visible upper bound and CodeQL can prove
+// the allocation cannot blow up regardless of how the helper is reached.
+func clampSize(n int) int {
+	if n <= 0 {
+		return 0
+	}
+	if n > maxBytes {
+		return maxBytes
+	}
+	return n
+}
+
 // makeTextBytes fills a buffer with a repeating ASCII pattern so the
 // downloaded text is readable in any viewer.
 func makeTextBytes(n int) []byte {
-	if n <= 0 {
+	n = clampSize(n)
+	if n == 0 {
 		return nil
 	}
 	const pattern = "The quick brown fox jumps over the lazy dog.\n"
@@ -361,6 +376,7 @@ func makeTextBytes(n int) []byte {
 // fit the payload, we just return the payload (size becomes a floor, not
 // a hard cap — matching httpbin's loose semantics for debug endpoints).
 func makeJSONBytes(name string, size int) []byte {
+	size = clampSize(size)
 	payload := fmt.Sprintf(`{"filename":%q,"size":%d,"generated_at":%q}`,
 		name, size, time.Now().UTC().Format(time.RFC3339))
 	if size <= len(payload) {
