@@ -81,19 +81,15 @@ func Auto(w http.ResponseWriter, r *http.Request, obj any) (err error) {
 		case httpctype.MIMEJSON:
 			err = JSON(w, obj)
 			handled = true
-			break
 		case httpctype.MIMEHTML:
 			handled = true
-			break
 		case httpctype.MIMEText:
 			err = responseText(w, obj)
 			handled = true
-			break
 		case httpctype.MIMEXML:
 		case httpctype.MIMEXML2:
 			err = XML(w, obj)
 			handled = true
-			break
 			// case httpctype.MIMEYAML:
 			// 	break
 		}
