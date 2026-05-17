@@ -692,7 +692,30 @@ sse.StreamWith(c, &sse.Options{
 | `server.Server.WriteTimeout` (default 30s)        | Must set `= 0`. Heartbeats do NOT save you — this bounds the whole response lifetime. |
 | Proxy / NAT idle timeout (nginx 60s, ALB 60s, …)  | `KeepaliveInterval` ≤ that value. |
 
-See `_examples/sse-server` for the full setup.
+**Keyed push with Hub.** For business-driven pushes (notify user X,
+broadcast to all) use `sse.NewHub` — an in-memory registry keyed by
+ID (e.g. user ID), multi-connection-per-id (multi-tab fan-out), with
+non-blocking per-client buffer + dropped-event counter + `OnDrop`
+hook:
+
+```go
+hub := sse.NewHub(64) // per-client buffer size
+
+s.GET("/events", func(c *rux.Context) {
+    uid := authUserID(c)
+    _ = sse.Stream(c, nil, sse.HubProducer(hub, uid))
+})
+
+// elsewhere, business code:
+delivered, dropped := hub.Send("user-42", sse.Event{Name: "notify", Data: "..."})
+hub.Broadcast(sse.Event{Name: "announce", Data: "..."})
+hub.SetOnDrop(func(c *sse.Client, _ sse.Event) {
+    log.Printf("slow client %s, dropped=%d", c.ID, c.Dropped())
+})
+```
+
+See `_examples/sse-server` for the full setup (subscribe + push +
+broadcast + stats endpoints with a tiny HTML demo client).
 
 ## Migrating from v1
 

@@ -641,7 +641,29 @@ sse.StreamWith(c, &sse.Options{
 | `server.Server.WriteTimeout`（默认 30s）            | 必须设 `= 0`。心跳救不了 —— 它管的是整个响应的总时长。 |
 | 代理 / NAT 空闲超时（nginx 60s、ALB 60s 等）         | `KeepaliveInterval` ≤ 上面这个值。 |
 
-完整示例见 `_examples/sse-server`。
+**按 key 主动推送 — Hub。** 业务驱动的推送（通知某用户、全员广播）
+用 `sse.NewHub`：内存注册表，按 ID（如 user ID）查询；同一 ID 可对应
+多个连接（多 tab 自动 fan-out）；每客户端独立缓冲队列 + 满了非阻塞
+丢弃 + dropped 计数 + `OnDrop` 钩子：
+
+```go
+hub := sse.NewHub(64) // 每客户端缓冲
+
+s.GET("/events", func(c *rux.Context) {
+    uid := authUserID(c)
+    _ = sse.Stream(c, nil, sse.HubProducer(hub, uid))
+})
+
+// 业务代码任意位置：
+delivered, dropped := hub.Send("user-42", sse.Event{Name: "notify", Data: "..."})
+hub.Broadcast(sse.Event{Name: "announce", Data: "..."})
+hub.SetOnDrop(func(c *sse.Client, _ sse.Event) {
+    log.Printf("slow client %s, dropped=%d", c.ID, c.Dropped())
+})
+```
+
+完整示例见 `_examples/sse-server`（含 subscribe + push + broadcast
++ stats 端点和一个小型 HTML 客户端）。
 
 ## 从 v1 迁移
 

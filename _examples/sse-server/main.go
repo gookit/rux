@@ -1,27 +1,26 @@
-// Minimal SSE server example using rux + pkg/sse.
+// SSE server example using rux + pkg/sse with Hub.
 //
 // Run:
 //
 //	go run ./_examples/sse-server
 //
-// Open the page (built-in HTML demo client):
+// Open the demo page (two browser tabs to see fan-out):
 //
-//	http://127.0.0.1:18081/
+//	http://127.0.0.1:18081/?uid=alice
 //
-// Or hit the stream directly with curl:
+// Curl side:
 //
-//	curl -N http://127.0.0.1:18081/events
-//
-// Pass ?reject=1 to see the OnConnect hook return 401:
-//
-//	curl -i http://127.0.0.1:18081/events?reject=1
+//	curl -N http://127.0.0.1:18081/events?uid=alice                      # subscribe
+//	curl -X POST 'http://127.0.0.1:18081/push?uid=alice&msg=hello'       # → only alice's tabs
+//	curl -X POST 'http://127.0.0.1:18081/broadcast?msg=system+update'    # → everyone
+//	curl http://127.0.0.1:18081/stats                                    # hub size
+//	curl -i http://127.0.0.1:18081/events?uid=alice&reject=1             # OnConnect 401 demo
 package main
 
 import (
 	"errors"
 	"log"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/gookit/rux/v2"
@@ -29,29 +28,68 @@ import (
 	"github.com/gookit/rux/v2/server"
 )
 
+// hub is the process-wide registry of active SSE clients. In a real app
+// you'd inject this via a service container or wire it through a struct;
+// kept as a package var here for example brevity.
+var hub = sse.NewHub(64)
+
 const indexPage = `<!doctype html>
-<title>rux sse demo</title>
+<title>rux sse hub demo</title>
+<style>body{font-family:monospace;max-width:48em;margin:1em auto}</style>
+<h3>SSE Hub Demo</h3>
+<p>Connected as <b id="uid"></b> — open this page in two tabs (same uid)
+to watch the same user fan-out.</p>
+<p>
+  <input id="msg" placeholder="message"/>
+  <button onclick="push()">push to my uid</button>
+  <button onclick="bcast()">broadcast to everyone</button>
+</p>
 <pre id="log"></pre>
 <script>
+const qs = new URLSearchParams(location.search);
+const uid = qs.get('uid') || 'guest';
+document.getElementById('uid').textContent = uid;
+
 const log = document.getElementById('log');
-const es = new EventSource('/events');
-es.onmessage = (e) => log.textContent += e.data + '\n';
-es.addEventListener('tick', (e) => log.textContent += '[tick] ' + e.data + '\n');
-es.onerror = () => log.textContent += '[stream closed]\n';
+const append = s => log.textContent += s + '\n';
+
+const es = new EventSource('/events?uid=' + encodeURIComponent(uid));
+es.onmessage = e => append('msg: ' + e.data);
+es.addEventListener('notify', e => append('[notify] ' + e.data));
+es.addEventListener('announce', e => append('[announce] ' + e.data));
+es.onerror = () => append('[stream closed, browser will retry]');
+
+function push() {
+    const m = document.getElementById('msg').value;
+    fetch('/push?uid=' + encodeURIComponent(uid) + '&msg=' + encodeURIComponent(m), {method:'POST'});
+}
+function bcast() {
+    const m = document.getElementById('msg').value;
+    fetch('/broadcast?msg=' + encodeURIComponent(m), {method:'POST'});
+}
 </script>`
 
 func main() {
 	s := server.New(true)
 	s.Addr = "127.0.0.1:18081"
-	// SSE is a long-lived response — relax the default 30s WriteTimeout
-	// so producers can run for hours without being killed mid-stream.
+	// SSE is a long-lived response — disable WriteTimeout so producers
+	// can run for hours. Heartbeats can't substitute for this; see the
+	// pkg/sse godoc.
 	s.WriteTimeout = 0
+
+	// Surface drops in the log so a slow-consumer is immediately visible.
+	hub.SetOnDrop(func(c *sse.Client, _ sse.Event) {
+		log.Printf("sse drop  uid=%s total=%d", c.ID, c.Dropped())
+	})
 
 	s.GET("/", func(c *rux.Context) {
 		c.HTMLString(http.StatusOK, indexPage)
 	})
 
 	s.GET("/events", eventsHandler)
+	s.POST("/push", pushHandler)
+	s.POST("/broadcast", broadcastHandler)
+	s.GET("/stats", statsHandler)
 
 	log.Printf("listening on http://%s", s.Addr)
 	if err := s.Run(); err != nil {
@@ -59,67 +97,64 @@ func main() {
 	}
 }
 
-// eventsHandler demonstrates a 1-Hz ticker stream with all four hooks
-// wired up. In a real app these would live in middleware or a service
-// layer — kept inline here for the example.
+// eventsHandler subscribes the caller to the hub under their uid.
+// All actual event delivery happens via /push or /broadcast.
 func eventsHandler(c *rux.Context) {
+	uid := c.Query("uid")
+	if uid == "" {
+		c.AbortWithStatus(http.StatusBadRequest, "uid required")
+		return
+	}
+
 	hooks := &sse.Hooks{
-		// Pretend we have auth — reject if ?reject=1 is set.
 		OnConnect: func(c *rux.Context) error {
 			if c.Query("reject") == "1" {
 				http.Error(c.Resp, "no token", http.StatusUnauthorized)
 				return errors.New("rejected by demo")
 			}
-			log.Printf("sse open  remote=%s", c.Req.RemoteAddr)
+			log.Printf("sse open  uid=%s remote=%s", uid, c.Req.RemoteAddr)
 			return nil
 		},
 		OnDisconnect: func(c *rux.Context, reason error) {
-			log.Printf("sse close remote=%s reason=%v", c.Req.RemoteAddr, reason)
-		},
-		OnSend: func(c *rux.Context, e *sse.Event) error {
-			// Tag every event with an auto-incrementing id so the browser
-			// can resume via Last-Event-ID after a reconnect.
-			return nil
-		},
-		OnError: func(c *rux.Context, err error) {
-			log.Printf("sse send err: %v", err)
+			log.Printf("sse close uid=%s reason=%v", uid, reason)
 		},
 	}
-
 	opts := &sse.Options{
-		Hooks:         hooks,
-		SendConnected: true,
-		// Fire a ": keepalive\n\n" comment frame every 30s. Defends against
-		// proxy/NAT idle timeouts (nginx default proxy_read_timeout=60s).
-		// NOTE: does NOT defeat http.Server.WriteTimeout — that still has
-		// to be 0 (or very large), which is why s.WriteTimeout is 0 above.
-		KeepaliveInterval: 30 * time.Second,
+		Hooks:             hooks,
+		SendConnected:     true,
+		KeepaliveInterval: 30 * time.Second, // defeat proxy idle timeout
 	}
-	_ = sse.StreamWith(c, opts, func(send sse.SendFunc, done <-chan struct{}) error {
-		ticker := time.NewTicker(time.Second)
-		defer ticker.Stop()
+	_ = sse.StreamWith(c, opts, sse.HubProducer(hub, uid))
+}
 
-		// Suggest a 2s reconnect delay on the very first frame.
-		if err := send(sse.Event{Retry: 2000, Data: "stream started"}); err != nil {
-			return err
-		}
+// pushHandler sends a message to every active connection under uid.
+// JSON-style response: {"delivered": N, "dropped": M}.
+func pushHandler(c *rux.Context) {
+	uid := c.Query("uid")
+	msg := c.Query("msg")
+	delivered, dropped := hub.Send(uid, sse.Event{
+		Name: "notify",
+		Data: msg,
+	})
+	c.JSON(http.StatusOK, rux.M{"delivered": delivered, "dropped": dropped})
+}
 
-		var n int
-		for {
-			select {
-			case <-done:
-				return nil
-			case t := <-ticker.C:
-				n++
-				err := send(sse.Event{
-					ID:   strconv.Itoa(n),
-					Name: "tick",
-					Data: t.Format(time.RFC3339),
-				})
-				if err != nil {
-					return err
-				}
-			}
-		}
+// broadcastHandler sends a message to every client across all uids.
+func broadcastHandler(c *rux.Context) {
+	msg := c.Query("msg")
+	delivered, dropped := hub.Broadcast(sse.Event{
+		Name: "announce",
+		Data: msg,
+	})
+	c.JSON(http.StatusOK, rux.M{"delivered": delivered, "dropped": dropped})
+}
+
+// statsHandler exposes hub size — useful for monitoring / admin.
+func statsHandler(c *rux.Context) {
+	clients, ids := hub.Count()
+	c.JSON(http.StatusOK, rux.M{
+		"clients": clients,
+		"ids":     ids,
+		"ids_now": hub.IDs(),
 	})
 }
