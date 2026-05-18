@@ -11,6 +11,20 @@ go mod tidy
 go get -u -v ./...
 ```
 
+## Run target server
+
+```bash
+go run ./chi
+go run ./echo
+go run ./fasthttp
+go run ./gin
+go run ./gorilla-mux
+go run ./httprouter
+go run ./muxie
+go run ./raw-mux
+go run ./rux
+```
+
 ## Results
 
 - install bombardier:

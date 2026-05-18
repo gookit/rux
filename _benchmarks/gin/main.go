@@ -11,8 +11,9 @@ import (
 // run serve:
 // 	go run ./gin
 // bench test:
-// 	bombardier -c 125 -n 1000000 http://localhost:3000
-// 	bombardier -c 125 -n 1000000 http://localhost:3000/user/42
+// 	gbench -c 100 -n 10000 http://localhost:13000
+// 	gbench -c 125 -n 1000000 http://localhost:13000
+// 	gbench -c 125 -n 1000000 http://localhost:13000/user/42
 func main() {
 	gin.SetMode(gin.ReleaseMode)
 
@@ -29,9 +30,9 @@ func main() {
 		_, _ = c.Writer.Write([]byte(c.Param("id")))
 	})
 
-	fmt.Println("Server started at localhost:3000")
+	fmt.Println("Server started at localhost:13000")
 
-	if err := http.ListenAndServe(":3000", r); err != nil {
+	if err := http.ListenAndServe(":13000", r); err != nil {
 		log.Fatal(err)
 	}
 }
