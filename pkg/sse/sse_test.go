@@ -62,7 +62,8 @@ func TestEncode_AllFields(t *testing.T) {
 		return nil
 	})
 
-	resp, _ := http.Get(srv.URL + "/events")
+	resp, err := http.Get(srv.URL + "/events")
+	assert.NoErr(t, err)
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(resp.Body)
 
@@ -79,7 +80,8 @@ func TestEncode_MultiLineData(t *testing.T) {
 		return nil
 	})
 
-	resp, _ := http.Get(srv.URL + "/events")
+	resp, err := http.Get(srv.URL + "/events")
+	assert.NoErr(t, err)
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(resp.Body)
 
@@ -93,7 +95,8 @@ func TestEncode_EmptyDataIsHeartbeat(t *testing.T) {
 		return nil
 	})
 
-	resp, _ := http.Get(srv.URL + "/events")
+	resp, err := http.Get(srv.URL + "/events")
+	assert.NoErr(t, err)
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(resp.Body)
 	assert.Eq(t, ": connected\n\ndata: \n\n", string(body))
@@ -119,7 +122,8 @@ func TestHook_OnConnect_Reject(t *testing.T) {
 		return nil
 	})
 
-	resp, _ := http.Get(srv.URL + "/events")
+	resp, err := http.Get(srv.URL + "/events")
+	assert.NoErr(t, err)
 	defer resp.Body.Close()
 	_, _ = io.Copy(io.Discard, resp.Body)
 
@@ -144,7 +148,8 @@ func TestHook_OnConnect_Reject_AllowsCustom4xx(t *testing.T) {
 		return nil
 	})
 
-	resp, _ := http.Get(srv.URL + "/events")
+	resp, err := http.Get(srv.URL + "/events")
+	assert.NoErr(t, err)
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(resp.Body)
 
@@ -164,7 +169,8 @@ func TestHook_OnDisconnect_CleanExit(t *testing.T) {
 		return nil
 	})
 
-	resp, _ := http.Get(srv.URL + "/events")
+	resp, err := http.Get(srv.URL + "/events")
+	assert.NoErr(t, err)
 	_, _ = io.ReadAll(resp.Body)
 	resp.Body.Close()
 
@@ -199,7 +205,8 @@ func TestHook_OnSend_SkipsEvent(t *testing.T) {
 		return nil
 	})
 
-	resp, _ := http.Get(srv.URL + "/events")
+	resp, err := http.Get(srv.URL + "/events")
+	assert.NoErr(t, err)
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(resp.Body)
 
@@ -226,7 +233,8 @@ func TestHook_OnSend_MutatesEvent(t *testing.T) {
 		return nil
 	})
 
-	resp, _ := http.Get(srv.URL + "/events")
+	resp, err := http.Get(srv.URL + "/events")
+	assert.NoErr(t, err)
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(resp.Body)
 	assert.True(t, strings.Contains(string(body), "id: rewritten"))
@@ -290,7 +298,8 @@ func TestStreamWith_SendConnected_Disabled(t *testing.T) {
 	srv := streamWith(t, &sse.Options{SendConnected: false}, func(send sse.SendFunc, done <-chan struct{}) error {
 		return send(sse.Event{Data: "first"})
 	})
-	resp, _ := http.Get(srv.URL + "/events")
+	resp, err := http.Get(srv.URL + "/events")
+	assert.NoErr(t, err)
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(resp.Body)
 	// No ": connected" prefix when SendConnected=false.
@@ -313,7 +322,8 @@ func TestStreamWith_KeepaliveTicks(t *testing.T) {
 		return nil
 	})
 
-	resp, _ := http.Get(srv.URL + "/events")
+	resp, err := http.Get(srv.URL + "/events")
+	assert.NoErr(t, err)
 	defer resp.Body.Close()
 
 	// Read whatever has arrived after ~120ms — expect connected + ≥3 keepalives.
@@ -346,7 +356,8 @@ func TestStreamWith_KeepaliveConcurrentWithProducer(t *testing.T) {
 		return nil
 	})
 
-	resp, _ := http.Get(srv.URL + "/events")
+	resp, err := http.Get(srv.URL + "/events")
+	assert.NoErr(t, err)
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(resp.Body)
 
@@ -361,7 +372,8 @@ func TestStream_NilHooks_OK(t *testing.T) {
 	srv := startSSE(t, nil, func(send sse.SendFunc, done <-chan struct{}) error {
 		return send(sse.Event{Data: "ok"})
 	})
-	resp, _ := http.Get(srv.URL + "/events")
+	resp, err := http.Get(srv.URL + "/events")
+	assert.NoErr(t, err)
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(resp.Body)
 	assert.True(t, strings.Contains(string(body), "data: ok"))
@@ -377,7 +389,8 @@ func TestStream_MultipleEvents(t *testing.T) {
 		return nil
 	})
 
-	resp, _ := http.Get(srv.URL + "/events")
+	resp, err := http.Get(srv.URL + "/events")
+	assert.NoErr(t, err)
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(resp.Body)
 
@@ -409,7 +422,8 @@ func TestSendFunc_AfterClientGone_ReportsError(t *testing.T) {
 		}
 	})
 
-	resp, _ := http.Get(srv.URL + "/events")
+	resp, err := http.Get(srv.URL + "/events")
+	assert.NoErr(t, err)
 	_ = resp.Body.Close() // hang up immediately
 
 	select {
