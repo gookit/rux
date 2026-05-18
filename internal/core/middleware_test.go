@@ -46,3 +46,57 @@ func TestHandlersChain_Last(t *testing.T) {
 	var empty HandlersChain
 	assert.Nil(t, empty.Last())
 }
+
+// ----- the other adapter aliases ---------------------------------
+
+func TestHTTPHandler_AliasOfWrapH(t *testing.T) {
+	called := false
+	h := HTTPHandler(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		called = true
+		w.WriteHeader(http.StatusTeapot)
+	}))
+	w := httptest.NewRecorder()
+	c := &Context{}
+	c.Init(w, httptest.NewRequest("GET", "/", nil))
+	h(c)
+	assert.True(t, called)
+	// c.Resp wraps the recorder; WriteHeader is deferred to the wrapper's
+	// ensureWriteHeader. Read via the API that knows about the wrapper.
+	assert.Eq(t, http.StatusTeapot, c.StatusCode())
+}
+
+func TestWrapHF_AdaptsHandlerFunc(t *testing.T) {
+	called := false
+	h := WrapHF(func(w http.ResponseWriter, _ *http.Request) {
+		called = true
+		_, _ = w.Write([]byte("hf"))
+	})
+	w := httptest.NewRecorder()
+	c := &Context{}
+	c.Init(w, httptest.NewRequest("GET", "/", nil))
+	h(c)
+	assert.True(t, called)
+	assert.Eq(t, "hf", w.Body.String())
+}
+
+func TestHTTPHandlerFunc_AliasOfWrapHF(t *testing.T) {
+	h := HTTPHandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte("hhf"))
+	})
+	w := httptest.NewRecorder()
+	c := &Context{}
+	c.Init(w, httptest.NewRequest("GET", "/", nil))
+	h(c)
+	assert.Eq(t, "hhf", w.Body.String())
+}
+
+func TestWrapHTTPHandlerFunc_Direct(t *testing.T) {
+	h := WrapHTTPHandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte("whf"))
+	})
+	w := httptest.NewRecorder()
+	c := &Context{}
+	c.Init(w, httptest.NewRequest("GET", "/", nil))
+	h(c)
+	assert.Eq(t, "whf", w.Body.String())
+}
