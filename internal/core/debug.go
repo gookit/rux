@@ -3,7 +3,7 @@ package core
 import (
 	"strings"
 
-	"github.com/gookit/color"
+	"github.com/gookit/goutil/x/ccolor"
 )
 
 // debug is the package-level debug flag toggled by Debug.
@@ -14,8 +14,9 @@ var debug bool
 func Debug(val bool) {
 	debug = val
 	if debug {
-		color.Info.Println("    NOTICE, rux DEBUG mode is opened by rux.Debug(true)")
-		color.Info.Println("===========================================================")
+		ccolor.Infoln("    📢 NOTICE, rux DEBUG mode is opened by rux.Debug(true)")
+		ccolor.Infoln("▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬")
+		// ccolor.Infoln("▬===============================================================")
 	}
 }
 

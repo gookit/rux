@@ -2,11 +2,10 @@ package handlers
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"time"
 
-	"github.com/gookit/goutil/mathutil"
+	"github.com/gookit/goutil/strutil"
 	"github.com/gookit/rux/v2"
 )
 
@@ -26,10 +25,8 @@ func IgnoreFavIcon() rux.HandlerFunc {
 // GenRequestID for the request
 func GenRequestID(key string) rux.HandlerFunc {
 	return func(c *rux.Context) {
-		now := time.Now()
-		val := fmt.Sprintf("r%xq%d", now.UnixMicro(), mathutil.RandIntWithSeed(1000, 9999, int64(now.Nanosecond())))
 		// add reqID to context
-		c.Set(key, val)
+		c.Set(key, strutil.MicroTimeHexID())
 	}
 }
 

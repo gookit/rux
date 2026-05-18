@@ -75,8 +75,6 @@ func Register(name string, b Binder) {
 // Remove exists binder(s)
 func Remove(names ...string) {
 	for _, name := range names {
-		if _, ok := Binders[name]; ok {
-			delete(Binders, name)
-		}
+		delete(Binders, name)
 	}
 }

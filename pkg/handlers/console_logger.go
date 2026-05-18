@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/gookit/color"
+	"github.com/gookit/goutil/x/ccolor"
 	"github.com/gookit/rux/v2"
 )
 
@@ -24,7 +24,7 @@ func ConsoleLogger(ignorePaths ...string) rux.HandlerFunc {
 	}
 
 	// open color
-	color.ForceOpenColor()
+	// ccolor.Disable()
 
 	return func(c *rux.Context) {
 		// start time
@@ -53,7 +53,7 @@ func ConsoleLogger(ignorePaths ...string) rux.HandlerFunc {
 		mColor := colorForMethod(c.Req.Method)
 		codeColor := colorForStatus(c.StatusCode())
 
-		color.Printf(
+		ccolor.Printf(
 			// 2006/01/02T15:04:05 [rux] GET /articles 200 10.0.0.1 "use-agent" 0.034ms
 			// `%s %s %s %d %s "%s" %sms` + "\n",
 			"%s [%s] %s [%s] %s %sms\n",
@@ -73,36 +73,36 @@ func calcElapsedTime(startTime time.Time) string {
 	return fmt.Sprintf("%.3f", time.Since(startTime).Seconds()*1000)
 }
 
-func colorForStatus(code int) color.Color {
+func colorForStatus(code int) ccolor.Color {
 	switch {
 	case code >= 200 && code < 300:
-		return color.FgGreen
+		return ccolor.FgGreen
 	case code >= 300 && code < 400:
-		return color.FgCyan
+		return ccolor.FgCyan
 	case code >= 400 && code < 500:
-		return color.FgYellow
+		return ccolor.FgYellow
 	default:
-		return color.FgRed
+		return ccolor.FgRed
 	}
 }
 
-func colorForMethod(method string) color.Color {
+func colorForMethod(method string) ccolor.Color {
 	switch method {
 	case "GET":
-		return color.FgBlue
+		return ccolor.FgBlue
 	case "POST":
-		return color.FgCyan
+		return ccolor.FgCyan
 	case "PUT":
-		return color.FgYellow
+		return ccolor.FgYellow
 	case "DELETE":
-		return color.FgRed
+		return ccolor.FgRed
 	case "PATCH":
-		return color.FgGreen
+		return ccolor.FgGreen
 	case "HEAD":
-		return color.FgMagenta
+		return ccolor.FgMagenta
 	case "OPTIONS":
-		return color.FgWhite
+		return ccolor.FgWhite
 	default:
-		return color.FgDefault
+		return ccolor.FgDefault
 	}
 }

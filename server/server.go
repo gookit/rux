@@ -19,7 +19,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gookit/color/colorp"
+	"github.com/gookit/goutil/x/ccolor"
 	"github.com/gookit/rux/v2"
 	"github.com/gookit/rux/v2/pkg/handlers"
 )
@@ -117,7 +117,7 @@ func New(debugMode bool) *Server {
 	// Default error handler — keeps backward compatibility with the v1 stub.
 	r.OnError = func(c *rux.Context) {
 		if err := c.FirstError(); err != nil {
-			colorp.Errorln(err)
+			ccolor.Errorln("Server error: ", err)
 			c.HTTPError(err.Error(), 400)
 			return
 		}
