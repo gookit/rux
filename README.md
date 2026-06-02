@@ -571,6 +571,37 @@ func main() {
 }
 ```
 
+## Request Binding and Validation
+
+`pkg/binding` supports form, query, header, JSON and XML binding. Validation is an extension hook and is disabled by default, so rux does not pull in a validation library unless your application chooses one.
+
+To integrate [gookit/validate](https://github.com/gookit/validate), install an adapter once at startup:
+
+```go
+package main
+
+import (
+	"github.com/gookit/rux/v2/pkg/binding"
+	"github.com/gookit/validate"
+)
+
+type validateAdapter struct{}
+
+func (validateAdapter) Validate(obj any) error {
+	v := validate.New(obj)
+	if v.Validate() {
+		return nil
+	}
+	return v.Errors.OneError()
+}
+
+func main() {
+	binding.Validator = validateAdapter{}
+}
+```
+
+After the adapter is installed, `c.Bind`, `c.BindJSON`, `binding.Auto`, and other built-in binders validate the bound object automatically. See `_examples/validate` for a runnable example.
+
 ## Production-Ready Server
 
 Package `server` wraps a `rux.Router` with sensible HTTP timeouts, graceful shutdown, lifecycle hooks,
@@ -760,7 +791,7 @@ go test -cover ./...
 - [gookit/config](https://github.com/gookit/config) Go config management. support JSON, YAML, TOML, INI, HCL, ENV and Flags
 - [gookit/color](https://github.com/gookit/color) A command-line color library with true color support, universal API methods and Windows support
 - [gookit/filter](https://github.com/gookit/filter) Provide filtering, sanitizing, and conversion of golang data
-- [gookit/validate](https://github.com/gookit/validate) Use for data validation and filtering. support Map, Struct, Form data
+- [gookit/validate](https://github.com/gookit/validate) Use for data validation and filtering; rux can integrate it through `pkg/binding` without depending on it directly.
 - [gookit/goutil](https://github.com/gookit/goutil) Some utils for the Go: string, array/slice, map, format, cli, env, filesystem, test and more
 - More please see https://github.com/gookit
 

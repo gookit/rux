@@ -2,43 +2,42 @@ name: Unit-Tests
 on:
   pull_request:
     paths:
-      - 'go.mod'
-      - '**.go'
-      - '**.yml'
+      - "go.mod"
+      - "**.go"
+      - "**.yml"
   push:
     branches: # Only trigger branch pushes; tag pushes are ignored.
-      - '**'
+      - "**"
     paths:
-      - 'go.mod'
-      - '**.go'
-      - '**.yml'
+      - "go.mod"
+      - "**.go"
+      - "**.yml"
 
 jobs:
-
   test:
     name: Test on go ${{ matrix.go_version }} and ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest]
-        go_version: [1.23, 1.24, 1.25, 'stable']
+        go_version: [1.23, 1.24, 1.25, "stable"]
 
     steps:
       - name: Check out code
         uses: actions/checkout@v6
 
       - name: Setup Go Faster
-        uses: WillAbides/setup-go-faster@v1.17.2
+        uses: WillAbides/setup-go-faster@v1.19.0
         timeout-minutes: 3
         with:
           go-version: ${{ matrix.go_version }}
 
-#      - name: Revive check
-#        uses: morphy2k/revive-action@v2.5.8
-#        if: ${{ matrix.os == 'ubuntu-latest' }}
-#        with:
-#          # Exclude patterns, separated by semicolons (optional)
-#          exclude: "./internal/..."
+      #      - name: Revive check
+      #        uses: morphy2k/revive-action@v2.5.8
+      #        if: ${{ matrix.os == 'ubuntu-latest' }}
+      #        with:
+      #          # Exclude patterns, separated by semicolons (optional)
+      #          exclude: "./internal/..."
 
       - name: Run staticcheck
         uses: reviewdog/action-staticcheck@v1

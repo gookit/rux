@@ -1,38 +1,9 @@
 # TODO
 
+- [x] 去除直接依赖 gookit/validate 改为通过文档和示例说明如何集成
+
 ## new server [done]
 
 ```go
 srv := server.NewServer()
 ```
-
-## context
-
-```go
-type ServiceProvider interface {
-	Service(name string) any
-}
-
-type ServiceProviderFunc(name string) any
-
-// ServiceProviderFunc implements ServiceProvider
-func (f ServiceProviderFunc) Service(name string) any {
-    return f(name)
-}
-
-type Context struct {
-    // add service provider
-	ProviderFunc ServiceProvider
-
-	// app
-	srv *Server
-	app *Server
-	app *Router
-}
-
-// Service returns a service by name. eg: c.Service("db")
-func (c *Context) Service(name string) any {
-    return c.ProviderFunc(name)
-}
-```
-

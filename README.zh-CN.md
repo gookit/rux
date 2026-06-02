@@ -525,6 +525,37 @@ func main() {
 }
 ```
 
+## 请求绑定与验证
+
+`pkg/binding` 支持 form、query、header、JSON、XML 数据绑定。验证是可扩展钩子，默认关闭，因此 rux 不会强制拉取某个验证库。
+
+如果需要集成 [gookit/validate](https://github.com/gookit/validate)，在应用启动时安装一个适配器即可：
+
+```go
+package main
+
+import (
+	"github.com/gookit/rux/v2/pkg/binding"
+	"github.com/gookit/validate"
+)
+
+type validateAdapter struct{}
+
+func (validateAdapter) Validate(obj any) error {
+	v := validate.New(obj)
+	if v.Validate() {
+		return nil
+	}
+	return v.Errors.OneError()
+}
+
+func main() {
+	binding.Validator = validateAdapter{}
+}
+```
+
+安装适配器后，`c.Bind`、`c.BindJSON`、`binding.Auto` 以及内置 binder 会在绑定成功后自动验证对象。完整可运行示例见 `_examples/validate`。
+
 ## 生产级 Server
 
 `server` 包基于 `rux.Router` 之上封装了一层生产级 HTTP 服务：合理的超时、优雅关闭、生命周期钩子，
@@ -712,7 +743,7 @@ go test -cover ./...
 - [gookit/config](https://github.com/gookit/config) Go应用配置管理，支持多种格式（JSON, YAML, TOML, INI, HCL, ENV, Flags），多文件加载，远程文件加载，数据合并
 - [gookit/color](https://github.com/gookit/color) CLI 控制台颜色渲染工具库, 拥有简洁的使用API，支持16色，256色，RGB色彩渲染输出
 - [gookit/filter](https://github.com/gookit/filter) 提供对Golang数据的过滤，净化，转换
-- [gookit/validate](https://github.com/gookit/validate) Go通用的数据验证与过滤库，使用简单，内置大部分常用验证、过滤器
+- [gookit/validate](https://github.com/gookit/validate) Go 通用的数据验证与过滤库；rux 可通过 `pkg/binding` 扩展点集成它，不直接依赖。
 - [gookit/goutil](https://github.com/gookit/goutil) Go 的一些工具函数，格式化，特殊处理，常用信息获取等
 - 更多请查看 https://github.com/gookit
 

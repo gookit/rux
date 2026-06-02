@@ -1,21 +1,8 @@
 package binding
 
-import "github.com/gookit/validate"
-
-// Validator for validate bounded data
-var Validator DataValidator = &stdValidator{}
-
-type stdValidator struct{}
-
-// Validate the struct data, if fail return error
-func (sv *stdValidator) Validate(obj any) error {
-	v := validate.New(obj)
-
-	if v.Validate() {
-		return nil
-	}
-	return v.Errors.OneError()
-}
+// Validator validates bound data. It is nil by default; applications can
+// install their own validator adapter when validation is needed.
+var Validator DataValidator
 
 // DisableValidator for data binding
 func DisableValidator() {
@@ -24,7 +11,7 @@ func DisableValidator() {
 
 // ResetValidator for the package
 func ResetValidator() {
-	Validator = &stdValidator{}
+	Validator = nil
 }
 
 // Validate bounded data

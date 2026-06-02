@@ -11,9 +11,8 @@ import (
 	"github.com/gookit/rux/v2/pkg/binding"
 )
 
-// mockValidator is a lightweight stand-in for the real gookit/validate
-// Validator. Tests swap it in via withMockValidator so we can exercise
-// the validation hook without pulling the live library through.
+// mockValidator is a lightweight stand-in for an application validator.
+// Tests swap it in via withMockValidator so we can exercise the hook.
 type mockValidator struct {
 	called bool
 	last   any
@@ -87,7 +86,7 @@ func TestGetBinder_UnknownReturnsNil(t *testing.T) {
 // ----- MustBind ---------------------------------------------------
 
 func TestMustBind_Success(t *testing.T) {
-	withMockValidator(t, &mockValidator{}) // avoid hitting gookit/validate
+	withMockValidator(t, &mockValidator{})
 	req, _ := http.NewRequest("GET", "/?age=12&name=inhere", nil)
 	u := &User{}
 	binding.MustBind(req, u) // must not panic
@@ -218,18 +217,26 @@ func TestValidate_BubblesErrorFromValidator(t *testing.T) {
 }
 
 func TestDisableValidator_AndReset(t *testing.T) {
-	// Save the package-level Validator manually — the helper installs a
-	// mock and would mask DisableValidator's effect.
+	// Save the package-level Validator manually: this test exercises the
+	// package default instead of the mock helper.
 	prev := binding.Validator
 	t.Cleanup(func() { binding.Validator = prev })
 
-	binding.DisableValidator()
-	assert.Nil(t, binding.Validator)
+	binding.Validator = &mockValidator{}
+	assert.NotNil(t, binding.Validator)
 
 	binding.ResetValidator()
-	assert.NotNil(t, binding.Validator)
-	// We don't invoke Validate() here on purpose — that would dispatch
-	// into the real gookit/validate. Coverage for the swap is what we want.
+	assert.Nil(t, binding.Validator)
+	assert.NoErr(t, binding.Validate(&User{}))
+}
+
+func TestResetValidator_DefaultsToNoValidation(t *testing.T) {
+	prev := binding.Validator
+	t.Cleanup(func() { binding.Validator = prev })
+
+	binding.ResetValidator()
+	assert.Nil(t, binding.Validator)
+	assert.NoErr(t, binding.Validate(&User{}))
 }
 
 // Binder integration: every decode path ends in Validate(), so a mock
