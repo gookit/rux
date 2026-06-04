@@ -3,7 +3,7 @@ module github.com/gookit/rux/v2
 go 1.23
 
 require (
-	github.com/gookit/goutil v0.7.5
+	github.com/gookit/goutil v0.7.6
 	github.com/monoculum/formam v3.5.5+incompatible
 )
 
