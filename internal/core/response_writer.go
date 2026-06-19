@@ -48,6 +48,13 @@ func (w *responseWriter) Flush() {
 }
 
 func (w *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	// Flush an explicitly recorded status (e.g. WebSocket 101) to the underlying
+	// writer before detaching the connection. Otherwise the deferred WriteHeader
+	// is lost — the handshake never reaches the socket and clients hang. A status
+	// of 0 means a raw hijack, so nothing is written (matches native semantics).
+	if w.status != 0 && !w.Written() {
+		w.Writer.WriteHeader(w.status)
+	}
 	if w.length < 0 {
 		w.length = 0
 	}
