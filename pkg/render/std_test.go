@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gookit/goutil/testutil/assert"
+	"github.com/gookit/goutil/x/assert"
 )
 
 // These tests exercise the package-level *Status proxies in std.go.

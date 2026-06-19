@@ -11,7 +11,7 @@
 
 ### 单元测试编写
 
-- 使用 `github.com/gookit/goutil/testutil/assert` 断言结果
+- 使用 `github.com/gookit/goutil/x/assert` 断言结果（`testutil/assert` 已弃用）
 - 同一个方法的多个用例可以使用 `t.Run()` 包裹进行分组
 
 `require` 断言结果的写法：

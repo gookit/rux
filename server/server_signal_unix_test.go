@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gookit/goutil/testutil/assert"
+	"github.com/gookit/goutil/x/assert"
 )
 
 // TestRun_RealSignalTriggersShutdown exercises the SIGTERM path. Windows

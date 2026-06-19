@@ -3,7 +3,7 @@ package core
 import (
 	"testing"
 
-	"github.com/gookit/goutil/testutil/assert"
+	"github.com/gookit/goutil/x/assert"
 )
 
 func TestRouter_BuildURL_Named(t *testing.T) {
