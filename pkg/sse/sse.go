@@ -193,7 +193,7 @@ func StreamWith(c *rux.Context, opts *Options, producer Producer) (retErr error)
 	}
 
 	h := c.Resp.Header()
-	h.Set("Content-Type", "text/event-stream")
+	h.Set("Content-Type", "text/event-stream; charset=utf-8")
 	h.Set("Cache-Control", "no-cache")
 	h.Set("Connection", "keep-alive")
 	// Disable buffering for nginx / envoy / etc. — without this, proxies

@@ -42,7 +42,7 @@ func TestEncode_Basic(t *testing.T) {
 	assert.NoErr(t, err)
 	defer resp.Body.Close()
 
-	assert.Eq(t, "text/event-stream", resp.Header.Get("Content-Type"))
+	assert.Eq(t, "text/event-stream; charset=utf-8", resp.Header.Get("Content-Type"))
 	assert.Eq(t, "no-cache", resp.Header.Get("Cache-Control"))
 	assert.Eq(t, "no", resp.Header.Get("X-Accel-Buffering"))
 
@@ -156,7 +156,7 @@ func TestHook_OnConnect_Reject_AllowsCustom4xx(t *testing.T) {
 	assert.Eq(t, 401, resp.StatusCode)
 	assert.True(t, strings.Contains(string(body), "no token"))
 	// And we did NOT switch into SSE mode.
-	assert.True(t, !strings.HasPrefix(resp.Header.Get("Content-Type"), "text/event-stream"))
+	assert.True(t, !strings.HasPrefix(resp.Header.Get("Content-Type"), "text/event-stream; charset=utf-8"))
 }
 
 func TestHook_OnDisconnect_CleanExit(t *testing.T) {
