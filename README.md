@@ -225,6 +225,12 @@ rux support use middleware, allow:
 
 Fallback responses use the same order: the `NotFound` (404) and `NotAllowed` (405) handlers run **after** the global middleware chain, so authentication, security headers and request logging also cover unknown paths and method mismatches. Like `Use`, both must be registered before the first request (the composed chains are built when the router freezes).
 
+`Use` must be called before any route registration, and route-registering helpers
+count as registration: `StaticFile` / `StaticDir` / `StaticFS` / `StaticFiles`, the
+`Group` / `Controller` / `Resource` helpers, and `server.MountHealthChecks()`. Calling
+`Use` after them panics with `rux: Use must be called before any route registration (Q6)`,
+so declare global middleware first and mount the rest afterwards.
+
 Examples:
 
 ```go
@@ -670,11 +676,17 @@ func main() {
 	s := server.New(false) // false = no debug logging
 	s.Addr = ":8080"
 
+	// Global middleware first: Use must precede any route registration.
+	s.Use(myAuthMiddleware)
+
+	// Then the routes, health checks included (they are routes too).
 	s.GET("/", func(c *rux.Context) {
 		c.Text(200, "hello")
 	})
 
 	// Optional liveness/readiness endpoints under /healthz and /readyz.
+	// Mount after Use: mounting registers routes, and the global chain then
+	// covers them as well.
 	s.MountHealthChecks()
 
 	// Optional lifecycle hooks (warm caches, validate config, etc.).
@@ -815,6 +827,15 @@ s.GET("/events", func(c *rux.Context) {
 `OnConnect` runs **before** the SSE headers are written, so a rejecting hook can issue any 4xx via `c.Resp` (e.g. `http.Error(c.Resp, "no token", 401)`).
 
 `Stream` emits a leading `: connected\n\n` comment frame by default (suppress with `StreamWith` and `SendConnected: false`).
+
+Defaults at a glance (all of them live on `sse.Options`; `Stream` is shorthand for
+`StreamWith` with `nil` options):
+
+| Option              | Default    | Meaning                                          |
+| ------------------- | ---------- | ------------------------------------------------ |
+| `SendConnected`     | `true`     | leading `: connected` frame                      |
+| `KeepaliveInterval` | `0` (off)  | period of `: keepalive` frames when > 0          |
+| `Hooks`             | `nil`      | equivalent to an empty `&Hooks{}`                |
 
 For keepalives use `StreamWith` and set `KeepaliveInterval`:
 

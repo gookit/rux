@@ -23,6 +23,10 @@
 //
 // Lifecycle hooks (auth, logging, metrics) plug in via the Hooks struct.
 //
+// Defaults: Stream, and StreamWith with nil options, send a leading
+// ": connected\n\n" comment frame and no keepalives. Change that with
+// Options.SendConnected and Options.KeepaliveInterval.
+//
 // Stream/StreamWith clear the response write deadline via
 // http.ResponseController, so SSE works under server.Server's default
 // WriteTimeout (30 s) without extra configuration. Proxy / NAT idle timeouts

@@ -162,6 +162,12 @@ r.ServeListener(ln) // 阻塞；也可以传入自己创建的 listener
 因此认证、安全响应头、请求日志对未知路径和方法不匹配的请求同样生效。
 与 `Use` 一样，这两个必须在首个请求之前注册（组合后的处理器链在 router 冻结时构建）。
 
+`Use` 必须在**任何**路由注册之前调用，而“注册路由的助手方法”也算注册：
+`StaticFile` / `StaticDir` / `StaticFS` / `StaticFiles`、`Group` / `Controller` / `Resource`，
+以及 `server` 包的 `MountHealthChecks()`。在它们之后调用 `Use` 会 panic：
+`rux: Use must be called before any route registration (Q6)`，
+所以先把全局中间件声明完，再去挂载其它东西。
+
 使用示例:
 
 ```go
@@ -630,11 +636,16 @@ func main() {
 	s := server.New(false) // false = 关闭 debug 日志
 	s.Addr = ":8080"
 
+	// 全局中间件放在最前面：Use 必须在任何路由注册之前调用
+	s.Use(myAuthMiddleware)
+
+	// 然后是路由，健康检查端点也是路由
 	s.GET("/", func(c *rux.Context) {
 		c.Text(200, "hello")
 	})
 
 	// 可选：挂载健康检查端点 /healthz、/readyz
+	// 必须在 Use 之后挂载：挂载就是注册路由，且全局链会一并覆盖这两个端点
 	s.MountHealthChecks()
 
 	// 可选：生命周期钩子（预热缓存、校验配置等）
@@ -771,6 +782,14 @@ s.GET("/events", func(c *rux.Context) {
 
 `OnConnect` 在 SSE 响应头写入**之前**运行，所以拒绝时 hook 可以通过 `c.Resp` 写自定义 4xx 响应（如 `http.Error(c.Resp, "no token", 401)`）。
 `Stream` 默认会先发一个 `: connected\n\n` 注释帧（用 `StreamWith` + `SendConnected: false` 关闭）。
+
+默认值一览（都在 `sse.Options` 上；`Stream` 等价于传 `nil` options 的 `StreamWith`）：
+
+| 选项                | 默认值    | 含义                                     |
+| ------------------- | --------- | ---------------------------------------- |
+| `SendConnected`     | `true`    | 开头发送 `: connected` 帧                |
+| `KeepaliveInterval` | `0`（关闭） | > 0 时按该周期发送 `: keepalive` 帧     |
+| `Hooks`             | `nil`     | 等价于空的 `&Hooks{}`                    |
 
 需要心跳时用 `StreamWith` 设 `KeepaliveInterval`：
 

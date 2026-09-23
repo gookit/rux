@@ -386,13 +386,15 @@ func (r *Router) Group(prefix string, fn func(), middles ...HandlerFunc) {
 }
 
 // Use appends global middleware. Per Q6 of the design, Use must be called
-// before any route registration — calling it later panics.
+// before any route registration, including helpers that register routes on your
+// behalf (static file routes, health-check mounting); calling it later panics.
 func (r *Router) Use(handlers ...HandlerFunc) {
 	if r.frozen.Load() {
 		panic("rux: cannot Use after router is frozen")
 	}
 	if len(r.routeList) > 0 {
-		panic("rux: Use must be called before any route registration (Q6)")
+		panic("rux: Use must be called before any route registration (Q6); " +
+			"route-registering helpers such as static-file routes or health checks count as registration")
 	}
 	r.globalChain = append(r.globalChain, handlers...)
 }

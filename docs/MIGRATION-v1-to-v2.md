@@ -86,6 +86,18 @@ r.Use(mw) // panic: rux: Use must be called before any route registration
 
 Move all `Use()` calls to the top of your setup.
 
+Route-registering helpers count as registration too, so the order matters with them
+as well: `StaticFile` / `StaticDir` / `StaticFS` / `StaticFiles`, `Group` /
+`Controller` / `Resource`, and the `server` package's `MountHealthChecks()` (which
+registers `/healthz` and `/readyz`). A setup like
+
+```go
+s.MountHealthChecks() // registers routes
+s.Use(auth)           // panic: Use must be called before any route registration
+```
+
+has to be written the other way round: `Use` first, then mount.
+
 ### 5. Routes become read-only after first request
 
 After the first `ServeHTTP` call (or explicit `r.Freeze()`), any

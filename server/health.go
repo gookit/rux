@@ -8,7 +8,19 @@ import (
 )
 
 // MountHealthChecks attaches GET /healthz (liveness) and GET /readyz (readiness)
-// to the router. Call this before Run() — the router freezes on first request.
+// to the router.
+//
+// Ordering: mounting registers routes, and Router.Use must be called before any
+// route registration, so call your global middleware first:
+//
+//	s := server.New(false)
+//	s.Use(authMiddleware)       // 1. global middleware
+//	s.MountHealthChecks()       // 2. health routes
+//	s.GET("/api/users", handler) // 3. the rest of the routes
+//
+// Both endpoints sit inside the global chain, so that middleware (auth, security
+// headers, logging) applies to them as well. Mounting after Use but before Run()
+// is fine; the router only freezes on the first request.
 //
 // /healthz: always 200 "ok" if the process is alive.
 // /readyz: 200 if ready && !draining && all ReadyChecks pass; else 503 with details.
