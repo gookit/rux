@@ -102,6 +102,33 @@ func main() {
 }
 ```
 
+### Random port and the resolved address
+
+`Listen` binds before it serves, so with an OS-assigned port (`":0"`,
+`"127.0.0.1:0"`) the address it prints and reports is the real one. Use `Bind`
+when you need the address before traffic starts, then hand the listener to
+`ServeListener` (which blocks):
+
+```go
+r := rux.New()
+r.GET("/", home)
+
+ln, err := r.Bind("127.0.0.1:0") // or Bind(":0") / Bind() for the default
+if err != nil {
+    log.Fatal(err)
+}
+
+fmt.Println("listening on", r.ListenAddr()) // 127.0.0.1:50447
+fmt.Println("port", r.ListenPort())         // 50447
+
+r.ServeListener(ln) // blocks; also accepts a listener you created yourself
+```
+
+`Listener()` returns the active listener (nil once the server exits) and `Err()`
+reports the serve error. For graceful shutdown, health endpoints, lifecycle hooks
+and a browser-ready `LocalURL()`, use the `server` package instead (see
+[Production-Ready Server](#production-ready-server)).
+
 ## Route Group
 
 > There is no `*Group` value in v2: the closure form registers routes on the

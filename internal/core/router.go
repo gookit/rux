@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -62,7 +63,12 @@ type Router struct {
 
 	ctxPool sync.Pool
 
-	err error
+	// Serving state, guarded by listenMu: the bound listener, its resolved
+	// address and the last serve error (also exposed via Err()).
+	listenMu   sync.Mutex
+	ln         net.Listener
+	listenAddr string
+	err        error
 }
 
 // New constructs a Router with optional configuration.
@@ -582,8 +588,13 @@ func (r *Router) IterateRoutes(fn func(*Route)) {
 	}
 }
 
-// Err returns the most recent error (e.g., from a future Listen* helper).
-func (r *Router) Err() error { return r.err }
+// Err returns the most recent error from Bind / Listen* / ServeListener, or nil
+// when the last serve ended without one.
+func (r *Router) Err() error {
+	r.listenMu.Lock()
+	defer r.listenMu.Unlock()
+	return r.err
+}
 
 // String returns a human-readable snapshot of registered routes.
 func (r *Router) String() string {

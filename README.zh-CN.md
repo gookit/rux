@@ -123,6 +123,31 @@ func main() {
 }
 ```
 
+### 随机端口与实际监听地址
+
+`Listen` 会先绑定端口再开始服务，所以使用系统分配端口（`":0"`、`"127.0.0.1:0"`）时，
+打印和对外报告的都是真实地址。需要在开始接收请求之前就拿到地址时，用 `Bind`
+绑定、再用 `ServeListener`（阻塞）服务：
+
+```go
+r := rux.New()
+r.GET("/", home)
+
+ln, err := r.Bind("127.0.0.1:0") // 也可以用 Bind(":0") 或 Bind() 用默认地址
+if err != nil {
+    log.Fatal(err)
+}
+
+fmt.Println("listening on", r.ListenAddr()) // 127.0.0.1:50447
+fmt.Println("port", r.ListenPort())         // 50447
+
+r.ServeListener(ln) // 阻塞；也可以传入自己创建的 listener
+```
+
+`Listener()` 返回当前正在服务的 listener（服务结束后为 nil），`Err()` 返回服务错误。
+需要优雅关闭、健康检查端点、生命周期钩子以及可直接打开的 `LocalURL()` 时，
+请使用 `server` 包（见「生产级 Server」一节）。
+
 ## 使用中间件
 
 支持使用中间件:
