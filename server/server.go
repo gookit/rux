@@ -90,11 +90,18 @@ type Server struct {
 
 	// Internal state.
 	httpServer *http.Server
-	httpMu     sync.Mutex  // guards httpServer
+	httpMu     sync.Mutex  // guards httpServer, Addr/Host/Port and boundCh
 	err        error       // last lifecycle error (returned by Err)
+	listening  atomic.Bool // true while a bound listener is serving
 	ready      atomic.Bool // true between PostStart and PreShutdown drain start
 	draining   atomic.Bool // true during DrainDelay between signal and Shutdown
 	shutdown   atomic.Bool // true once Shutdown has been initiated
+
+	// boundCh is closed (and cleared) by Start as soon as the listener is
+	// bound, so Run and WaitListening know the resolved address is final
+	// instead of guessing how long net.Listen takes. nil means "already
+	// signalled, or no run in progress".
+	boundCh chan struct{}
 
 	// stopCh is closed by Stop() to trigger graceful shutdown from Run()
 	// without relying on OS signals. Useful for tests on platforms where
@@ -102,6 +109,11 @@ type Server struct {
 	stopCh   chan struct{}
 	stopOnce sync.Once
 }
+
+// ErrNotListening is returned by WaitListening when there is no listener to
+// wait for: startup aborted before binding, or a run already came and went, so
+// the address can never become final in this run.
+var ErrNotListening = errors.New("rux: server is not listening")
 
 // New constructs a Server with sane defaults plus PanicsHandler middleware.
 // When debugMode is true, also installs RequestLogger and enables rux.Debug.
@@ -135,6 +147,9 @@ func New(debugMode bool) *Server {
 		DrainDelay:        DefaultDrainDelay,
 		StopSignals:       []os.Signal{syscall.SIGINT, syscall.SIGTERM},
 		Logger:            log.Printf,
+		// Non-nil so a WaitListening caller that starts before Run blocks
+		// until the (first) run binds instead of returning immediately.
+		boundCh: make(chan struct{}),
 	}
 }
 
@@ -171,6 +186,120 @@ func (s *Server) Err() error {
 	return s.err
 }
 
+// ListenAddr returns the address the server listens on.
+//
+// Before the listener is bound it is the configured Addr (which may still
+// carry port 0, i.e. "127.0.0.1:0"). Once bound, Start reflects the resolved
+// listener address back here, so an OS-assigned port shows up as a real one
+// ("127.0.0.1:50447", or "[::]:50447" / "0.0.0.0:50447" for wildcard binds).
+// Use IsListening/WaitListening to know when the value is final, and LocalURL
+// when you need a URL that is usable in a browser.
+//
+// Safe to call from any goroutine (unlike reading the Addr field directly).
+func (s *Server) ListenAddr() string {
+	s.httpMu.Lock()
+	defer s.httpMu.Unlock()
+	return s.Addr
+}
+
+// ListenPort returns the resolved TCP port of the listener. It returns 0 when
+// the listener is not bound yet (including the ":0" request for an
+// OS-assigned port) or when Addr carries no port.
+func (s *Server) ListenPort() int {
+	s.httpMu.Lock()
+	addr := s.Addr
+	legacyPort := s.Port
+	s.httpMu.Unlock()
+
+	if _, portStr, err := net.SplitHostPort(addr); err == nil {
+		if p, err := strconv.Atoi(portStr); err == nil {
+			return p
+		}
+	}
+	return int(legacyPort)
+}
+
+// LocalURL returns a loopback URL for the bound listener, e.g.
+// "http://127.0.0.1:50447". Wildcard hosts ("", "0.0.0.0", "::") are mapped
+// onto 127.0.0.1 so the result can be handed straight to a browser or an
+// open-in-browser flag. The scheme is "https" when TLS is configured.
+//
+// It returns "" while the port is not usable yet (no listener, or Addr still
+// asking for port 0), which lets callers wait on WaitListening instead of
+// opening a bogus URL.
+func (s *Server) LocalURL() string {
+	s.httpMu.Lock()
+	addr := s.Addr
+	tls := s.TLSCertFile != "" && s.TLSKeyFile != ""
+	s.httpMu.Unlock()
+
+	if addr == "" {
+		return ""
+	}
+
+	scheme := "http"
+	if tls {
+		scheme = "https"
+	}
+
+	host, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		// No port component at all (e.g. a Unix socket path): hand it back.
+		return scheme + "://" + addr
+	}
+	if port == "" || port == "0" {
+		return ""
+	}
+	if host == "" || host == "0.0.0.0" || host == "::" || host == "0:0:0:0:0:0:0:0" {
+		host = "127.0.0.1"
+	}
+	return scheme + "://" + net.JoinHostPort(host, port)
+}
+
+// IsListening reports whether a listener is currently bound and serving.
+// It is false before Run/Start binds and again once Shutdown completes.
+func (s *Server) IsListening() bool { return s.listening.Load() }
+
+// WaitListening blocks until the listener is bound and its address is final
+// (the port-0 / `--open` case), or until ctx is done. It returns:
+//
+//   - nil once the server is listening,
+//   - the error that aborted startup, if the run failed before binding,
+//   - ErrNotListening if there is no listener to wait for,
+//   - ctx.Err() otherwise (e.g. context deadline exceeded).
+//
+// Waiting before Run is safe: it blocks until that run binds. Typical use:
+//
+//	go func() { _ = srv.Run() }()
+//	if err := srv.WaitListening(ctx); err == nil {
+//		openInBrowser(srv.LocalURL()) // e.g. http://127.0.0.1:50447
+//	}
+func (s *Server) WaitListening(ctx context.Context) error {
+	for {
+		if s.listening.Load() {
+			return nil
+		}
+		if err := s.Err(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			return err
+		}
+
+		s.httpMu.Lock()
+		ch := s.boundCh
+		s.httpMu.Unlock()
+		if ch == nil {
+			// The bind signal was already delivered, or the run ended without
+			// ever binding: nothing left to wait for.
+			return ErrNotListening
+		}
+
+		select {
+		case <-ch:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+}
+
 // buildHTTPServer materializes the underlying *http.Server using current
 // Server field values. Falls back to DefaultAddr if Addr is empty so a
 // zero-value Server (e.g. constructed via struct literal in echo_server.go)
@@ -198,6 +327,12 @@ func (s *Server) buildHTTPServer() *http.Server {
 // Start begins serving in the current goroutine. Blocks until the underlying
 // http.Server.Serve returns (typically only after Shutdown).
 //
+// The listener is bound explicitly before serving, so when Addr asks for an
+// OS-assigned port ("host:0") the resolved address is reflected back into
+// Addr/Host/Port and reported by ListenAddr/ListenPort/LocalURL. As soon as
+// binding succeeds, waiting WaitListening callers (and Run) are woken with the
+// final address instead of polling for it.
+//
 // Returns http.ErrServerClosed on clean shutdown, or another error on failure.
 //
 // Note: Start does NOT call any hooks. Use Run() for the full lifecycle.
@@ -214,23 +349,71 @@ func (s *Server) Start() error {
 		s.setErr(err)
 		return err
 	}
-	// Reflect the resolved address back into the server so String() and tests
-	// can observe the chosen port.
+
+	// Reflect the resolved address back into the server so String(), the
+	// documented Host/Port fields and the address accessors all agree on the
+	// port the OS actually assigned.
 	s.httpMu.Lock()
 	srv.Addr = ln.Addr().String()
 	s.Addr = srv.Addr
+	s.Host, s.Port = splitHostPort(s.Addr)
 	cert, key := s.TLSCertFile, s.TLSKeyFile
 	s.httpMu.Unlock()
+
+	// Bound: publish the address and wake Run/WaitListening.
+	s.listening.Store(true)
+	s.signalBound()
 
 	if cert != "" && key != "" {
 		err = srv.ServeTLS(ln, cert, key)
 	} else {
 		err = srv.Serve(ln)
 	}
+	s.listening.Store(false)
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		s.setErr(err)
 	}
 	return err
+}
+
+// signalBound closes the bind channel of the current run (and clears it) so
+// Run and WaitListening stop waiting. Idempotent, safe from any goroutine.
+func (s *Server) signalBound() {
+	s.httpMu.Lock()
+	ch := s.boundCh
+	s.boundCh = nil
+	s.httpMu.Unlock()
+	if ch != nil {
+		close(ch)
+	}
+}
+
+// resetBoundCh installs a fresh bind channel for a new run. The previous
+// channel is closed rather than dropped so a WaitListening caller that grabbed
+// it before Run started wakes up, re-reads the current channel and keeps
+// waiting for the new run instead of blocking forever on an abandoned one.
+func (s *Server) resetBoundCh() {
+	s.httpMu.Lock()
+	old := s.boundCh
+	s.boundCh = make(chan struct{})
+	s.httpMu.Unlock()
+	if old != nil {
+		close(old)
+	}
+}
+
+// splitHostPort splits a resolved listener address into host and port,
+// tolerating addresses that carry no port (the port is 0 then).
+func splitHostPort(addr string) (string, uint) {
+	host, portStr, err := net.SplitHostPort(addr)
+	if err != nil {
+		return addr, 0
+	}
+	port, err := strconv.ParseUint(portStr, 10, 16)
+	if err != nil {
+		return host, 0
+	}
+	return host, uint(port)
 }
 
 // setErr safely records the last lifecycle error.
@@ -246,6 +429,9 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	if !s.shutdown.CompareAndSwap(false, true) {
 		return nil
 	}
+	// No new connections are accepted from here on.
+	s.listening.Store(false)
+
 	s.httpMu.Lock()
 	srv := s.httpServer
 	s.httpMu.Unlock()
@@ -284,8 +470,14 @@ func (s *Server) Stop() {
 	once.Do(func() { close(ch) })
 }
 
-// Run is the one-shot lifecycle: PreStart → Start (background) → PostStart →
-// wait for stop signal → PreShutdown → drain → Shutdown → PostShutdown.
+// Run is the one-shot lifecycle: PreStart → Start (background) → wait for the
+// listener to bind → PostStart → wait for stop signal → PreShutdown → drain →
+// Shutdown → PostShutdown.
+//
+// The listener is bound before PostStart hooks run, so hooks (and anyone using
+// WaitListening) observe the resolved address. When Addr requests an
+// OS-assigned port ("host:0"), ListenAddr/ListenPort/LocalURL report the port
+// the kernel picked.
 //
 // Returns:
 //   - the first PreStart error (startup aborted before listening), OR
@@ -301,9 +493,14 @@ func (s *Server) Run() error {
 	s.stopCh = make(chan struct{})
 	s.stopOnce = sync.Once{}
 	s.httpMu.Unlock()
+	s.resetBoundCh()
+	s.listening.Store(false)
 	s.shutdown.Store(false)
 	s.ready.Store(false)
 	s.draining.Store(false)
+
+	// If this run ends before binding, release any WaitListening caller.
+	defer s.signalBound()
 
 	bg := context.Background()
 
@@ -317,8 +514,14 @@ func (s *Server) Run() error {
 	startErrCh := make(chan error, 1)
 	go func() { startErrCh <- s.Start() }()
 
-	// Give Start a moment to bind so PostStart hooks see a usable Addr.
-	// We wait for either: a Start error, or a brief delay for net.Listen.
+	s.httpMu.Lock()
+	boundCh := s.boundCh
+	s.httpMu.Unlock()
+
+	// 3) Wait for the listener to actually bind — either Start reports an
+	// error, or Start closes boundCh once net.Listen succeeded. This is a real
+	// signal (no sleep-and-hope), so PostStart hooks and the log line below
+	// always see the resolved address, including an OS-assigned port.
 	select {
 	case err := <-startErrCh:
 		// Start failed before serving.
@@ -329,14 +532,17 @@ func (s *Server) Run() error {
 		// Closed before we got going — treat as clean.
 		s.runHooksLogged(bg, s.PostShutdown)
 		return nil
-	case <-time.After(50 * time.Millisecond):
-		// Listener should be bound by now in the common case.
+	case <-boundCh:
 	}
 
-	// 3) PostStart hooks (errors logged, not fatal).
+	// 4) PostStart hooks (errors logged, not fatal).
 	s.runHooksLogged(bg, s.PostStart)
 	s.ready.Store(true)
-	s.logf("server listening on %s", s.String())
+	if u := s.LocalURL(); u != "" && u != "http://"+s.ListenAddr() && u != "https://"+s.ListenAddr() {
+		s.logf("server listening on %s (local url %s)", s.ListenAddr(), u)
+	} else {
+		s.logf("server listening on %s", s.ListenAddr())
+	}
 
 	// In debug mode, dump the registered routes so the operator sees
 	// the route table without having to hit /__routes or similar.

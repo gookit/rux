@@ -642,7 +642,9 @@ func main() {
 
 What `Run()` does for you:
 
-- `ListenAndServe` (or TLS variant when `TLSCertFile`/`TLSKeyFile` are set)
+- Bind the listener up front, then serve (`Serve`, or `ServeTLS` when
+  `TLSCertFile`/`TLSKeyFile` are set). Binding happens before the `PostStart`
+  hooks run, so hooks always see the resolved address
 - Wait for `SIGINT` / `SIGTERM` (configurable via `StopSignals`)
 - On signal: flip `/readyz` to 503 → wait `DrainDelay` so the upstream LB
   can drain → call `http.Server.Shutdown` bounded by `ShutdownTimeout`
@@ -658,6 +660,38 @@ Defaults tuned for container deployments:
 | `IdleTimeout`       | 120s    | keep-alive idle close                |
 | `DrainDelay`        | 5s      | LB drain window after stop signal    |
 | `ShutdownTimeout`   | 25s     | bound on graceful shutdown           |
+
+### Ephemeral ports and the bound address
+
+When `Addr` asks for port 0 (`"127.0.0.1:0"` or `":0"`) the kernel picks the
+port. The resolved address is exposed through `ListenAddr()`, `ListenPort()` and
+`LocalURL()`, and `WaitListening(ctx)` tells you when it is final (it waits for
+the real bind, not a timer) or returns the startup error when binding fails:
+
+```go
+s := server.New(false)
+s.Addr = "127.0.0.1:0" // let the OS pick a free port
+
+go func() { _ = s.Run() }()
+
+ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+defer cancel()
+if err := s.WaitListening(ctx); err != nil {
+    log.Fatal(err)
+}
+
+fmt.Println("listening on", s.ListenAddr()) // 127.0.0.1:50447
+fmt.Println("open", s.LocalURL())           // http://127.0.0.1:50447
+
+// e.g. launch the browser: github.com/gookit/goutil/sysutil
+_ = sysutil.OpenURL(s.LocalURL())
+```
+
+`LocalURL()` maps wildcard binds (`":0"`, `"0.0.0.0:0"`, `"[::]:0"`) onto
+`127.0.0.1`, uses `https` when TLS is configured, and returns `""` while no
+usable port exists, so an `--open`-style flag never receives a `:0` or `[::]`
+URL. `Run()` can only report errors, so `WaitListening` (or a `PostStart` hook,
+which runs after the bind) is the supported way to learn the address.
 
 ### Echo Server (httpbin-style)
 

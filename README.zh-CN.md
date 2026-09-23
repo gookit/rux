@@ -596,7 +596,8 @@ func main() {
 
 `Run()` 自动完成的事：
 
-- 启动 `ListenAndServe`（若设置了 `TLSCertFile`/`TLSKeyFile` 则走 TLS）
+- 先绑定监听端口再开始服务（设置了 `TLSCertFile`/`TLSKeyFile` 则走 `ServeTLS`）。
+  绑定发生在 `PostStart` 钩子之前，因此钩子里拿到的始终是解析后的真实地址
 - 监听 `SIGINT` / `SIGTERM`（可通过 `StopSignals` 配置）
 - 收到信号后：把 `/readyz` 翻成 503 → 等待 `DrainDelay` 让上游 LB 摘流
   → 在 `ShutdownTimeout` 预算内调用 `http.Server.Shutdown`
@@ -612,6 +613,37 @@ func main() {
 | `IdleTimeout`       | 120s   | keep-alive 空闲关闭                |
 | `DrainDelay`        | 5s     | 停机信号后的 LB 摘流窗口           |
 | `ShutdownTimeout`   | 25s    | 优雅关闭的上限                     |
+
+### 随机端口与实际监听地址
+
+当 `Addr` 使用 0 端口（`"127.0.0.1:0"` 或 `":0"`）时，端口由系统内核分配。
+解析后的地址可以通过 `ListenAddr()`、`ListenPort()`、`LocalURL()` 获取，
+`WaitListening(ctx)` 会在真正绑定完成后返回（不是靠定时器等出来的），绑定失败时直接返回启动错误：
+
+```go
+s := server.New(false)
+s.Addr = "127.0.0.1:0" // 由系统分配一个空闲端口
+
+go func() { _ = s.Run() }()
+
+ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+defer cancel()
+if err := s.WaitListening(ctx); err != nil {
+    log.Fatal(err)
+}
+
+fmt.Println("listening on", s.ListenAddr()) // 127.0.0.1:50447
+fmt.Println("open", s.LocalURL())           // http://127.0.0.1:50447
+
+// 例如打开浏览器：github.com/gookit/goutil/sysutil
+_ = sysutil.OpenURL(s.LocalURL())
+```
+
+`LocalURL()` 会把通配地址（`":0"`、`"0.0.0.0:0"`、`"[::]:0"`）映射为 `127.0.0.1`，
+配置了 TLS 时使用 `https`；端口还没确定时返回空字符串，
+因此 `--open` 这类参数不会拿到 `:0` 或 `[::]` 这种无法访问的 URL。
+`Run()` 只返回 error，所以获取监听地址请使用 `WaitListening`，
+或者放在绑定之后才执行的 `PostStart` 钩子里。
 
 ### Echo Server（httpbin 风格）
 
