@@ -48,7 +48,19 @@ r.GET("/users/{id}", func(c *rux.Context) {
     showUser(c)
 })
 
-// v2 — option B: validation middleware (write your own)
+// v2 — option B: built-in regex middleware (whole-value match, 400 on failure)
+r.GET("/users/{id}", showUser, handlers.ParamRegex("id", `\d+`))
+
+// v2 — option C: write your own when you need a custom response
+func validateIntParam(name string) rux.HandlerFunc {
+    return func(c *rux.Context) {
+        if _, err := strconv.Atoi(c.Param(name)); err != nil {
+            c.AbortWithStatus(400, "invalid "+name)
+            return
+        }
+        c.Next()
+    }
+}
 r.GET("/users/{id}", showUser, validateIntParam("id"))
 ```
 

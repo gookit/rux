@@ -78,8 +78,13 @@ var (
 	MethodsString      = core.MethodsString
 )
 
-// Router options.
+// Router options. The WithXxx forms take the value explicitly; the older
+// enable-only names are kept as aliases.
 var (
+	WithStrictLastSlash    = core.WithStrictLastSlash
+	WithEncodedPath        = core.WithEncodedPath
+	WithMethodNotAllowed   = core.WithMethodNotAllowed
+	WithFallbackRoute      = core.WithFallbackRoute
 	StrictLastSlash        = core.StrictLastSlash
 	UseEncodedPath         = core.UseEncodedPath
 	HandleMethodNotAllowed = core.HandleMethodNotAllowed

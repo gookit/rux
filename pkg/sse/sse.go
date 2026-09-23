@@ -27,6 +27,9 @@
 // http.ResponseController, so SSE works under server.Server's default
 // WriteTimeout (30 s) without extra configuration. Proxy / NAT idle timeouts
 // still apply: keep Options.KeepaliveInterval below them.
+//
+// See the "Server-Sent Events" section of the README for the full setup,
+// timeout notes and the keyed-push Hub.
 package sse
 
 import (

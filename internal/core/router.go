@@ -87,17 +87,28 @@ func (r *Router) Frozen() bool { return r.frozen.Load() }
  * Options
  *************************************************************/
 
-// StrictLastSlash makes /path and /path/ distinct routes.
-func StrictLastSlash(r *Router) { r.strictLastSlash = true }
+// The WithXxx options take the value explicitly, so a setting can also be
+// switched off (useful if a default ever changes) and several can be composed:
+//
+//	r := rux.New(rux.WithMethodNotAllowed(true), rux.WithEncodedPath(false))
+func WithStrictLastSlash(on bool) func(*Router) {
+	return func(r *Router) { r.strictLastSlash = on }
+}
 
-// UseEncodedPath uses req.URL.EscapedPath() for matching.
-func UseEncodedPath(r *Router) { r.useEncodedPath = true }
+// WithEncodedPath matches against req.URL.EscapedPath() when on.
+func WithEncodedPath(on bool) func(*Router) {
+	return func(r *Router) { r.useEncodedPath = on }
+}
 
-// HandleMethodNotAllowed enables 405 detection across methods.
-func HandleMethodNotAllowed(r *Router) { r.handleMethodNotAllowed = true }
+// WithMethodNotAllowed enables 405 detection across methods when on.
+func WithMethodNotAllowed(on bool) func(*Router) {
+	return func(r *Router) { r.handleMethodNotAllowed = on }
+}
 
-// HandleFallbackRoute enables the "/*" wildcard route as a global fallback.
-func HandleFallbackRoute(r *Router) { r.handleFallbackRoute = true }
+// WithFallbackRoute enables the "/*" wildcard route as a global fallback when on.
+func WithFallbackRoute(on bool) func(*Router) {
+	return func(r *Router) { r.handleFallbackRoute = on }
+}
 
 // InterceptAll redirects all requests to the given path.
 func InterceptAll(path string) func(*Router) {
@@ -105,6 +116,13 @@ func InterceptAll(path string) func(*Router) {
 		r.interceptAll = strings.TrimSpace(path)
 	}
 }
+
+// Enable-style aliases, kept so existing rux.New(rux.StrictLastSlash, ...) calls
+// keep working. New code can use the WithXxx forms above.
+func StrictLastSlash(r *Router)        { WithStrictLastSlash(true)(r) }
+func UseEncodedPath(r *Router)         { WithEncodedPath(true)(r) }
+func HandleMethodNotAllowed(r *Router) { WithMethodNotAllowed(true)(r) }
+func HandleFallbackRoute(r *Router)    { WithFallbackRoute(true)(r) }
 
 // Freeze marks the router read-only. Subsequent registration calls panic.
 // It merges globalChain into each route's finalChain, builds the 404/405

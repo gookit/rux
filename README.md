@@ -104,6 +104,10 @@ func main() {
 
 ## Route Group
 
+> There is no `*Group` value in v2: the closure form registers routes on the
+> outer router, so use `r.GET(...)` inside it. (gin's `g := r.Group("/api")` +
+> `g.GET(...)` pattern does not apply here.)
+
 ```go
 r.Group("/articles", func() {
     r.GET("", func(c *rux.Context) {
@@ -122,7 +126,7 @@ r.Group("/articles", func() {
 
 In v2 the path-param syntax is `{name}` (named) or `*name` (wildcard).
 
-> Regex constraints such as `{id:\d+}` are no longer supported — validate inside the handler or with a small middleware (see the migration guide).
+> Regex constraints such as `{id:\d+}` are no longer supported — validate inside the handler or with `handlers.ParamRegex` (see the migration guide).
 
 ```go
 // can access by: "/blog/123"
@@ -134,6 +138,9 @@ r.GET(`/blog/{id}`, func(c *rux.Context) {
     }
     c.Text(200, fmt.Sprintf("view detail, id: %d", id))
 })
+
+// or reject non-matching ids before the handler runs:
+r.GET(`/users/{id}`, showUser, handlers.ParamRegex("id", `\d+`)) // 400 on "abc"
 ```
 
 optional params, like `/about[.html]` or `/posts[/{id}]`:
