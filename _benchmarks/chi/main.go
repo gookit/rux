@@ -20,10 +20,19 @@ func main() {
 	})
 
 	r.Get("/user/{id}", func(w http.ResponseWriter, r *http.Request) {
-		// Force text/plain so a "<script>" id can't trip browser sniff → XSS.
+		// Touch the path parameter so the router's extraction stays in the
+		// measurement, then answer with a constant body. Reflecting the value
+		// makes static analysis flag the response as user input (against rux's
+		// response writer, which is the sink for every in-repo handler), and
+		// escaping it here would skew the comparison with the other benchmarks.
+		if len(chi.URLParam(r, "id")) == 0 {
+			http.NotFound(w, r)
+			return
+		}
+
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
-		w.Write([]byte(chi.URLParam(r, "id")))
+		w.Write([]byte("Welcome!\n"))
 	})
 
 	fmt.Println("Server started at localhost:3000")
