@@ -23,10 +23,10 @@
 //
 // Lifecycle hooks (auth, logging, metrics) plug in via the Hooks struct.
 //
-// NOTE: server.Server.WriteTimeout defaults to 30 s, which will kill a
-// long-running SSE connection. For dedicated SSE servers either set
-// WriteTimeout = 0, or route SSE handlers through a server instance with
-// a longer budget.
+// Stream/StreamWith clear the response write deadline via
+// http.ResponseController, so SSE works under server.Server's default
+// WriteTimeout (30 s) without extra configuration. Proxy / NAT idle timeouts
+// still apply: keep Options.KeepaliveInterval below them.
 package sse
 
 import (
@@ -119,10 +119,9 @@ type Options struct {
 	// these frames keep idle proxies (nginx, ALB) from closing the
 	// connection without polluting the event stream.
 	//
-	// IMPORTANT: heartbeats do NOT defeat http.Server.WriteTimeout —
-	// that timer bounds the entire response lifetime, regardless of
-	// how often you flush. SSE servers must still set WriteTimeout = 0
-	// (or a value larger than any expected stream duration).
+	// Heartbeats address proxy / NAT idle timeouts only. The server-side
+	// WriteTimeout is handled by StreamWith, which clears the write deadline
+	// for the streamed response, so you do not have to set WriteTimeout = 0.
 	KeepaliveInterval time.Duration
 }
 
@@ -130,6 +129,24 @@ type Options struct {
 // http.ResponseWriter does not implement http.Flusher (e.g. a buggy
 // middleware wrapped it without preserving the interface).
 var ErrFlushNotSupported = errors.New("sse: ResponseWriter does not support http.Flusher")
+
+// unwrapWriter descends http.ResponseController-style Unwrap chains and returns
+// the writer that actually backs the response. rux's own response writer
+// implements http.Flusher, so capability checks must look at the real writer.
+func unwrapWriter(w http.ResponseWriter) http.ResponseWriter {
+	for i := 0; i < 16; i++ {
+		u, ok := w.(interface{ Unwrap() http.ResponseWriter })
+		if !ok {
+			return w
+		}
+		next := u.Unwrap()
+		if next == nil || next == w {
+			return w
+		}
+		w = next
+	}
+	return w
+}
 
 // ErrEventSkipped is the sentinel returned by SendFunc when an OnSend
 // hook chose to skip the event. Callers usually treat this as a non-fatal.
@@ -171,8 +188,13 @@ func StreamWith(c *rux.Context, opts *Options, producer Producer) (retErr error)
 		hooks = &Hooks{}
 	}
 
-	flusher, ok := c.Resp.(http.Flusher)
-	if !ok {
+	rc := http.NewResponseController(c.Resp)
+
+	// rux's response writer implements http.Flusher itself, so asserting on
+	// c.Resp alone always succeeds. Descend the Unwrap chain and check the real
+	// writer, otherwise a middleware that dropped the interface would show up as
+	// a panic inside Flush instead of this error.
+	if _, ok := unwrapWriter(c.Resp).(http.Flusher); !ok {
 		retErr = ErrFlushNotSupported
 		if hooks.OnDisconnect != nil {
 			hooks.OnDisconnect(c, retErr)
@@ -191,6 +213,13 @@ func StreamWith(c *rux.Context, opts *Options, producer Producer) (retErr error)
 			return retErr
 		}
 	}
+
+	// A stream outlives any server-level WriteTimeout (server.New defaults to
+	// 30s) and that timer bounds the whole response, so heartbeats cannot save
+	// it. Clear the write deadline for this response only, which makes SSE work
+	// under the default timeouts. Errors are ignored: writers that cannot carry
+	// deadlines (httptest.ResponseRecorder) simply report ErrNotSupported.
+	_ = rc.SetWriteDeadline(time.Time{})
 
 	h := c.Resp.Header()
 	h.Set("Content-Type", "text/event-stream; charset=utf-8")
@@ -216,7 +245,7 @@ func StreamWith(c *rux.Context, opts *Options, producer Producer) (retErr error)
 
 	// Flush the headers immediately so the client transitions out of
 	// "connecting" state even before the first event lands.
-	flusher.Flush()
+	_ = rc.Flush()
 
 	// writeMu serializes writes to c.Resp: producer's send and the
 	// keepalive goroutine both go through it so frames never interleave.
@@ -229,8 +258,7 @@ func StreamWith(c *rux.Context, opts *Options, producer Producer) (retErr error)
 		if _, err := io.WriteString(c.Resp, s); err != nil {
 			return err
 		}
-		flusher.Flush()
-		return nil
+		return rc.Flush()
 	}
 
 	if opts.SendConnected {
@@ -288,8 +316,7 @@ func StreamWith(c *rux.Context, opts *Options, producer Producer) (retErr error)
 		if err := writeEvent(c.Resp, e); err != nil {
 			return err
 		}
-		flusher.Flush()
-		return nil
+		return rc.Flush()
 	}
 
 	retErr = producer(send, done)

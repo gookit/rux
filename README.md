@@ -695,6 +695,32 @@ usable port exists, so an `--open`-style flag never receives a `:0` or `[::]`
 URL. `Run()` can only report errors, so `WaitListening` (or a `PostStart` hook,
 which runs after the bind) is the supported way to learn the address.
 
+#### Serving on a listener you already own
+
+When the socket is handed to you (systemd socket activation, a port pre-bound by
+a test harness, a Unix socket), give it to the server instead of letting it bind
+`Addr`:
+
+```go
+ln, err := net.Listen("tcp", "127.0.0.1:0")
+if err != nil {
+    log.Fatal(err)
+}
+
+s := server.New(false)
+s.SetListener(ln) // Addr is ignored; Run() serves this listener
+// or: s.ServeListener(ln) to block in the current goroutine without hooks
+
+go func() { _ = s.Run() }()
+if err := s.WaitListening(ctx); err == nil {
+    fmt.Println("listening on", s.ListenAddr()) // ln's address, reflected
+}
+```
+
+`Listener()` returns the active listener (nil when not listening). A listener
+serves one run: `http.Server` closes it on shutdown, so a second `Run` needs a
+fresh one.
+
 ### Echo Server (httpbin-style)
 
 `server.NewEchoServer()` builds a Server with httpbin-style debug endpoints pre-mounted:
@@ -754,11 +780,11 @@ sse.StreamWith(c, &sse.Options{
 }, producer)
 ```
 
-**Two different timeouts — both matter:**
+**Two different timeouts, both matter:**
 
-| Timer                                    | Defeated by             |
-| ---------------------------------------- | ----------------------- |
-| `server.Server.WriteTimeout` (default 30s)        | Must set `= 0`. Heartbeats do NOT save you — this bounds the whole response lifetime. |
+| Timer                                    | Handled by             |
+| ---------------------------------------- | ---------------------- |
+| `server.Server.WriteTimeout` (default 30s)        | Automatic: `Stream`/`StreamWith` clear the write deadline for their response via `http.ResponseController`, so a stream is not cut mid-flight. |
 | Proxy / NAT idle timeout (nginx 60s, ALB 60s, …)  | `KeepaliveInterval` ≤ that value. |
 
 **Keyed push with Hub.** For business-driven pushes (notify user X, broadcast to all) use `sse.NewHub` — an in-memory registry keyed by ID (e.g. user ID),

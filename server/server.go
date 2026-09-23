@@ -90,12 +90,13 @@ type Server struct {
 
 	// Internal state.
 	httpServer *http.Server
-	httpMu     sync.Mutex  // guards httpServer, Addr/Host/Port and boundCh
-	err        error       // last lifecycle error (returned by Err)
-	listening  atomic.Bool // true while a bound listener is serving
-	ready      atomic.Bool // true between PostStart and PreShutdown drain start
-	draining   atomic.Bool // true during DrainDelay between signal and Shutdown
-	shutdown   atomic.Bool // true once Shutdown has been initiated
+	httpMu     sync.Mutex   // guards httpServer, ln, Addr/Host/Port and boundCh
+	ln         net.Listener // listener currently serving; nil when not listening
+	err        error        // last lifecycle error (returned by Err)
+	listening  atomic.Bool  // true while a bound listener is serving
+	ready      atomic.Bool  // true between PostStart and PreShutdown drain start
+	draining   atomic.Bool  // true during DrainDelay between signal and Shutdown
+	shutdown   atomic.Bool  // true once Shutdown has been initiated
 
 	// boundCh is closed (and cleared) by Start as soon as the listener is
 	// bound, so Run and WaitListening know the resolved address is final
@@ -287,8 +288,15 @@ func (s *Server) WaitListening(ctx context.Context) error {
 		ch := s.boundCh
 		s.httpMu.Unlock()
 		if ch == nil {
-			// The bind signal was already delivered, or the run ended without
-			// ever binding: nothing left to wait for.
+			// The bind signal may have landed between our checks. Taking
+			// httpMu here happens-after the signalling side (which stored
+			// listening=true before clearing boundCh under the same mutex), so
+			// this read is authoritative.
+			if s.listening.Load() {
+				return nil
+			}
+			// Signalled and no longer listening, or the run ended without ever
+			// binding: nothing left to wait for.
 			return ErrNotListening
 		}
 
@@ -333,6 +341,9 @@ func (s *Server) buildHTTPServer() *http.Server {
 // binding succeeds, waiting WaitListening callers (and Run) are woken with the
 // final address instead of polling for it.
 //
+// If SetListener was called, the supplied listener is served instead of binding
+// Addr.
+//
 // Returns http.ErrServerClosed on clean shutdown, or another error on failure.
 //
 // Note: Start does NOT call any hooks. Use Run() for the full lifecycle.
@@ -340,20 +351,65 @@ func (s *Server) Start() error {
 	s.httpMu.Lock()
 	srv := s.buildHTTPServer()
 	s.httpServer = srv
+	ln := s.ln
 	s.httpMu.Unlock()
 
-	// Bind explicitly so callers can read back the actual port when Addr ends
-	// in ":0" (commonly used in tests).
-	ln, err := net.Listen("tcp", srv.Addr)
-	if err != nil {
-		s.setErr(err)
-		return err
+	if ln == nil {
+		// Bind explicitly so callers can read back the actual port when Addr
+		// ends in ":0" (commonly used in tests).
+		var err error
+		ln, err = net.Listen("tcp", srv.Addr)
+		if err != nil {
+			s.setErr(err)
+			return err
+		}
 	}
+	return s.serve(srv, ln)
+}
 
+// ServeListener serves on an already-bound listener in the current goroutine,
+// using the configured timeouts, TLS files, address reflection and lifecycle
+// signals. Like Start it runs no hooks; use SetListener + Run for the full
+// lifecycle.
+//
+// Use it when the caller owns the socket: socket activation (systemd
+// LISTEN_FDS), a pre-bound port handed over by a test, or a Unix socket.
+func (s *Server) ServeListener(ln net.Listener) error {
+	s.httpMu.Lock()
+	srv := s.buildHTTPServer()
+	s.httpServer = srv
+	s.httpMu.Unlock()
+	return s.serve(srv, ln)
+}
+
+// SetListener makes the next Start/Run serve on an already-bound listener
+// instead of binding Addr. The listener's address is reflected into
+// Addr/Host/Port exactly like a self-bound one.
+//
+// A listener is good for one run: the underlying http.Server closes it on
+// shutdown, so calling Run again on the same Server needs a fresh listener.
+func (s *Server) SetListener(ln net.Listener) {
+	s.httpMu.Lock()
+	s.ln = ln
+	s.httpMu.Unlock()
+}
+
+// Listener returns the listener the server is currently serving on, or nil when
+// it is not listening.
+func (s *Server) Listener() net.Listener {
+	s.httpMu.Lock()
+	defer s.httpMu.Unlock()
+	return s.ln
+}
+
+// serve publishes the resolved address of a bound listener and serves on it
+// until the server is shut down.
+func (s *Server) serve(srv *http.Server, ln net.Listener) error {
 	// Reflect the resolved address back into the server so String(), the
 	// documented Host/Port fields and the address accessors all agree on the
 	// port the OS actually assigned.
 	s.httpMu.Lock()
+	s.ln = ln
 	srv.Addr = ln.Addr().String()
 	s.Addr = srv.Addr
 	s.Host, s.Port = splitHostPort(s.Addr)
@@ -364,6 +420,7 @@ func (s *Server) Start() error {
 	s.listening.Store(true)
 	s.signalBound()
 
+	var err error
 	if cert != "" && key != "" {
 		err = srv.ServeTLS(ln, cert, key)
 	} else {
@@ -434,6 +491,7 @@ func (s *Server) Shutdown(ctx context.Context) error {
 
 	s.httpMu.Lock()
 	srv := s.httpServer
+	s.ln = nil
 	s.httpMu.Unlock()
 	if srv == nil {
 		return nil

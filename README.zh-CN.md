@@ -649,6 +649,31 @@ _ = sysutil.OpenURL(s.LocalURL())
 `Run()` 只返回 error，所以获取监听地址请使用 `WaitListening`，
 或者放在绑定之后才执行的 `PostStart` 钩子里。
 
+#### 使用外部已绑定的 listener
+
+如果 socket 由外部提供（systemd socket activation、测试预先绑定的端口、Unix socket），
+直接交给 server 即可，不再由它去绑定 `Addr`：
+
+```go
+ln, err := net.Listen("tcp", "127.0.0.1:0")
+if err != nil {
+    log.Fatal(err)
+}
+
+s := server.New(false)
+s.SetListener(ln) // 忽略 Addr，Run() 直接服务这个 listener
+// 或者：s.ServeListener(ln) 在当前 goroutine 内阻塞服务（不走钩子）
+
+go func() { _ = s.Run() }()
+if err := s.WaitListening(ctx); err == nil {
+    fmt.Println("listening on", s.ListenAddr()) // 回填的是 ln 的地址
+}
+```
+
+`Listener()` 返回当前正在服务的 listener（未监听时为 nil）。
+一个 listener 只能用于一次运行：`http.Server` 在关闭时会把它关掉，
+再次 `Run` 需要新的 listener。
+
 ### Echo Server（httpbin 风格）
 
 `server.NewEchoServer()` 会构建一个预挂载 httpbin 风格调试端点的 Server：
@@ -707,11 +732,11 @@ sse.StreamWith(c, &sse.Options{
 }, producer)
 ```
 
-**两种不同的 timeout — 各管各的：**
+**两种不同的 timeout，各管各的：**
 
 | 计时器                                              | 解法                       |
 | --------------------------------------------------- | -------------------------- |
-| `server.Server.WriteTimeout`（默认 30s）            | 必须设 `= 0`。心跳救不了 —— 它管的是整个响应的总时长。 |
+| `server.Server.WriteTimeout`（默认 30s）            | 已自动处理：`Stream`/`StreamWith` 会通过 `http.ResponseController` 清掉本次响应的写超时，流不会被中途切断。 |
 | 代理 / NAT 空闲超时（nginx 60s、ALB 60s 等）         | `KeepaliveInterval` ≤ 上面这个值。 |
 
 **按 key 主动推送 — Hub。** 业务驱动的推送（通知某用户、全员广播）用 `sse.NewHub`：内存注册表，按 ID（如 user ID）查询；

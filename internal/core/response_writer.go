@@ -44,10 +44,33 @@ func (w *responseWriter) Write(b []byte) (int, error) {
 }
 
 func (w *responseWriter) Flush() {
-	w.Writer.(http.Flusher).Flush()
+	if err := w.FlushError(); err != nil {
+		panic("rux: underlying http.ResponseWriter does not implement http.Flusher")
+	}
 }
 
+// FlushError flushes buffered data and reports whether the underlying writer
+// supports flushing instead of panicking. http.ResponseController prefers this
+// over Flush, so wrappers like sse.Stream can report a clean
+// ErrFlushNotSupported even though this wrapper always implements Flusher.
+//
+// Delegating to the controller also covers middlewares that wrap the writer
+// without promoting Flusher but do expose Unwrap.
+func (w *responseWriter) FlushError() error {
+	return http.NewResponseController(w.Writer).Flush()
+}
+
+// Unwrap exposes the wrapped writer so http.ResponseController (and anything
+// else that walks Unwrap chains) can reach SetWriteDeadline / Flush / Hijack on
+// the real http.ResponseWriter. Long-lived responses (SSE, WebSocket, big
+// downloads) need SetWriteDeadline to escape a server-level WriteTimeout.
+func (w *responseWriter) Unwrap() http.ResponseWriter { return w.Writer }
+
 func (w *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	hj, ok := w.Writer.(http.Hijacker)
+	if !ok {
+		return nil, nil, http.ErrNotSupported
+	}
 	// Flush an explicitly recorded status (e.g. WebSocket 101) to the underlying
 	// writer before detaching the connection. Otherwise the deferred WriteHeader
 	// is lost — the handshake never reaches the socket and clients hang. A status
@@ -58,7 +81,7 @@ func (w *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	if w.length < 0 {
 		w.length = 0
 	}
-	return w.Writer.(http.Hijacker).Hijack()
+	return hj.Hijack()
 }
 
 // ensureWriteHeader emits the actual status code (defaults to 200) and
