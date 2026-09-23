@@ -36,6 +36,16 @@ var internal405Handler HandlerFunc = func(c *Context) {
 	}
 }
 
+// fallbackChain returns the composed 404/405 chain (global middleware + user or
+// internal handler). Freeze() always builds it; def is only used if a Context
+// is dispatched through a router that was never frozen.
+func fallbackChain(chain HandlersChain, def HandlerFunc) HandlersChain {
+	if len(chain) == 0 {
+		return HandlersChain{def}
+	}
+	return chain
+}
+
 // Listen starts an HTTP server on the resolved address (errors stored in r.Err).
 func (r *Router) Listen(addr ...string) {
 	address := resolveAddress(addr)
@@ -156,20 +166,14 @@ func (r *Router) handle(ctx *Context) {
 		if !dispatched && r.handleMethodNotAllowed {
 			allowed := r.findAllowedMethods(method, path)
 			if len(allowed) > 0 {
-				if len(r.noAllowed) == 0 {
-					r.noAllowed = HandlersChain{internal405Handler}
-				}
 				ctx.Set(CTXAllowedMethods, allowed)
-				ctx.SetHandlers(r.noAllowed)
+				ctx.SetHandlers(fallbackChain(r.noAllowedChain, internal405Handler))
 				ctx.Next()
 				dispatched = true
 			}
 		}
 		if !dispatched {
-			if len(r.noRoute) == 0 {
-				r.noRoute = HandlersChain{internal404Handler}
-			}
-			ctx.SetHandlers(r.noRoute)
+			ctx.SetHandlers(fallbackChain(r.noRouteChain, internal404Handler))
 			ctx.Next()
 		}
 	}

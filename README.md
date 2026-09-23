@@ -177,6 +177,8 @@ rux support use middleware, allow:
 
 **Call priority**: `global middleware -> group middleware -> route middleware`
 
+Fallback responses use the same order: the `NotFound` (404) and `NotAllowed` (405) handlers run **after** the global middleware chain, so authentication, security headers and request logging also cover unknown paths and method mismatches. Like `Use`, both must be registered before the first request (the composed chains are built when the router freezes).
+
 Examples:
 
 ```go

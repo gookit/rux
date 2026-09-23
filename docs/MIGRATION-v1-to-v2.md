@@ -77,8 +77,25 @@ Move all `Use()` calls to the top of your setup.
 ### 5. Routes become read-only after first request
 
 After the first `ServeHTTP` call (or explicit `r.Freeze()`), any
-`r.Add/GET/POST/Group/Use` panics. Hot-reload systems should build a
+`r.Add/GET/POST/Group/Use/NotFound/NotAllowed` panics. Hot-reload systems should build a
 new Router and atomic-swap externally.
+
+`NotFound` / `NotAllowed` moved into this group because the 404/405 handler
+chains are composed once at freeze time, with the global middleware chain in
+front of them (see below).
+
+### 5.1 404/405 responses run the global middleware chain
+
+Unmatched paths and method mismatches used to bypass `r.Use(...)` entirely, so a
+global auth / security-header / logging middleware was skipped for exactly the
+requests an attacker controls. The global chain now runs first for `NotFound`
+(404) and `NotAllowed` (405), like it does for matched routes. If a global auth
+middleware rejects the request, the client gets that status (e.g. 401) instead of
+404.
+
+If you relied on the old behavior for a specific path, register a normal route
+(including a `/*path` wildcard) and branch inside the handler: route handlers
+were always inside the global chain.
 
 ### 6. `MaxParams = 16` cap
 

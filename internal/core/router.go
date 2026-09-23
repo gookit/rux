@@ -39,8 +39,14 @@ type Router struct {
 	currentGroupPrefix   string
 	currentGroupHandlers HandlersChain
 
+	// User-supplied fallback handlers (raw, no global middleware).
 	noRoute   HandlersChain
 	noAllowed HandlersChain
+
+	// Composed fallback chains (globalChain + user handlers, or the internal
+	// defaults). Built once in Freeze() so serving never writes to the Router.
+	noRouteChain   HandlersChain
+	noAllowedChain HandlersChain
 
 	// Settings.
 	OnError                HandlerFunc
@@ -101,8 +107,9 @@ func InterceptAll(path string) func(*Router) {
 }
 
 // Freeze marks the router read-only. Subsequent registration calls panic.
-// It merges globalChain into each route's finalChain and mirrors GET routes
-// onto HEAD. Idempotent — safe to call multiple times.
+// It merges globalChain into each route's finalChain, builds the 404/405
+// fallback chains (also globalChain-first) and mirrors GET routes onto HEAD.
+// Idempotent — safe to call multiple times.
 func (r *Router) Freeze() {
 	if !r.frozen.CompareAndSwap(false, true) {
 		return
@@ -117,7 +124,29 @@ func (r *Router) Freeze() {
 		merged = append(merged, route.chain...)
 		route.finalChain = merged
 	}
+
+	// Fallback responses run the global chain too: unmatched paths and method
+	// mismatches must not be the one place that skips auth / security headers /
+	// logging. Composed here (not per request) so the hot path stays read-only.
+	r.noRouteChain = r.mergeGlobal(r.noRoute, internal404Handler)
+	r.noAllowedChain = r.mergeGlobal(r.noAllowed, internal405Handler)
+
 	r.mirrorGetToHead()
+}
+
+// mergeGlobal returns globalChain followed by chain, substituting def when
+// chain is empty. The result is never empty.
+func (r *Router) mergeGlobal(chain HandlersChain, def HandlerFunc) HandlersChain {
+	if len(chain) == 0 {
+		chain = HandlersChain{def}
+	}
+	if len(r.globalChain) == 0 {
+		return chain
+	}
+	merged := make(HandlersChain, 0, len(r.globalChain)+len(chain))
+	merged = append(merged, r.globalChain...)
+	merged = append(merged, chain...)
+	return merged
 }
 
 // mirrorGetToHead copies every GET route to HEAD unless an explicit HEAD
@@ -339,13 +368,29 @@ func (r *Router) Use(handlers ...HandlerFunc) {
 }
 
 // NotFound sets the handlers chain for unmatched routes (404).
+//
+// The global middleware chain runs before these handlers, exactly like it does
+// for matched routes, so auth / security headers / logging cannot be bypassed
+// by requesting an unknown path.
+//
+// Must be called before the router is frozen (i.e. before the first request),
+// same as Use/GET/...: the composed chain is built in Freeze().
 func (r *Router) NotFound(handlers ...HandlerFunc) {
+	if r.frozen.Load() {
+		panic("rux: cannot NotFound after router is frozen")
+	}
 	r.noRoute = handlers
 }
 
 // NotAllowed sets the handlers chain for HTTP 405 responses.
 // Only consulted when HandleMethodNotAllowed is enabled.
+//
+// Like NotFound, the global middleware chain runs first and this must be
+// called before the router is frozen.
 func (r *Router) NotAllowed(handlers ...HandlerFunc) {
+	if r.frozen.Load() {
+		panic("rux: cannot NotAllowed after router is frozen")
+	}
 	r.noAllowed = handlers
 }
 
