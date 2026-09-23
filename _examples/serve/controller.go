@@ -1,6 +1,10 @@
 package main
 
-import "github.com/gookit/rux/v2"
+import (
+	"html"
+
+	"github.com/gookit/rux/v2"
+)
 
 // SiteController define a controller
 type SiteController struct {
@@ -21,13 +25,13 @@ func (c *SiteController) AddRoutes(r *rux.Router) {
 
 // Get action
 func (c *SiteController) Get(ctx *rux.Context) {
-	ctx.WriteString("hello, in " + ctx.URL().Path)
+	ctx.WriteString("hello, in " + html.EscapeString(ctx.URL().Path))
 	ctx.WriteString("\n ok")
 }
 
 // Post action
 func (c *SiteController) Post(ctx *rux.Context) {
-	ctx.WriteString("hello, in " + ctx.URL().Path)
+	ctx.WriteString("hello, in " + html.EscapeString(ctx.URL().Path))
 }
 
 // SetCookie action
@@ -37,18 +41,18 @@ func (c *SiteController) SetCookie(ctx *rux.Context) {
 	ctx.SetHeader("rux-header", "header-value")
 	ctx.SetCookie("rux_cookie", "test-value1", 3600, "/", ctx.Req.URL.Host, false, true)
 	ctx.FastSetCookie("rux_cookie2", "test-value2", 3600)
-	ctx.WriteString("hello, in " + ctx.URL().Path)
+	ctx.WriteString("hello, in " + html.EscapeString(ctx.URL().Path))
 }
 
 // DelCookie action
 func (c *SiteController) DelCookie(ctx *rux.Context) {
 	ctx.DelCookie("rux_cookie", "rux_cookie2")
-	ctx.WriteString("hello, in " + ctx.URL().Path)
+	ctx.WriteString("hello, in " + html.EscapeString(ctx.URL().Path))
 }
 
 // GetCookie action
 func (c *SiteController) GetCookie(ctx *rux.Context) {
-	ctx.WriteString("hello, in " + ctx.URL().Path)
+	ctx.WriteString("hello, in " + html.EscapeString(ctx.URL().Path))
 
 	key := "rux_cookie"
 	val := ctx.Cookie(key)
@@ -71,11 +75,11 @@ func (c *BlogController) AddRoutes(r *rux.Router) {
 
 // Get action
 func (c *BlogController) Get(ctx *rux.Context) {
-	ctx.WriteString("hello, in " + ctx.URL().Path)
+	ctx.WriteString("hello, in " + html.EscapeString(ctx.URL().Path))
 	ctx.WriteString("\nok")
 }
 
 // Post action
 func (c *BlogController) Post(ctx *rux.Context) {
-	ctx.Text(200, "hello, in "+ctx.URL().Path)
+	ctx.Text(200, "hello, in "+html.EscapeString(ctx.URL().Path))
 }

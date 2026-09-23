@@ -3,6 +3,7 @@ package main
 import (
 	"embed"
 	"fmt"
+	"html"
 	"log"
 	"net/http"
 	"net/http/httputil"
@@ -66,11 +67,12 @@ func addRoutes(r *rux.Router) {
 	r.Use(handlers.RequestLogger(), rux.WrapHTTPHandler(gh))
 
 	r.GET("/", func(c *rux.Context) {
-		c.Text(200, "hello "+c.URL().Path)
+		// escape request data before reflecting it into a response body
+		c.Text(200, "hello "+html.EscapeString(c.URL().Path))
 	})
 
 	r.GET("/bauth", func(c *rux.Context) {
-		c.Text(200, "hello "+c.URL().Path)
+		c.Text(200, "hello "+html.EscapeString(c.URL().Path))
 	}).Use(handlers.HTTPBasicAuth(map[string]string{
 		"test": "123",
 	}))
@@ -79,10 +81,10 @@ func addRoutes(r *rux.Router) {
 	r.GET("/about[.html]", defHandle)
 	r.AddNamed("my-route", "/hi-{name}", defHandle, rux.GET)
 	r.GET("/users/{id}", func(c *rux.Context) {
-		c.Text(200, "hello "+c.URL().Path)
+		c.Text(200, "hello "+html.EscapeString(c.URL().Path))
 	})
 	r.POST("/post", func(c *rux.Context) {
-		c.Text(200, "hello "+c.URL().Path)
+		c.Text(200, "hello "+html.EscapeString(c.URL().Path))
 	})
 	r.Group("/articles", func() {
 		r.GET("", func(c *rux.Context) {
@@ -91,7 +93,8 @@ func addRoutes(r *rux.Router) {
 		r.POST("", func(c *rux.Context) {
 			c.Text(200, "create ok")
 		})
-		r.GET(`/{id:\d+}`, func(c *rux.Context) {
+		// NOTE: regex constraints like {id:\d+} were removed in v2
+		r.GET(`/{id}`, func(c *rux.Context) {
 			c.Text(200, "view detail, id: "+c.Param("id"))
 		})
 	})
@@ -153,7 +156,7 @@ func addRoutes(r *rux.Router) {
 }
 
 func defHandle(ctx *rux.Context) {
-	ctx.WriteString("hello, in " + ctx.URL().Path)
+	ctx.WriteString("hello, in " + html.EscapeString(ctx.URL().Path))
 }
 
 func customServer() {

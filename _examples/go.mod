@@ -9,7 +9,7 @@ require (
 
 require (
 	github.com/gookit/filter v1.2.3 // indirect
-	github.com/gookit/goutil v0.7.5 // indirect
+	github.com/gookit/goutil v0.8.0 // indirect
 	github.com/monoculum/formam v3.5.5+incompatible // indirect
 	golang.org/x/sync v0.16.0 // indirect
 	golang.org/x/sys v0.35.0 // indirect
