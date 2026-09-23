@@ -43,6 +43,12 @@ type Route struct {
 	chain      HandlersChain
 	finalChain HandlersChain
 
+	// Group context for routes registered through a Group value (see
+	// Router.NewGroup). Empty for routes registered directly on the router or
+	// inside a closure-style Group, which use the router-level group state.
+	groupPrefix string
+	groupChain  HandlersChain
+
 	Opts map[string]any
 }
 

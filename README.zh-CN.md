@@ -220,6 +220,31 @@ func main() {
 
 > 更多的使用请查看 [middleware_test.go](middleware_test.go) 中间件测试
 
+## 路由组
+
+两种写法，语义相同（前缀拼接、中间件叠加）：
+
+```go
+// 闭包写法：路由注册在外层 router 上
+r.Group("/articles", func() {
+    r.GET("", listArticles)
+    r.POST("", createArticle)
+    r.GET(`/{id}`, showArticle)
+}, auth())
+
+// 值写法（gin 风格）
+api := r.NewGroup("/api", auth())
+api.GET("/users", listUsers) // GET /api/users，auth 先执行
+
+admin := api.NewGroup("/admin", isAdmin())
+admin.DELETE("/users/{id}", deleteUser) // DELETE /api/admin/users/{id}
+```
+
+请求内的执行顺序：`全局中间件 -> 组中间件（外层到内层）-> 路由中间件 -> handler`。
+`g.Use(mw)` 对之后注册的路由生效，`g.Prefix()` / `g.Router()` 可获取组上下文；
+在闭包组内创建的值组会继承其前缀与中间件。与其它注册调用一样，
+组内路由必须在首个请求之前注册。
+
 ## 使用`http.Handler`
 
 rux 支持通用的 `http.Handler` 接口中间件

@@ -273,8 +273,14 @@ func (r *Router) appendRoute(route *Route) {
 		panic("rux: cannot add route after router is frozen")
 	}
 
-	// Apply group prefix and middlewares before dispatch.
-	r.applyGroup(route)
+	// Apply group prefix and middlewares before dispatch. Routes registered
+	// through a Group value carry their own context; closure-style groups (and
+	// plain routes) use the router-level state.
+	prefix, middles := r.currentGroupPrefix, r.currentGroupHandlers
+	if route.groupPrefix != "" || route.groupChain != nil {
+		prefix, middles = route.groupPrefix, route.groupChain
+	}
+	r.applyGroup(route, prefix, middles)
 
 	if route.name != "" {
 		r.namedRoutes[route.name] = route
@@ -335,18 +341,18 @@ func (r *Router) registerSingleRoute(route *Route) {
 	}
 }
 
-// applyGroup merges current group prefix and handlers into the route.
-func (r *Router) applyGroup(route *Route) {
+// applyGroup merges a group prefix and handlers into the route.
+func (r *Router) applyGroup(route *Route, prefix string, middles HandlersChain) {
 	routePath := r.formatPath(route.path)
-	if r.currentGroupPrefix != "" {
-		routePath = r.formatPath(r.currentGroupPrefix + routePath)
+	if prefix != "" {
+		routePath = r.formatPath(prefix + routePath)
 	}
 	route.path = routePath
 
-	if len(r.currentGroupHandlers) > 0 {
+	if len(middles) > 0 {
 		// Group middlewares run before route's own middlewares.
-		merged := make(HandlersChain, 0, len(r.currentGroupHandlers)+len(route.chain))
-		merged = append(merged, r.currentGroupHandlers...)
+		merged := make(HandlersChain, 0, len(middles)+len(route.chain))
+		merged = append(merged, middles...)
 		merged = append(merged, route.chain...)
 		route.chain = merged
 	}
@@ -536,19 +542,28 @@ func (r *Router) StaticFile(path, filePath string) *Route {
 }
 
 // StaticDir serves files from rootDir under prefixURL using http.FileServer.
+// Inside a closure-style Group the group prefix is included when stripping.
 func (r *Router) StaticDir(prefixURL, rootDir string) *Route {
-	fs := http.StripPrefix(prefixURL, http.FileServer(http.Dir(rootDir)))
-	return r.GET(prefixURL+"/*file", func(c *Context) {
-		fs.ServeHTTP(c.Resp, c.Req)
-	})
+	return r.addStatic(prefixURL, http.FileServer(http.Dir(rootDir)))
 }
 
 // StaticFS serves files from the given http.FileSystem under prefixURL.
 func (r *Router) StaticFS(prefixURL string, fs http.FileSystem) *Route {
-	handler := http.StripPrefix(prefixURL, http.FileServer(fs))
+	return r.addStatic(prefixURL, http.FileServer(fs))
+}
+
+// addStatic registers a file-server wildcard route. The handler strips the full
+// (group-prefixed) URL so the request path matches what the router routed.
+func (r *Router) addStatic(prefixURL string, fileHandler http.Handler) *Route {
+	fh := http.StripPrefix(r.fullPath(prefixURL), fileHandler)
 	return r.GET(prefixURL+"/*file", func(c *Context) {
-		handler.ServeHTTP(c.Resp, c.Req)
+		fh.ServeHTTP(c.Resp, c.Req)
 	})
+}
+
+// fullPath resolves a group-relative path against the current group prefix.
+func (r *Router) fullPath(path string) string {
+	return r.formatPath(r.currentGroupPrefix + r.formatPath(path))
 }
 
 // StaticFiles serves files from rootDir under prefixURL. The exts argument

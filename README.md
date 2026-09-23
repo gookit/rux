@@ -131,11 +131,10 @@ and a browser-ready `LocalURL()`, use the `server` package instead (see
 
 ## Route Group
 
-> There is no `*Group` value in v2: the closure form registers routes on the
-> outer router, so use `r.GET(...)` inside it. (gin's `g := r.Group("/api")` +
-> `g.GET(...)` pattern does not apply here.)
+Two forms with the same semantics (prefixes concatenate, middleware stacks):
 
 ```go
+// closure form: routes are registered on the outer router
 r.Group("/articles", func() {
     r.GET("", func(c *rux.Context) {
         c.Text(200, "view list")
@@ -146,8 +145,21 @@ r.Group("/articles", func() {
     r.GET(`/{id}`, func(c *rux.Context) {
         c.Text(200, "view detail, id: "+c.Param("id"))
     })
-})
+}, auth())
+
+// value form (gin-style)
+api := r.NewGroup("/api", auth())
+api.GET("/users", listUsers) // GET /api/users, auth runs first
+
+admin := api.NewGroup("/admin", isAdmin())
+admin.DELETE("/users/{id}", deleteUser) // DELETE /api/admin/users/{id}
 ```
+
+Inside a request the order is `global -> group (outer to inner) -> route -> handler`.
+`g.Use(mw)` adds middleware for routes registered after that call, `g.Prefix()` and
+`g.Router()` expose the group context, and a group created inside a closure group
+inherits its prefix and middleware. Like every other registration call, group
+routes must be added before the first request.
 
 ## Path Params
 

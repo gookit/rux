@@ -40,6 +40,7 @@ const (
 // Public types — all aliased to the internal/core implementation.
 type (
 	Router          = core.Router
+	Group           = core.Group
 	Context         = core.Context
 	Route           = core.Route
 	HandlerFunc     = core.HandlerFunc
