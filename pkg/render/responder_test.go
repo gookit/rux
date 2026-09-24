@@ -13,9 +13,9 @@ import (
 
 // mockTpl implements TemplateRenderer + TemplateLoader for tests.
 type mockTpl struct {
-	called  string
-	loaded  []string
-	loadErr error
+	called    string
+	loaded    []string
+	loadErr   error
 	renderErr error
 }
 

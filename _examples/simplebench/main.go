@@ -146,7 +146,7 @@ func matchRoute(times int, item map[string]string) (ok int, rt *rux.Route) {
 	path := item["p1"]
 
 	for i := 0; i < times; i++ {
-		route,_,_ := r.Match(item["m"], path)
+		route, _, _ := r.Match(item["m"], path)
 		if route != nil {
 			ok++
 		}

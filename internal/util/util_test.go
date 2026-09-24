@@ -2,7 +2,6 @@ package util
 
 import "testing"
 
-
 func TestValidateOptionalSegments(t *testing.T) {
 	// Valid paths
 	t.Run("valid - optional at end", func(t *testing.T) {

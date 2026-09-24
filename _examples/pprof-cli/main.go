@@ -10,11 +10,16 @@ import (
 )
 
 // run serve:
-// 	go run ./_examples/pprof-cli.go
+//
+//	go run ./_examples/pprof-cli.go
+//
 // see prof on cli:
-// 	go tool pprof rux_cpu.prof
+//
+//	go tool pprof rux_cpu.prof
+//
 // see prof on web:
-// 	go tool pprof -http=:8080 rux_cpu.prof
+//
+//	go tool pprof -http=:8080 rux_cpu.prof
 func main() {
 	// rux.Debug(true)
 	r := rux.New()

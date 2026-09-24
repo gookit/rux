@@ -9,11 +9,14 @@ import (
 )
 
 // run serve:
-// 	go run ./gin
+//
+//	go run ./gin
+//
 // bench test:
-// 	gbench -c 100 -n 10000 http://localhost:13000
-// 	gbench -c 125 -n 1000000 http://localhost:13000
-// 	gbench -c 125 -n 1000000 http://localhost:13000/user/42
+//
+//	gbench -c 100 -n 10000 http://localhost:13000
+//	gbench -c 125 -n 1000000 http://localhost:13000
+//	gbench -c 125 -n 1000000 http://localhost:13000/user/42
 func main() {
 	gin.SetMode(gin.ReleaseMode)
 

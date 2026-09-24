@@ -9,10 +9,13 @@ import (
 )
 
 // run serve:
-// 	go run ./muxie
+//
+//	go run ./muxie
+//
 // bench test:
-// 	bombardier -c 125 -n 1000000 http://localhost:3000
-// 	bombardier -c 125 -n 1000000 http://localhost:3000/user/42
+//
+//	bombardier -c 125 -n 1000000 http://localhost:3000
+//	bombardier -c 125 -n 1000000 http://localhost:3000/user/42
 func main() {
 	r := muxie.NewMux()
 

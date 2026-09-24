@@ -18,10 +18,13 @@ import (
 // 	Uint()
 
 // run serve:
-// 	go run ./fasthttp
+//
+//	go run ./fasthttp
+//
 // bench test:
-// 	bombardier -c 125 -n 1000000 http://localhost:3000
-// 	bombardier -c 125 -n 1000000 http://localhost:3000/user/42
+//
+//	bombardier -c 125 -n 1000000 http://localhost:3000
+//	bombardier -c 125 -n 1000000 http://localhost:3000/user/42
 func main() {
 	// kingpin.Parse()
 	// response := strings.Repeat("a", int(*responseSize))
