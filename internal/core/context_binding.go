@@ -25,6 +25,9 @@ func (c *Context) MustBind(obj any, binder binding.Binder) {
 
 // AutoBind selects a binder based on Content-Type and binds request data.
 //
+// A multipart/form-data request also fills uploaded file fields, so a struct
+// with a *multipart.FileHeader field is populated by the same call.
+//
 // Usage:
 //
 //	err := c.AutoBind(&user)
@@ -53,6 +56,8 @@ func (c *Context) Validate(obj any) error {
  *************************************************************/
 
 // BindForm binds form-encoded request data to obj.
+//
+// For a multipart/form-data request it binds the uploaded files as well.
 func (c *Context) BindForm(obj any) error {
 	return binding.Form.Bind(c.Req, obj)
 }

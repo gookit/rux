@@ -40,6 +40,7 @@ var (
 		"query":  Query,
 		"form":   Form,
 		"header": Header,
+		"file":   File,
 		// TODO more driver
 		// "yaml": YAML,
 		// "msgpack": MSGPACK,

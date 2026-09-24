@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **`binding`**: uploaded files are bound into struct fields now. `Auto` and
+  `Form.Bind` fill `multipart.FileHeader` / `*multipart.FileHeader` fields (slices
+  and arrays of either included) from a `multipart/form-data` request, plus the new
+  `File` binder, `DecodeFiles` and `DecodeMultipart` for direct use. Field names
+  follow the form value rules: the `form` tag (first comma part) or the field name,
+  a dotted path for nested structs, flattened embedded structs and `-` to opt out
+
+### Fixed
+
+- **`binding`**: a multipart request dropped its uploads (issue #186). `Auto` only
+  handed `r.PostForm` to the value decoder, and `Form.Bind` bound nothing at all
+  because `r.ParseForm()` ignores a multipart body
+- **`binding`**: the validator now runs once, after both the form values and the
+  uploads are bound, so a rule on a file field sees the file
+
 ## v2.1.1 — 2026-09-24
 
 ### Changed

@@ -1,8 +1,15 @@
 // Package binding provide some common binder for binding http.Request data to strcut
+//
+// Auto picks a binder by content type: query data for a body-less method, form
+// values, JSON or XML. A multipart/form-data request binds its form values and
+// its uploaded files, so a struct field of type *multipart.FileHeader (or a
+// slice of them) is filled by the same call. Use Form, Query, Header, JSON, XML
+// or File to bind from one source only.
 package binding
 
 import (
 	"errors"
+	"mime"
 	"net/http"
 	"strings"
 )
@@ -52,15 +59,15 @@ func Auto(r *http.Request, obj any) (err error) {
 		return Form.BindValues(r.PostForm, obj)
 	}
 
-	// contains file uploaded form: "multipart/form-data" "multipart/mixed"
-	// strings.HasPrefix(mediaType, "multipart/")
-	if strings.Contains(cType, "/form-data") {
+	// contains file uploaded form: "multipart/form-data"
+	if isMultipartForm(r) {
 		err = r.ParseMultipartForm(DefaultMaxMemory)
 		if err != nil {
 			return err
 		}
 
-		return Form.BindValues(r.PostForm, obj)
+		// bind the form values and the uploaded files
+		return DecodeMultipart(r.PostForm, multipartFiles(r), obj, Form.TagName)
 	}
 
 	// JSON body request: "application/json"
@@ -74,4 +81,17 @@ func Auto(r *http.Request, obj any) (err error) {
 	}
 
 	return errors.New("cannot auto binding request data, content-type: " + cType)
+}
+
+// isMultipartForm reports whether r carries a multipart/form-data body, the
+// only multipart type net/http parses into a form.
+func isMultipartForm(r *http.Request) bool {
+	cType := r.Header.Get("Content-Type")
+	mediaType, _, err := mime.ParseMediaType(cType)
+	if err != nil {
+		// malformed header: keep accepting the historical loose match
+		return strings.Contains(cType, "/form-data")
+	}
+
+	return mediaType == "multipart/form-data"
 }

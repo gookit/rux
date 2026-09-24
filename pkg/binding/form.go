@@ -1,6 +1,7 @@
 package binding
 
 import (
+	"mime/multipart"
 	"net/http"
 	"net/url"
 
@@ -21,7 +22,18 @@ func (FormBinder) Name() string {
 }
 
 // Bind Form data from http.Request
+//
+// A multipart/form-data request binds its uploaded files as well, see
+// DecodeMultipart.
 func (b FormBinder) Bind(r *http.Request, ptr any) error {
+	if isMultipartForm(r) {
+		if err := r.ParseMultipartForm(DefaultMaxMemory); err != nil {
+			return err
+		}
+
+		return DecodeMultipart(r.PostForm, multipartFiles(r), ptr, b.TagName)
+	}
+
 	err := r.ParseForm()
 	if err != nil {
 		return err
@@ -35,14 +47,42 @@ func (b FormBinder) BindValues(values url.Values, ptr any) error {
 	return DecodeUrlValues(values, ptr, b.TagName)
 }
 
-// DecodeUrlValues data to struct
-func DecodeUrlValues(values map[string][]string, ptr any, tagName string) error {
+// DecodeValues data to struct, without running the validator.
+func DecodeValues(values map[string][]string, ptr any, tagName string) error {
 	dec := formam.NewDecoder(&formam.DecoderOptions{
 		TagName: tagName,
 	})
 
-	if err := dec.Decode(values, ptr); err != nil {
+	return dec.Decode(values, ptr)
+}
+
+// DecodeUrlValues data to struct
+func DecodeUrlValues(values map[string][]string, ptr any, tagName string) error {
+	if err := DecodeValues(values, ptr, tagName); err != nil {
 		return err
 	}
+
+	return Validate(ptr)
+}
+
+// DecodeMultipart binds the form values and the uploaded files of a
+// multipart/form-data request into ptr.
+//
+// Values and files are decoded first and the validator runs once afterwards, so
+// rules that look at an upload (required, image, mime) see the bound file.
+func DecodeMultipart(
+	values map[string][]string,
+	files map[string][]*multipart.FileHeader,
+	ptr any,
+	tagName string,
+) error {
+	if err := DecodeValues(values, ptr, tagName); err != nil {
+		return err
+	}
+
+	if err := DecodeFiles(files, ptr, tagName); err != nil {
+		return err
+	}
+
 	return Validate(ptr)
 }
