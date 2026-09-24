@@ -59,7 +59,7 @@ func (f *fakeHijacker) Header() http.Header {
 	return f.header
 }
 func (f *fakeHijacker) Write(b []byte) (int, error) { return len(b), nil }
-func (f *fakeHijacker) WriteHeader(code int)         { f.wroteStatus = code }
+func (f *fakeHijacker) WriteHeader(code int)        { f.wroteStatus = code }
 
 func (f *fakeHijacker) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	f.hijacked = true

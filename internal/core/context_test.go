@@ -217,7 +217,7 @@ func TestContext_AddErr_FirstErr_NilSafe(t *testing.T) {
 	b := errors.New("b")
 	c.AddError(a)
 	c.AddError(b)
-	assert.Eq(t, b, c.Err())       // most recent
+	assert.Eq(t, b, c.Err())        // most recent
 	assert.Eq(t, a, c.FirstError()) // earliest
 }
 

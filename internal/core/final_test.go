@@ -28,7 +28,7 @@ type failingWriter struct {
 	h http.Header
 }
 
-func newFailingWriter() *failingWriter      { return &failingWriter{h: http.Header{}} }
+func newFailingWriter() *failingWriter       { return &failingWriter{h: http.Header{}} }
 func (f *failingWriter) Header() http.Header { return f.h }
 func (f *failingWriter) Write([]byte) (int, error) {
 	return 0, errors.New("write failed")

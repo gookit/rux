@@ -233,4 +233,3 @@ func TestListenUnix_RecordsRemoveOrListenErr(t *testing.T) {
 
 // Stop the orphan import deletion: net is needed by the Listen tests above.
 var _ = net.IPv4zero
-
