@@ -44,7 +44,7 @@ func Auto(r *http.Request, obj any) (err error) {
 
 	// no body, query data binding. like GET DELETE OPTION ....
 	if method != "POST" && method != "PUT" && method != "PATCH" {
-		return Query.BindValues(r.URL.Query(), obj)
+		return decodeUrlValues(r.URL.Query(), obj, Query.TagName, r)
 	}
 
 	// binding body data by content type.
@@ -58,7 +58,7 @@ func Auto(r *http.Request, obj any) (err error) {
 			return err
 		}
 
-		return Form.BindValues(r.PostForm, obj)
+		return decodeUrlValues(r.PostForm, obj, Form.TagName, r)
 
 	// contains file uploaded form: "multipart/form-data"
 	case isSubType(subType, "form-data"):
@@ -68,7 +68,7 @@ func Auto(r *http.Request, obj any) (err error) {
 		}
 
 		// bind the form values and the uploaded files
-		return DecodeMultipart(r.PostForm, multipartFiles(r), obj, Form.TagName)
+		return decodeMultipart(r.PostForm, multipartFiles(r), obj, Form.TagName, r)
 
 	// JSON body request: "application/json", a "+json" structured suffix such
 	// as "application/vnd.api+json", or a dash variant like "json-patch"

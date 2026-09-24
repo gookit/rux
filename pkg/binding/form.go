@@ -31,7 +31,7 @@ func (b FormBinder) Bind(r *http.Request, ptr any) error {
 			return err
 		}
 
-		return DecodeMultipart(r.PostForm, multipartFiles(r), ptr, b.TagName)
+		return decodeMultipart(r.PostForm, multipartFiles(r), ptr, b.TagName, r)
 	}
 
 	err := r.ParseForm()
@@ -39,7 +39,7 @@ func (b FormBinder) Bind(r *http.Request, ptr any) error {
 		return err
 	}
 
-	return DecodeUrlValues(r.Form, ptr, b.TagName)
+	return decodeUrlValues(r.Form, ptr, b.TagName, r)
 }
 
 // BindValues data from url.Values
@@ -58,11 +58,17 @@ func DecodeValues(values map[string][]string, ptr any, tagName string) error {
 
 // DecodeUrlValues data to struct
 func DecodeUrlValues(values map[string][]string, ptr any, tagName string) error {
+	return decodeUrlValues(values, ptr, tagName, nil)
+}
+
+// decodeUrlValues decodes url.Values and validates the result, handing r to a
+// RequestValidator when one is installed.
+func decodeUrlValues(values map[string][]string, ptr any, tagName string, r *http.Request) error {
 	if err := DecodeValues(values, ptr, tagName); err != nil {
 		return err
 	}
 
-	return Validate(ptr)
+	return ValidateRequest(r, ptr)
 }
 
 // DecodeMultipart binds the form values and the uploaded files of a
@@ -70,11 +76,24 @@ func DecodeUrlValues(values map[string][]string, ptr any, tagName string) error 
 //
 // Values and files are decoded first and the validator runs once afterwards, so
 // rules that look at an upload (required, image, mime) see the bound file.
+// Binders that hold the request (Auto, Form.Bind) also hand it to a
+// RequestValidator; this entry point has no request and passes nil.
 func DecodeMultipart(
 	values map[string][]string,
 	files map[string][]*multipart.FileHeader,
 	ptr any,
 	tagName string,
+) error {
+	return decodeMultipart(values, files, ptr, tagName, nil)
+}
+
+// decodeMultipart is DecodeMultipart with the request that produced the data.
+func decodeMultipart(
+	values map[string][]string,
+	files map[string][]*multipart.FileHeader,
+	ptr any,
+	tagName string,
+	r *http.Request,
 ) error {
 	if err := DecodeValues(values, ptr, tagName); err != nil {
 		return err
@@ -84,5 +103,5 @@ func DecodeMultipart(
 		return err
 	}
 
-	return Validate(ptr)
+	return ValidateRequest(r, ptr)
 }

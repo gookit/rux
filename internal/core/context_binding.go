@@ -46,9 +46,11 @@ func (c *Context) Bind(obj any) error {
 
 // Validate runs the registered binding validator against obj.
 //
-// Recommended: call ShouldBind directly — it binds and validates.
+// The request is passed along, so a validator that implements
+// binding.RequestValidator can inspect it. Recommended: call ShouldBind
+// directly — it binds and validates.
 func (c *Context) Validate(obj any) error {
-	return binding.Validate(obj)
+	return binding.ValidateRequest(c.Req, obj)
 }
 
 /*************************************************************

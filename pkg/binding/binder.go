@@ -18,6 +18,15 @@ type (
 	DataValidator interface {
 		Validate(i any) error
 	}
+
+	// RequestValidator is an optional extension of DataValidator. When the
+	// installed Validator implements it, every binder that holds the request
+	// calls ValidateRequest instead of Validate, so a rule can look at the raw
+	// request (an uploaded file, for example) and not only at the bound struct.
+	RequestValidator interface {
+		DataValidator
+		ValidateRequest(r *http.Request, obj any) error
+	}
 )
 
 // build-in data binder

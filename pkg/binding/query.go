@@ -20,7 +20,7 @@ func (QueryBinder) Name() string {
 
 // Bind Query data binder
 func (b QueryBinder) Bind(r *http.Request, ptr any) error {
-	return DecodeUrlValues(r.URL.Query(), ptr, b.TagName)
+	return decodeUrlValues(r.URL.Query(), ptr, b.TagName, r)
 }
 
 // BindValues data from url.Values

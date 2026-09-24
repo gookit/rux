@@ -17,19 +17,19 @@ func (JSONBinder) Name() string {
 
 // Bind JSON data from http.Request
 func (JSONBinder) Bind(r *http.Request, ptr any) error {
-	return decodeJSON(r.Body, ptr)
+	return decodeJSON(r.Body, ptr, r)
 }
 
 // BindBytes raw JSON data to struct
 func (JSONBinder) BindBytes(bts []byte, ptr any) error {
-	return decodeJSON(strings.NewReader(string(bts)), ptr)
+	return decodeJSON(strings.NewReader(string(bts)), ptr, nil)
 }
 
-func decodeJSON(r io.Reader, ptr any) error {
-	err := json.NewDecoder(r).Decode(ptr)
+func decodeJSON(rd io.Reader, ptr any, r *http.Request) error {
+	err := json.NewDecoder(rd).Decode(ptr)
 	if err != nil {
 		return err
 	}
 
-	return Validate(ptr)
+	return ValidateRequest(r, ptr)
 }

@@ -4,6 +4,12 @@
 
 ### Added
 
+- **`binding`**: `RequestValidator`, an optional extension of `DataValidator` whose
+  `ValidateRequest(r, obj)` also receives the request. `Auto`, the `Form` / `Query` /
+  `Header` / `JSON` / `XML` binders and `Context.Validate` use it when installed, so a
+  rule can inspect the raw request (an uploaded file, for example) instead of only the
+  bound struct. `Validate(obj)` and the `*Values` / `*Bytes` helpers keep the
+  struct-only path, and a validator that implements only `DataValidator` is unaffected
 - **`binding`**: uploaded files are bound into struct fields now. `Auto` and
   `Form.Bind` fill `multipart.FileHeader` / `*multipart.FileHeader` fields (slices
   and arrays of either included) from a `multipart/form-data` request, plus the new

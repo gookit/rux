@@ -4,6 +4,7 @@ import (
 	"errors"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -339,6 +340,181 @@ func TestBinder_DecodeChain_HitsValidator(t *testing.T) {
 	assert.Err(t, err)
 	assert.True(t, m.called, "JSON binder should call Validator after decode")
 	assert.True(t, strings.Contains(err.Error(), "nope"))
+}
+
+// ----- Request-aware validator hook -------------------------------
+
+// reqValidator implements RequestValidator and records which entry point ran.
+type reqValidator struct {
+	plainCalls int
+	reqCalls   int
+	lastReq    *http.Request
+	lastObj    any
+	fileName   string
+	err        error
+}
+
+func (v *reqValidator) Validate(obj any) error {
+	v.plainCalls++
+	v.lastObj = obj
+	return v.err
+}
+
+func (v *reqValidator) ValidateRequest(r *http.Request, obj any) error {
+	v.reqCalls++
+	v.lastReq = r
+	v.lastObj = obj
+	if f, ok := obj.(*uploadForm); ok && f.File != nil {
+		v.fileName = f.File.Filename
+	}
+	return v.err
+}
+
+// compile-time proof that one adapter can serve both interfaces
+var _ binding.RequestValidator = (*reqValidator)(nil)
+
+func TestValidateRequest_PrefersRequestValidator(t *testing.T) {
+	v := &reqValidator{}
+	withMockValidator(t, v)
+
+	req, _ := http.NewRequest("GET", "/?age=1", nil)
+	u := &User{Age: 1}
+
+	assert.NoErr(t, binding.ValidateRequest(req, u))
+	assert.Eq(t, 1, v.reqCalls)
+	assert.Eq(t, 0, v.plainCalls)
+	assert.Eq(t, req, v.lastReq)
+	assert.Eq(t, u, v.lastObj)
+}
+
+func TestValidateRequest_NilRequestUsesValidate(t *testing.T) {
+	v := &reqValidator{}
+	withMockValidator(t, v)
+
+	u := &User{}
+	assert.NoErr(t, binding.ValidateRequest(nil, u))
+	assert.Eq(t, 1, v.plainCalls)
+	assert.Eq(t, 0, v.reqCalls)
+}
+
+// A validator that only implements DataValidator keeps working.
+func TestValidateRequest_PlainValidatorStaysSupported(t *testing.T) {
+	m := &mockValidator{}
+	withMockValidator(t, m)
+
+	req, _ := http.NewRequest("GET", "/", nil)
+	u := &User{}
+	assert.NoErr(t, binding.ValidateRequest(req, u))
+	assert.True(t, m.called)
+	assert.Eq(t, u, m.last)
+}
+
+func TestValidateRequest_NilValidatorIsNoOp(t *testing.T) {
+	withMockValidator(t, nil)
+
+	req, _ := http.NewRequest("GET", "/", nil)
+	assert.NoErr(t, binding.ValidateRequest(req, &User{}))
+}
+
+func TestValidateRequest_BubblesError(t *testing.T) {
+	v := &reqValidator{err: errors.New("bad upload")}
+	withMockValidator(t, v)
+
+	req, _ := http.NewRequest("GET", "/", nil)
+	err := binding.ValidateRequest(req, &User{})
+	assert.ErrMsgContains(t, err, "bad upload")
+	assert.Eq(t, 1, v.reqCalls)
+}
+
+// Every binder entry point that holds the request hands it over.
+func TestBinders_HandRequestToValidator(t *testing.T) {
+	newQueryReq := func() *http.Request {
+		req, _ := http.NewRequest("GET", "/?"+userQuery, nil)
+		return req
+	}
+	newFormReq := func() *http.Request {
+		req, _ := http.NewRequest("POST", "/", strings.NewReader(userQuery))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		return req
+	}
+	newMultipartReq := func() *http.Request {
+		return newUploadReq(t, uploadPart{name: "name", value: "inhere"})
+	}
+	newJSONReq := func() *http.Request {
+		req, _ := http.NewRequest("POST", "/", strings.NewReader(userJSON))
+		req.Header.Set("Content-Type", "application/json")
+		return req
+	}
+	newXMLReq := func() *http.Request {
+		req, _ := http.NewRequest("POST", "/", strings.NewReader(userXML))
+		req.Header.Set("Content-Type", "text/xml")
+		return req
+	}
+	newHeaderReq := func() *http.Request {
+		req, _ := http.NewRequest("GET", "/", nil)
+		req.Header.Set("age", "12")
+		req.Header.Set("name", "inhere")
+		return req
+	}
+
+	cases := []struct {
+		name string
+		req  func() *http.Request
+		bind func(*http.Request, any) error
+	}{
+		{"auto/query", newQueryReq, binding.Auto},
+		{"auto/form", newFormReq, binding.Auto},
+		{"auto/multipart", newMultipartReq, binding.Auto},
+		{"auto/json", newJSONReq, binding.Auto},
+		{"auto/xml", newXMLReq, binding.Auto},
+		{"form", newFormReq, binding.Form.Bind},
+		{"query", newQueryReq, binding.Query.Bind},
+		{"header", newHeaderReq, binding.Header.Bind},
+		{"json", newJSONReq, binding.JSON.Bind},
+		{"xml", newXMLReq, binding.XML.Bind},
+	}
+
+	for _, c := range cases {
+		v := &reqValidator{}
+		withMockValidator(t, v)
+
+		req := c.req()
+		assert.NoErr(t, c.bind(req, &User{}), c.name)
+		assert.Eq(t, 1, v.reqCalls, c.name)
+		assert.Eq(t, 0, v.plainCalls, c.name)
+		assert.Eq(t, req, v.lastReq, c.name)
+	}
+}
+
+// The binder helpers without a request keep using the plain path.
+func TestBindValues_UsesPlainValidate(t *testing.T) {
+	v := &reqValidator{}
+	withMockValidator(t, v)
+
+	assert.NoErr(t, binding.Form.BindValues(url.Values{"age": {"12"}}, &User{}))
+	assert.NoErr(t, binding.Query.BindValues(url.Values{"age": {"12"}}, &User{}))
+	assert.NoErr(t, binding.JSON.BindBytes([]byte(userJSON), &User{}))
+	assert.NoErr(t, binding.XML.BindBytes([]byte(userXML), &User{}))
+	assert.NoErr(t, binding.DecodeMultipart(map[string][]string{"age": {"12"}}, nil, &User{}, "form"))
+
+	assert.Eq(t, 0, v.reqCalls)
+	assert.Eq(t, 5, v.plainCalls)
+}
+
+// The point of the hook: on the multipart path the request and the bound file
+// are both available when validation runs.
+func TestAuto_Multipart_RequestValidatorSeesFile(t *testing.T) {
+	v := &reqValidator{}
+	withMockValidator(t, v)
+
+	req := newUploadReq(t, uploadPart{name: "name", value: "alice"}, upload("file", "a.png"))
+	f := &uploadForm{}
+	assert.NoErr(t, binding.Auto(req, f))
+
+	assert.Eq(t, 1, v.reqCalls)
+	assert.Eq(t, req, v.lastReq)
+	assert.Eq(t, "a.png", v.fileName)
+	assert.NotNil(t, req.MultipartForm)
 }
 
 // ----- helpers ----------------------------------------------------

@@ -19,7 +19,7 @@ func (HeaderBinder) Name() string {
 
 // Bind Header data binding
 func (b HeaderBinder) Bind(r *http.Request, ptr any) error {
-	return DecodeUrlValues(r.Header, ptr, b.TagName)
+	return decodeUrlValues(r.Header, ptr, b.TagName, r)
 }
 
 // BindValues data from headers

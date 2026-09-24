@@ -18,19 +18,19 @@ func (XMLBinder) Name() string {
 
 // Bind XML data binder
 func (XMLBinder) Bind(r *http.Request, obj any) error {
-	return decodeXML(r.Body, obj)
+	return decodeXML(r.Body, obj, r)
 }
 
 // BindBytes raw JSON data to struct
 func (XMLBinder) BindBytes(bts []byte, ptr any) error {
-	return decodeXML(strings.NewReader(string(bts)), ptr)
+	return decodeXML(strings.NewReader(string(bts)), ptr, nil)
 }
 
-func decodeXML(r io.Reader, obj any) error {
-	err := xml.NewDecoder(r).Decode(obj)
+func decodeXML(rd io.Reader, obj any, r *http.Request) error {
+	err := xml.NewDecoder(rd).Decode(obj)
 	if err != nil {
 		return err
 	}
 
-	return Validate(obj)
+	return ValidateRequest(r, obj)
 }
