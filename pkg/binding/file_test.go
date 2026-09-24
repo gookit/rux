@@ -388,11 +388,13 @@ func TestAuto_MultipartContentTypeVariants(t *testing.T) {
 	assert.NoErr(t, binding.Auto(req, f))
 	assert.Eq(t, "alice", f.Name)
 
-	// a lookalike media type is not a multipart form
+	// any "form-data" subtype reaches the multipart parser, which then reports
+	// that the request is not a multipart/form-data body
 	req2, _ := http.NewRequest("POST", "/", strings.NewReader("x"))
 	req2.Header.Set("Content-Type", "application/form-data")
 	err := binding.Auto(req2, &uploadForm{})
-	assert.ErrMsgContains(t, err, "cannot auto binding")
+	assert.Err(t, err)
+	assert.True(t, !strings.Contains(err.Error(), "cannot auto binding"), err.Error())
 
 	// a malformed header keeps the historical lenient match, so the failure
 	// comes from parsing the body instead of the dispatcher

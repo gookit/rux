@@ -49,18 +49,19 @@ func Auto(r *http.Request, obj any) (err error) {
 
 	// binding body data by content type.
 	cType := r.Header.Get("Content-Type")
+	_, subType := mediaTypes(cType)
 
+	switch {
 	// basic POST form data binding. content type: "application/x-www-form-urlencoded"
-	if strings.Contains(cType, "/x-www-form-urlencoded") {
+	case isSubType(subType, "x-www-form-urlencoded"):
 		if err = r.ParseForm(); err != nil {
 			return err
 		}
 
 		return Form.BindValues(r.PostForm, obj)
-	}
 
 	// contains file uploaded form: "multipart/form-data"
-	if isMultipartForm(r) {
+	case isSubType(subType, "form-data"):
 		err = r.ParseMultipartForm(DefaultMaxMemory)
 		if err != nil {
 			return err
@@ -68,15 +69,15 @@ func Auto(r *http.Request, obj any) (err error) {
 
 		// bind the form values and the uploaded files
 		return DecodeMultipart(r.PostForm, multipartFiles(r), obj, Form.TagName)
-	}
 
-	// JSON body request: "application/json"
-	if strings.Contains(cType, "/json") {
+	// JSON body request: "application/json", a "+json" structured suffix such
+	// as "application/vnd.api+json", or a dash variant like "json-patch"
+	case isSubType(subType, "json"):
 		return JSON.Bind(r, obj)
-	}
 
-	// XML body request: "text/xml"
-	if strings.Contains(cType, "/xml") {
+	// XML body request: "text/xml" / "application/xml", or a "+xml" suffix such
+	// as "application/atom+xml"
+	case isSubType(subType, "xml"):
 		return XML.Bind(r, obj)
 	}
 
@@ -86,12 +87,35 @@ func Auto(r *http.Request, obj any) (err error) {
 // isMultipartForm reports whether r carries a multipart/form-data body, the
 // only multipart type net/http parses into a form.
 func isMultipartForm(r *http.Request) bool {
-	cType := r.Header.Get("Content-Type")
+	_, subType := mediaTypes(r.Header.Get("Content-Type"))
+	return isSubType(subType, "form-data")
+}
+
+// mediaTypes splits a Content-Type header into its lowercased media type and
+// subtype, with any parameters removed: "multipart/form-data; boundary=x" gives
+// ("multipart/form-data", "form-data").
+//
+// A header that cannot be parsed falls back to a plain split, so a malformed
+// value like "multipart/form-data; boundary" still reaches the multipart
+// branch, which reports the real problem.
+func mediaTypes(cType string) (mediaType, subType string) {
 	mediaType, _, err := mime.ParseMediaType(cType)
 	if err != nil {
-		// malformed header: keep accepting the historical loose match
-		return strings.Contains(cType, "/form-data")
+		mediaType = strings.ToLower(cType)
+		if p := strings.IndexByte(mediaType, ';'); p != -1 {
+			mediaType = mediaType[:p]
+		}
 	}
 
-	return mediaType == "multipart/form-data"
+	if p := strings.IndexByte(mediaType, '/'); p != -1 {
+		return mediaType, mediaType[p+1:]
+	}
+	return mediaType, ""
+}
+
+// isSubType reports whether a media subtype names want: the token itself
+// ("json"), a structured suffix ("vnd.api+json") or a dash variant
+// ("json-patch", accepted long before this check was explicit).
+func isSubType(subType, want string) bool {
+	return strings.HasPrefix(subType, want) || strings.HasSuffix(subType, "+"+want)
 }

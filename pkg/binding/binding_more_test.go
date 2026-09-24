@@ -152,6 +152,96 @@ func TestAuto_UnknownContentType_Errors(t *testing.T) {
 	assert.True(t, strings.Contains(err.Error(), "cannot auto binding"))
 }
 
+// ----- Auto content-type matching ---------------------------------
+
+// The subtype drives the dispatch, so parameters and the "+json" / "+xml"
+// structured syntax suffixes are handled too.
+func TestAuto_JSONSubtypeVariants(t *testing.T) {
+	withMockValidator(t, &mockValidator{})
+
+	for _, cType := range []string{
+		"application/json",
+		"application/json; charset=utf-8",
+		"APPLICATION/JSON",
+		"text/json",
+		"application/json-patch",
+		"application/vnd.api+json",
+		"application/problem+json",
+	} {
+		req, _ := http.NewRequest("POST", "/", strings.NewReader(userJSON))
+		req.Header.Set("Content-Type", cType)
+
+		u := &User{}
+		assert.NoErr(t, binding.Auto(req, u), cType)
+		assert.Eq(t, 12, u.Age, cType)
+		assert.Eq(t, "inhere", u.Name, cType)
+	}
+}
+
+func TestAuto_XMLSubtypeVariants(t *testing.T) {
+	withMockValidator(t, &mockValidator{})
+
+	for _, cType := range []string{
+		"text/xml",
+		"application/xml",
+		"application/atom+xml",
+	} {
+		req, _ := http.NewRequest("POST", "/", strings.NewReader(userXML))
+		req.Header.Set("Content-Type", cType)
+
+		u := &User{}
+		assert.NoErr(t, binding.Auto(req, u), cType)
+		assert.Eq(t, 12, u.Age, cType)
+	}
+}
+
+func TestAuto_FormSubtypeVariants(t *testing.T) {
+	withMockValidator(t, &mockValidator{})
+
+	for _, cType := range []string{
+		"application/x-www-form-urlencoded",
+		"application/x-www-form-urlencoded; charset=UTF-8",
+	} {
+		req, _ := http.NewRequest("POST", "/", strings.NewReader(userQuery))
+		req.Header.Set("Content-Type", cType)
+
+		u := &User{}
+		assert.NoErr(t, binding.Auto(req, u), cType)
+		assert.Eq(t, 12, u.Age, cType)
+	}
+}
+
+// A header that mime.ParseMediaType rejects still dispatches on the subtype, so
+// the branch is reached and the real problem surfaces instead of "cannot auto
+// binding".
+func TestAuto_MalformedContentType(t *testing.T) {
+	req, _ := http.NewRequest("POST", "/", strings.NewReader(userQuery))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset")
+
+	err := binding.Auto(req, &User{})
+	assert.Err(t, err)
+	assert.True(t, !strings.Contains(err.Error(), "cannot auto binding"), err.Error())
+}
+
+func TestAuto_MissingContentType_Errors(t *testing.T) {
+	req, _ := http.NewRequest("POST", "/", strings.NewReader(userQuery))
+
+	err := binding.Auto(req, &User{})
+	assert.Err(t, err)
+	assert.True(t, strings.Contains(err.Error(), "cannot auto binding"))
+}
+
+// The match is on the subtype token, not on any occurrence of "json", so an
+// unrelated media type never reaches the JSON binder.
+func TestAuto_UnrelatedSubtypeStaysUnbound(t *testing.T) {
+	req, _ := http.NewRequest("POST", "/", strings.NewReader(userJSON))
+	req.Header.Set("Content-Type", "application/x-json")
+
+	err := binding.Auto(req, &User{})
+	assert.Err(t, err)
+	assert.True(t, strings.Contains(err.Error(), "cannot auto binding"))
+}
+
 // ----- FormBinder.Bind (direct, not via Auto) ---------------------
 
 func TestFormBinder_Bind(t *testing.T) {

@@ -11,6 +11,14 @@
   follow the form value rules: the `form` tag (first comma part) or the field name,
   a dotted path for nested structs, flattened embedded structs and `-` to opt out
 
+### Changed
+
+- **`binding`**: `Auto` picks the binder from the parsed media type instead of a
+  substring match on the raw header. A `+json` / `+xml` structured suffix now binds
+  (`application/vnd.api+json`, `application/problem+json`, `application/atom+xml`),
+  parameters are ignored as before, and a malformed header still reaches the right
+  branch so the real parse error surfaces instead of `cannot auto binding`
+
 ### Fixed
 
 - **`binding`**: a multipart request dropped its uploads (issue #186). `Auto` only
