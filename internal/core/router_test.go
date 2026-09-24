@@ -1,6 +1,7 @@
 package core
 
 import (
+	"net/http/httptest"
 	"strings"
 	"testing"
 
@@ -140,9 +141,42 @@ func TestRouter_Use_AddsToGlobalChain(t *testing.T) {
 	assert.Eq(t, 1, len(r.globalChain))
 }
 
-func TestRouter_UseAfterRouteRegistration_Panics(t *testing.T) {
+// Use is not order-restricted before Freeze: the global chain is merged when the
+// router freezes, so a late Use covers routes registered earlier too.
+func TestRouter_UseAfterRouteRegistration_AppliesToAllRoutes(t *testing.T) {
 	r := New()
-	r.GET("/x", func(c *Context) {})
+	var order []string
+
+	r.GET("/early", func(c *Context) {
+		order = append(order, "early")
+		c.Text(200, "early")
+	})
+	r.Use(func(c *Context) {
+		order = append(order, "global")
+		c.Next()
+	})
+	r.GET("/late", func(c *Context) {
+		order = append(order, "late")
+		c.Text(200, "late")
+	})
+
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, httptest.NewRequest("GET", "/early", nil))
+	assert.Eq(t, 200, w.Code)
+	assert.Eq(t, "global,early", strings.Join(order, ","))
+
+	order = nil
+	w = httptest.NewRecorder()
+	r.ServeHTTP(w, httptest.NewRequest("GET", "/late", nil))
+	assert.Eq(t, "global,late", strings.Join(order, ","))
+
+	// It also reaches the fallback chains.
+	order = nil
+	serve := httptest.NewRecorder()
+	r.ServeHTTP(serve, httptest.NewRequest("GET", "/missing", nil))
+	assert.Eq(t, "global", strings.Join(order, ","))
+
+	// After the first request (frozen) it still panics.
 	assert.Panics(t, func() {
 		r.Use(func(c *Context) {})
 	})

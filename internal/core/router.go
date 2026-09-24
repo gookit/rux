@@ -385,16 +385,20 @@ func (r *Router) Group(prefix string, fn func(), middles ...HandlerFunc) {
 	r.currentGroupHandlers = prevHandlers
 }
 
-// Use appends global middleware. Per Q6 of the design, Use must be called
-// before any route registration, including helpers that register routes on your
-// behalf (static file routes, health-check mounting); calling it later panics.
+// Use appends global middleware.
+//
+// It may be called any time before the router freezes (that is, before the first
+// request); after that it panics. Declaring global middleware before your routes
+// is still the clearest style, but the order is not enforced: global middleware
+// is merged into every route chain when the router freezes, so a later Use call
+// also covers routes that were registered earlier.
+//
+// Note: this means a Use call written inside a Group closure is global, not
+// group-scoped. Pass middleware to Group (or use Group.Use on a Group value) when
+// you want it to apply to that group only.
 func (r *Router) Use(handlers ...HandlerFunc) {
 	if r.frozen.Load() {
 		panic("rux: cannot Use after router is frozen")
-	}
-	if len(r.routeList) > 0 {
-		panic("rux: Use must be called before any route registration (Q6); " +
-			"route-registering helpers such as static-file routes or health checks count as registration")
 	}
 	r.globalChain = append(r.globalChain, handlers...)
 }

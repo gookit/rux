@@ -72,31 +72,26 @@ Most users never accessed these directly — no action needed.
 `route.Handler()` and `route.Handlers()` accessors continue to work
 (handler is now last element of chain).
 
-### 4. `Use()` must precede route registration
+### 4. `Use()` ordering
+
+Global middleware is merged into every route chain when the router freezes (on the
+first request), so `Use` works at any point before that, including after routes were
+registered — v1's retroactive behaviour is back:
 
 ```go
-// v1 — worked retroactively
 r.GET("/x", h)
-r.Use(mw)
-
-// v2 — panics
-r.GET("/x", h)
-r.Use(mw) // panic: rux: Use must be called before any route registration
+r.Use(mw) // fine: mw applies to /x as well, and to anything registered later
 ```
 
-Move all `Use()` calls to the top of your setup.
+Earlier v2 releases (v2.0.x – v2.1.0) panicked here with
+`rux: Use must be called before any route registration (Q6)`; that restriction is
+gone. Two things to keep in mind:
 
-Route-registering helpers count as registration too, so the order matters with them
-as well: `StaticFile` / `StaticDir` / `StaticFS` / `StaticFiles`, `Group` /
-`Controller` / `Resource`, and the `server` package's `MountHealthChecks()` (which
-registers `/healthz` and `/readyz`). A setup like
-
-```go
-s.MountHealthChecks() // registers routes
-s.Use(auth)           // panic: Use must be called before any route registration
-```
-
-has to be written the other way round: `Use` first, then mount.
+- once the first request has been served the router is frozen and `Use` panics with
+  `rux: cannot Use after router is frozen`, so configure middleware during setup
+- `Use` is always global: written inside a `Group` closure it applies to every
+  route, not just that group. Pass middleware to `Group` (or `Group.Use` on a group
+  value) when you want group scope.
 
 ### 5. Routes become read-only after first request
 

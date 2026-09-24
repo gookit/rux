@@ -225,11 +225,12 @@ rux support use middleware, allow:
 
 Fallback responses use the same order: the `NotFound` (404) and `NotAllowed` (405) handlers run **after** the global middleware chain, so authentication, security headers and request logging also cover unknown paths and method mismatches. Like `Use`, both must be registered before the first request (the composed chains are built when the router freezes).
 
-`Use` must be called before any route registration, and route-registering helpers
-count as registration: `StaticFile` / `StaticDir` / `StaticFS` / `StaticFiles`, the
-`Group` / `Controller` / `Resource` helpers, and `server.MountHealthChecks()`. Calling
-`Use` after them panics with `rux: Use must be called before any route registration (Q6)`,
-so declare global middleware first and mount the rest afterwards.
+`Use` may be called any time before the first request: global middleware is merged
+into every route chain when the router freezes, so a `Use` call also covers routes
+that were registered before it. Declaring it before your routes is still the
+clearest style (and the only option after the first request, which panics). Note
+that this makes `Use` inside a `Group` closure global, not group-scoped; pass
+middleware to `Group` for group scope.
 
 Examples:
 
@@ -676,17 +677,17 @@ func main() {
 	s := server.New(false) // false = no debug logging
 	s.Addr = ":8080"
 
-	// Global middleware first: Use must precede any route registration.
+	// Global middleware. Use works any time before the first request; declaring
+	// it up front is the clearest style.
 	s.Use(myAuthMiddleware)
 
-	// Then the routes, health checks included (they are routes too).
+	// The routes, health checks included.
 	s.GET("/", func(c *rux.Context) {
 		c.Text(200, "hello")
 	})
 
 	// Optional liveness/readiness endpoints under /healthz and /readyz.
-	// Mount after Use: mounting registers routes, and the global chain then
-	// covers them as well.
+	// The global chain covers them too.
 	s.MountHealthChecks()
 
 	// Optional lifecycle hooks (warm caches, validate config, etc.).

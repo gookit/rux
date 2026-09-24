@@ -65,11 +65,21 @@ func TestFormatPath_AddsLeadingSlash(t *testing.T) {
 // Use / Group panics + nested
 // =========================================================================
 
-func TestRouter_Use_AfterRouteRegistration_Panics(t *testing.T) {
+// Use after route registration is allowed (the global chain is merged at Freeze
+// and covers the earlier routes); only a frozen router rejects it.
+func TestRouter_Use_AfterRouteRegistration_IsAllowed(t *testing.T) {
 	r := New()
-	r.GET("/x", func(c *Context) {})
-	defer func() { assert.NotNil(t, recover()) }()
-	r.Use(func(c *Context) {})
+	hit := false
+	r.GET("/x", func(c *Context) { c.Text(200, "x") })
+	r.Use(func(c *Context) {
+		hit = true
+		c.Next()
+	})
+
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, httptest.NewRequest("GET", "/x", nil))
+	assert.Eq(t, 200, w.Code)
+	assert.True(t, hit, "middleware registered after the route must still run")
 }
 
 func TestRouter_Use_AfterFreeze_Panics(t *testing.T) {

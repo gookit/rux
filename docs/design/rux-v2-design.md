@@ -1081,7 +1081,7 @@ BenchmarkV2_Parallel_Param
 | Q3 | `c.Params()` 返回 `*Params` 还是 `Params`（值拷贝） | **`*Params`**（避免 16-Param 数组拷贝开销） |
 | Q4 | 是否保留 `pkg/binding`/`pkg/render` 的 v1 风格 API | **保留**，仅适配新 Context |
 | Q5 | 是否提供 v1 -> v2 自动迁移工具（`gofmt -r` 风格） | **暂不提供**，文档迁移指南足够 |
-| Q6 | 全局中间件能否在路由注册之间插入（顺序敏感） | **不能**：v2 要求 `Use` 全部在路由注册前；之后 `Use` panic（更安全的强约束） |
+| Q6 | 全局中间件能否在路由注册之间插入（顺序敏感） | **不能**：v2 要求 `Use` 全部在路由注册前；之后 `Use` panic（更安全的强约束）。**后续已放宽**：全局链是在 Freeze 时才合并的，所以 `Use` 在首个请求之前任意时刻调用都生效（并覆盖之前注册的路由），只有冻结之后才 panic —— 见 docs/MIGRATION-v1-to-v2.md §4 |
 | Q7 | `OnError`/`OnPanic` 是否仍为单 handler | **保持单 handler**（与 v1 一致） |
 
 ---
