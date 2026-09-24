@@ -1,5 +1,85 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- **core**: `Use` may be called at any point before the first request, not only
+  before route registration. The global chain is merged when the router freezes, so
+  a late `Use` also covers routes registered earlier (v1's retroactive behaviour),
+  which removes the trap where a helper such as `server.MountHealthChecks()`
+  registered routes and made a later `Use` panic. Registering middleware after the
+  first request still panics, and note that `Use` inside a `Group` closure is
+  global rather than group-scoped.
+
+### Documentation
+
+- middleware ordering (including route-registering helpers) and the `pkg/sse`
+  defaults (`SendConnected=true`, `KeepaliveInterval=0`, `Hooks=nil`) are spelled
+  out in both READMEs, the package docs and the migration guide
+
+## v2.1.0 — 2026-09-23
+
+### Added
+
+- **core**: `Bind` / `ServeListener` / `Listener` / `ListenAddr` / `ListenPort`, so
+  the router reports the address it actually bound (an OS-assigned `:0` included)
+  and can serve on a caller-owned listener
+- **core**: `Group` value form: `r.NewGroup("/api", auth())` returns a `*Group` with
+  the verb shortcuts, `Add` / `AddNamed` / `Any`, `Use` and the static helpers. The
+  closure form is unchanged and both share one registration path
+- **core**: value-taking options `WithStrictLastSlash` / `WithEncodedPath` /
+  `WithMethodNotAllowed` / `WithFallbackRoute`; the enable-only names stay as aliases
+- **`server`**: `ListenAddr` / `ListenPort` / `LocalURL` / `IsListening` /
+  `WaitListening` plus `SetListener` / `ServeListener` / `Listener`. The resolved
+  address is reflected into `Addr` / `Host` / `Port`, and `LocalURL` maps wildcard
+  binds (`:0`, `0.0.0.0:0`, `[::]:0`) onto `127.0.0.1` for browser/`--open` use
+- **`handlers`**: `ParamRegex(name, pattern)`, a route middleware that replaces v1's
+  inline regex constraints (`{id:\d+}`) and matches the whole parameter value
+
+### Changed
+
+- **core**: 404 and 405 responses now run the global middleware chain, so auth,
+  security headers and request logging also cover unmatched paths and method
+  mismatches. `NotFound` / `NotAllowed` chains are composed at freeze time, so they
+  must be registered before the first request
+- **`server`**: `Run` waits for the real bind instead of sleeping 50 ms, so
+  `PostStart` hooks always observe the resolved address
+
+### Fixed
+
+- **`server` / `pkg/sse`**: long-lived responses (SSE, WebSocket, large downloads)
+  are no longer cut by `WriteTimeout`. `sse.Stream` / `StreamWith` clear the write
+  deadline of their own response through `http.ResponseController`
+- **`pkg/sse`**: a response writer without `Flusher` now returns
+  `ErrFlushNotSupported` instead of panicking inside `Flush`; non-ASCII event data
+  is no longer garbled (#185)
+- **core**: `StaticDir` / `StaticFS` inside a group stripped the un-prefixed URL and
+  answered 404
+- **core**: the response writer exposes `Unwrap` (so `http.ResponseController`
+  reaches the real writer) and `Hijack` reports a missing `http.Hijacker` instead of
+  panicking
+- **core**: `Err()` and the listen state are mutex-guarded; they used to race the
+  `Listen` goroutine
+
+### Tooling
+
+- `_examples/serve` escapes the request path it echoes, and the `_benchmarks` chi /
+  gorilla fixtures answer with a constant body, which clears the CodeQL
+  `go/reflected-xss` false positive that was attributed to the framework's response
+  writer
+- `_examples/go.mod` refreshed; it had been stale since rux moved to goutil 0.8.0
+
+## v2.0.2 — 2026-06-19
+
+- **core**: flush the recorded status before `Hijack`, so a WebSocket 101 handshake
+  reaches the client
+- **`binding`**: drop the direct `validate` dependency
+
+## v2.0.1 — 2026-06-02
+
+- dependency, test-helper and deployment chores only
+
 ## v2.0.0 — 2026-05-18 (Breaking Changes)
 
 Clean-room rewrite focused on extreme performance, with new built-in
