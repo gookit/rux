@@ -3,7 +3,6 @@ package handlers
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -124,8 +123,8 @@ func TestRequestLogger(t *testing.T) {
 	ris.Eq(200, w.Code)
 	ris.Eq("hello", w.Body.String())
 
-	// out = restoreStdout()
-	// ris.Eq(out, "")
+	// discard the captured log output and restore stdout for the remaining tests
+	restoreStdout()
 }
 
 /*************************************************************
@@ -197,7 +196,7 @@ func restoreStdout() string {
 	oldStdout = nil
 
 	// read data
-	out, _ := ioutil.ReadAll(newReader)
+	out, _ := io.ReadAll(newReader)
 
 	// close reader
 	_ = newReader.Close()

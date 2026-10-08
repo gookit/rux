@@ -33,7 +33,7 @@ var internal405Handler HandlerFunc = func(c *Context) {
 	if c.Req.Method == OPTIONS {
 		c.Resp.WriteHeader(200)
 	} else {
-		http.Error(c.Resp, "Method not allowed", 405)
+		http.Error(c.Resp, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 }
 

@@ -85,11 +85,7 @@ func TestSkipperHandler(t *testing.T) {
 	var allowURL = &SkipperAllowURLConfig{}
 
 	allowURL.Skipper = func(c *rux.Context) bool {
-		if c.URL().Path == "/test4" {
-			return true
-		}
-
-		return false
+		return c.URL().Path == "/test4"
 	}
 
 	r.GET("/test1", DumpRoutesHandler(), allowURL.Check())
