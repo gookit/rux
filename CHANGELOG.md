@@ -1,5 +1,15 @@
 # Changelog
 
+## v2.1.3 — 2026-10-08
+
+### Fixed
+
+- **core**: flushing a response after an explicit `WriteHeader` committed HTTP
+  200 instead of the recorded status, and the following body write logged a
+  superfluous `WriteHeader` warning. The deferred status is now sent before the
+  underlying writer flushes; a writer that cannot flush still keeps its status
+  deferred, so the handler can send an error response (#187)
+
 ## v2.1.2 — 2026-09-24
 
 ### Added
