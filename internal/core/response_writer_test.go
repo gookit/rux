@@ -167,7 +167,6 @@ func TestResponseWriter_Flush_HTTP(t *testing.T) {
 			assert.NoErr(t, err)
 			assert.Eq(t, http.StatusCreated, resp.StatusCode)
 			assert.Eq(t, "body", string(body))
-			server.Close()
 			assert.Eq(t, "", serverLog.String())
 		})
 	}
