@@ -54,10 +54,25 @@ func (w *responseWriter) Flush() {
 // over Flush, so wrappers like sse.Stream can report a clean
 // ErrFlushNotSupported even though this wrapper always implements Flusher.
 //
-// Delegating to the controller also covers middlewares that wrap the writer
-// without promoting Flusher but do expose Unwrap.
+// Follow Unwrap chains to find flush support before committing the status.
+// Unsupported writers must still allow the handler to send an error response.
 func (w *responseWriter) FlushError() error {
-	return http.NewResponseController(w.Writer).Flush()
+	writer := w.Writer
+	for {
+		switch v := writer.(type) {
+		case interface{ FlushError() error }:
+			w.ensureWriteHeader()
+			return v.FlushError()
+		case http.Flusher:
+			w.ensureWriteHeader()
+			v.Flush()
+			return nil
+		case interface{ Unwrap() http.ResponseWriter }:
+			writer = v.Unwrap()
+		default:
+			return http.NewResponseController(writer).Flush()
+		}
+	}
 }
 
 // Unwrap exposes the wrapped writer so http.ResponseController (and anything

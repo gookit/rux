@@ -2,6 +2,10 @@ package core
 
 import (
 	"bufio"
+	"bytes"
+	"errors"
+	"io"
+	"log"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -40,6 +44,133 @@ func TestResponseWriter_EnsureWriteHeader_RespectsExplicitStatus(t *testing.T) {
 	rw.WriteHeader(404)
 	rw.ensureWriteHeader()
 	assert.Eq(t, 404, w.Code)
+}
+
+type flushStatusWriter struct {
+	http.ResponseWriter
+	statuses []int
+}
+
+func (w *flushStatusWriter) WriteHeader(status int) {
+	w.statuses = append(w.statuses, status)
+	w.ResponseWriter.WriteHeader(status)
+}
+
+func (w *flushStatusWriter) Unwrap() http.ResponseWriter { return w.ResponseWriter }
+
+type flushErrorStatusWriter struct {
+	*flushStatusWriter
+	err error
+}
+
+func (w *flushErrorStatusWriter) FlushError() error {
+	_ = http.NewResponseController(w.ResponseWriter).Flush()
+	return w.err
+}
+
+func (w *flushErrorStatusWriter) Flush() { panic("FlushError must take precedence") }
+
+func TestResponseWriter_Flush_CommitsStatus(t *testing.T) {
+	for _, status := range []int{0, http.StatusCreated} {
+		name := "implicit OK"
+		if status != 0 {
+			name = http.StatusText(status)
+		}
+		for _, method := range []string{"Flush", "FlushError", "ResponseController"} {
+			t.Run(name+"/"+method, func(t *testing.T) {
+				rec := httptest.NewRecorder()
+				writer := &flushStatusWriter{ResponseWriter: rec}
+				var rw responseWriter
+				rw.reset(writer)
+				rw.WriteHeader(status)
+				switch method {
+				case "Flush":
+					rw.Flush()
+				case "FlushError":
+					assert.NoErr(t, rw.FlushError())
+				case "ResponseController":
+					assert.NoErr(t, http.NewResponseController(&rw).Flush())
+				}
+				want := status
+				if want == 0 {
+					want = http.StatusOK
+				}
+				assert.Eq(t, want, rec.Code)
+				assert.Eq(t, []int{want}, writer.statuses)
+				assert.Eq(t, want, rw.Status())
+				assert.True(t, rec.Flushed)
+				assert.True(t, rw.Written())
+				assert.Eq(t, 0, rw.Length())
+				n, err := rw.Write([]byte("body"))
+				assert.NoErr(t, err)
+				assert.Eq(t, 4, n)
+				assert.NoErr(t, rw.FlushError())
+				assert.Eq(t, 4, rw.Length())
+				assert.Eq(t, "body", rec.Body.String())
+				assert.Eq(t, []int{want}, writer.statuses)
+			})
+		}
+	}
+}
+
+func TestResponseWriter_FlushError_PreservesErrors(t *testing.T) {
+	t.Run("supported flush returns its error", func(t *testing.T) {
+		errFlush := errors.New("flush failed")
+		writer := &flushErrorStatusWriter{
+			flushStatusWriter: &flushStatusWriter{ResponseWriter: httptest.NewRecorder()},
+			err:               errFlush,
+		}
+		var rw responseWriter
+		rw.reset(writer)
+		rw.WriteHeader(http.StatusCreated)
+		assert.Same(t, errFlush, rw.FlushError())
+		assert.Eq(t, []int{http.StatusCreated}, writer.statuses)
+		assert.True(t, rw.Written())
+	})
+	t.Run("unsupported flush leaves the status deferred", func(t *testing.T) {
+		writer := &flushStatusWriter{ResponseWriter: struct{ http.ResponseWriter }{httptest.NewRecorder()}}
+		var rw responseWriter
+		rw.reset(writer)
+		rw.WriteHeader(http.StatusCreated)
+		assert.True(t, errors.Is(rw.FlushError(), http.ErrNotSupported))
+		assert.Empty(t, writer.statuses)
+		assert.False(t, rw.Written())
+	})
+}
+
+func TestResponseWriter_Flush_HTTP(t *testing.T) {
+	for _, controller := range []bool{false, true} {
+		t.Run(map[bool]string{false: "Flusher", true: "ResponseController"}[controller], func(t *testing.T) {
+			var serverLog bytes.Buffer
+			server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				var rw responseWriter
+				rw.reset(w)
+				rw.WriteHeader(http.StatusCreated)
+				if controller {
+					assert.NoErr(t, http.NewResponseController(&rw).Flush())
+				} else {
+					rw.Flush()
+				}
+				_, err := rw.Write([]byte("body"))
+				assert.NoErr(t, err)
+			}))
+			server.Config.ErrorLog = log.New(&serverLog, "", 0)
+			server.Start()
+			defer server.Close()
+			resp, err := server.Client().Get(server.URL)
+			assert.NoErr(t, err)
+			if err != nil {
+				return
+			}
+			defer resp.Body.Close()
+			body, err := io.ReadAll(resp.Body)
+			assert.NoErr(t, err)
+			assert.Eq(t, http.StatusCreated, resp.StatusCode)
+			assert.Eq(t, "body", string(body))
+			server.Close()
+			assert.Eq(t, "", serverLog.String())
+		})
+	}
 }
 
 // fakeHijacker is a ResponseWriter test double that records WriteHeader calls
