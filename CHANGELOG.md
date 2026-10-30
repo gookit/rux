@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- **core**: the lazy `Freeze` marked the router frozen before it had built the
+  route chains, so concurrent first requests raced with it (`-race` reported a
+  DATA RACE) and could run an unfinished chain. `Freeze` now publishes the
+  frozen state only after the build is complete, and concurrent callers wait for it
+
 ## v2.1.3 — 2026-10-08
 
 ### Fixed
