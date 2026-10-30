@@ -58,8 +58,11 @@ type Router struct {
 	handleMethodNotAllowed bool
 	handleFallbackRoute    bool
 
-	frozen  atomic.Bool
-	counter int
+	frozen atomic.Bool
+	// freezeOnce makes concurrent Freeze callers wait until the build is done;
+	// frozen is only published afterwards.
+	freezeOnce sync.Once
+	counter    int
 
 	ctxPool sync.Pool
 
@@ -135,9 +138,16 @@ func HandleFallbackRoute(r *Router)    { WithFallbackRoute(true)(r) }
 // fallback chains (also globalChain-first) and mirrors GET routes onto HEAD.
 // Idempotent — safe to call multiple times.
 func (r *Router) Freeze() {
-	if !r.frozen.CompareAndSwap(false, true) {
+	if r.frozen.Load() {
 		return
 	}
+	// Concurrent callers block in Do until the first one finished building;
+	// frozen is published only after every chain is complete.
+	r.freezeOnce.Do(r.buildFrozen)
+}
+
+// buildFrozen does the actual Freeze work, then marks the router frozen.
+func (r *Router) buildFrozen() {
 	for _, route := range r.routeList {
 		if len(r.globalChain) == 0 {
 			route.finalChain = route.chain
@@ -156,6 +166,7 @@ func (r *Router) Freeze() {
 	r.noAllowedChain = r.mergeGlobal(r.noAllowed, internal405Handler)
 
 	r.mirrorGetToHead()
+	r.frozen.Store(true)
 }
 
 // mergeGlobal returns globalChain followed by chain, substituting def when

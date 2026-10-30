@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/gookit/goutil/x/assert"
@@ -233,3 +235,57 @@ func TestListenUnix_RecordsRemoveOrListenErr(t *testing.T) {
 
 // Stop the orphan import deletion: net is needed by the Listen tests above.
 var _ = net.IPv4zero
+
+// TestServeHTTP_ConcurrentFirstRequests fires the very first requests from many
+// goroutines at once, so the lazy Freeze runs while other requests are already
+// dispatching. Every request must see fully built chains.
+func TestServeHTTP_ConcurrentFirstRequests(t *testing.T) {
+	r := New()
+	var mwCount atomic.Int64
+	r.Use(func(c *Context) {
+		mwCount.Add(1)
+		c.Next()
+	})
+	r.GET("/a", textHandler("a"))
+	r.GET("/b", textHandler("b"))
+	r.GET("/users/{id}", textHandler("user"))
+	r.POST("/c", textHandler("c"))
+
+	cases := []struct{ method, path, body string }{
+		{"GET", "/a", "a"},
+		{"GET", "/b", "b"},
+		{"GET", "/users/7", "user"},
+		{"POST", "/c", "c"},
+	}
+
+	const perCase = 16
+	total := perCase * len(cases)
+
+	var wg sync.WaitGroup
+	start := make(chan struct{})
+	errs := make(chan string, total)
+	for _, tc := range cases {
+		for i := 0; i < perCase; i++ {
+			wg.Add(1)
+			go func(method, path, want string) {
+				defer wg.Done()
+				<-start // gate: all goroutines begin together
+
+				w := httptest.NewRecorder()
+				r.ServeHTTP(w, httptest.NewRequest(method, path, nil))
+				if w.Code != 200 || w.Body.String() != want {
+					errs <- method + " " + path + " got " + w.Body.String()
+				}
+			}(tc.method, tc.path, tc.body)
+		}
+	}
+	close(start)
+	wg.Wait()
+	close(errs)
+
+	for msg := range errs {
+		t.Error(msg)
+	}
+	assert.Eq(t, int64(total), mwCount.Load())
+	assert.True(t, r.Frozen())
+}
